@@ -22,6 +22,10 @@ window.SK_ROOM = (function () {
   let enteredAt = 0, rounds = 1, nudged = false, inSince = 0, throws = [], tonttuUntil = 0, lastTonttu = 0, soundOn = true, lastStarter = -1, quiz = null, duel = null, person = null;
   const channels = {}, subscribed = {}, counts = {}, metasByRoom = {}, watchers = {};
   let figure = { hat: 'none', towel: -1 };
+  let faces = {}, reactBarFor = null;
+  const MOODS = [['😂','laugh'],['😍','love'],['😎','cool'],['😮‍💨','relax'],['😴','sleepy'],['🥵','hot'],['🥶','cold'],['🤔','think'],['😮','wow'],['🍺','beer']];
+  const EMOJIS = ['😀','😂','😍','😎','😅','🤗','😮','🙏','👍','👏','❤️','🔥','💧','🌿','❄️','🧊','🍺','☕','🧖','🏊','🌲','🌙','⭐','🎉'];
+  const MREACTS = ['❤️','🔥','😂','👍','🥶'];
   try { soundOn = localStorage.getItem('saunakaverit.sound') !== 'off'; figure = Object.assign(figure, JSON.parse(localStorage.getItem('saunakaverit.figure') || '{}')); } catch (e) {}
   const L = (o) => ctx && ctx.lang() === 'en' ? o.en : o.fi;
   const LP = (pair) => ctx && ctx.lang() === 'en' ? pair[1] : pair[0];
@@ -238,16 +242,32 @@ window.SK_ROOM = (function () {
       <path d="M-16.5 -68 A16.5 16.5 0 0 0 16.5 -68 A16.5 16.5 0 0 1 -16.5 -68 Z" fill="${skinD}" fill-opacity=".18"/>
       ${hairFor(p, hairC)}
       <circle cx="-9" cy="-62" r="3.6" fill="#e2645a" fill-opacity="${blush}"/><circle cx="9" cy="-62" r="3.6" fill="#e2645a" fill-opacity="${blush}"/>
-      <ellipse cx="-6" cy="-69" rx="2.7" ry="3.4" fill="#2b1d12"/><ellipse cx="6" cy="-69" rx="2.7" ry="3.4" fill="#2b1d12"/>
-      <circle cx="-5" cy="-70.5" r="1" fill="#fff"/><circle cx="7" cy="-70.5" r="1" fill="#fff"/>
-      <path d="M-9.5 -75 q3.5 -2.5 7 0 M2.5 -75 q3.5 -2.5 7 0" stroke="${hairC}" stroke-width="1.4" fill="none" stroke-linecap="round"/>
-      ${mouth}
-      ${hot ? '<path d="M15 -74 q3 5 0 8 q-3 -3 0 -8" fill="#9fd3f5"/><path d="M-17 -60 q2.5 4 0 7 q-2.5 -3 0 -7" fill="#9fd3f5"/>' : ''}
+      ${faceSvg((faces[p.id] && faces[p.id].until > Date.now()) ? faces[p.id].face : '', { hot, cold, hairC, mouth, skin })}
       ${hat}
       </g>
       ${p.first ? `<text x="19" y="-80" font-size="12">🙋</text>` : ''}
       ${label}
     </g>`;
+  }
+  function faceSvg(face, o) {
+    const eyes = `<ellipse cx="-6" cy="-69" rx="2.7" ry="3.4" fill="#2b1d12"/><ellipse cx="6" cy="-69" rx="2.7" ry="3.4" fill="#2b1d12"/><circle cx="-5" cy="-70.5" r="1" fill="#fff"/><circle cx="7" cy="-70.5" r="1" fill="#fff"/>`;
+    const brows = `<path d="M-9.5 -75 q3.5 -2.5 7 0 M2.5 -75 q3.5 -2.5 7 0" stroke="${o.hairC}" stroke-width="1.4" fill="none" stroke-linecap="round"/>`;
+    const sweat = `<path d="M15 -74 q3 5 0 8 q-3 -3 0 -8" fill="#9fd3f5"/><path d="M-17 -60 q2.5 4 0 7 q-2.5 -3 0 -7" fill="#9fd3f5"/>`;
+    const smile = `<path d="M-5 -61 q5 5 10 0" stroke="#5a2d1a" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
+    const happyEyes = `<path d="M-9 -69 q3 -4.5 6 0 M3 -69 q3 -4.5 6 0" stroke="#2b1d12" stroke-width="1.8" fill="none" stroke-linecap="round"/>`;
+    switch (face) {
+      case 'laugh': return `${happyEyes}${brows}<path d="M-7 -62 q7 10 14 0 Z" fill="#5a2d1a"/><path d="M-4 -57.5 q4 2.5 8 0 q-4 3 -8 0 Z" fill="#f28b9b"/><path d="M-7 -62 L7 -62" stroke="#fff" stroke-width="1.6"/><text x="15" y="-84" font-size="9" fill="#fff">ha!</text>`;
+      case 'love': return `<text x="-6" y="-65" text-anchor="middle" font-size="10">❤️</text><text x="6" y="-65" text-anchor="middle" font-size="10">❤️</text>${brows}${smile}`;
+      case 'cool': return `<rect x="-13" y="-73" width="11" height="7" rx="2" fill="#1a1a1a"/><rect x="2" y="-73" width="11" height="7" rx="2" fill="#1a1a1a"/><path d="M-2 -70 L2 -70 M-13 -71 L-16 -72 M13 -71 L16 -72" stroke="#1a1a1a" stroke-width="1.5"/><path d="M-4 -61 q4 3 8 0" stroke="#5a2d1a" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
+      case 'relax': return `${happyEyes}${brows}${smile}<text x="14" y="-80" font-size="10">💨</text>`;
+      case 'sleepy': return `<path d="M-9 -68 q3 2.5 6 0 M3 -68 q3 2.5 6 0" stroke="#2b1d12" stroke-width="1.8" fill="none" stroke-linecap="round"/>${brows}<ellipse cx="0" cy="-60" rx="2" ry="2.6" fill="#5a2d1a"/><text x="13" y="-84" font-size="9" fill="#fff" font-family="Inter,sans-serif">z z</text>`;
+      case 'hot': return `${eyes}${brows}<ellipse cx="0" cy="-59" rx="3.5" ry="3" fill="#5a2d1a"/>${sweat}`;
+      case 'cold': return `${eyes}${brows}<path d="M-4 -60 q4 -3 8 0" stroke="#4a7fb5" stroke-width="2.2" fill="none"/><text x="13" y="-84" font-size="10">❄️</text>`;
+      case 'think': return `${eyes}<path d="M-9.5 -75 q3.5 -2.5 7 0 M2.5 -79 q3.5 -2.5 7 0" stroke="${o.hairC}" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M-4 -60 L4 -61.5" stroke="#5a2d1a" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="-57" r="4" fill="${o.skin}"/><text x="14" y="-84" font-size="10">💭</text>`;
+      case 'wow': return `<circle cx="-6" cy="-69" r="3.8" fill="#2b1d12"/><circle cx="6" cy="-69" r="3.8" fill="#2b1d12"/><circle cx="-5" cy="-70.5" r="1.3" fill="#fff"/><circle cx="7" cy="-70.5" r="1.3" fill="#fff"/><path d="M-9.5 -78 q3.5 -2.5 7 0 M2.5 -78 q3.5 -2.5 7 0" stroke="${o.hairC}" stroke-width="1.4" fill="none" stroke-linecap="round"/><ellipse cx="0" cy="-59" rx="3" ry="4" fill="#5a2d1a"/>`;
+      case 'beer': return `${happyEyes}${brows}${smile}<rect x="25" y="-26" width="9" height="13" rx="2" fill="#f2b632" stroke="#8a5a1a"/><rect x="25" y="-28" width="9" height="4" rx="2" fill="#fff8e1"/><path d="M34 -22 q5 0 5 4 q0 4 -5 4" stroke="#8a5a1a" stroke-width="1.5" fill="none"/>`;
+      default: return `${eyes}${brows}${o.mouth}${o.hot ? sweat : ''}`;
+    }
   }
   function shade(hex, pct) {
     const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255, f = (v) => Math.max(0, Math.min(255, Math.round(v + (pct / 100) * (pct < 0 ? v : 255 - v))));
@@ -301,6 +321,7 @@ window.SK_ROOM = (function () {
       if (!nudged && me.zone === 'in' && Date.now() - inSince > 15 * 60000) { nudged = true; ctx.toast(ctx.t('nudge')); addLog(`❄️ ${ctx.t('nudge')}`); }
       renderStrip(); renderMeter(); starterTick(); gameTick();
       if (me.crown && me.crown < Date.now()) { me.crown = 0; track(); }
+      const expired = Object.keys(faces).filter(k => faces[k].until <= Date.now()); if (expired.length) { expired.forEach(k => delete faces[k]); placePeople(); }
     }
     for (const s of steam) { s.y -= s.vy * dt / 16; s.x += s.vx * dt / 16; s.r += 0.06 * dt / 16; s.life -= s.decay * dt / 16; }
     steam = steam.filter(s => s.life > 0 && s.y > -40);
@@ -343,13 +364,19 @@ window.SK_ROOM = (function () {
     const box = el.querySelector('#roomLog'); if (box) box.innerHTML = log.map(l => `<div class="logline">${esc(l.text)}</div>`).join('');
   }
   function addChat(m) {
-    m.at = m.at || Date.now(); chat.push(m); chat = chat.slice(-40); renderChat();
+    m.at = m.at || Date.now(); m.mid = m.mid || ((m.id || 's') + '-' + m.at + '-' + Math.random().toString(36).slice(2, 5)); m.reacts = m.reacts || {}; m.who = m.who || {};
+    chat.push(m); chat = chat.slice(-40); renderChat();
   }
   function renderChat() {
     const box = el.querySelector('#chatList'); if (!box) return;
-    box.innerHTML = chat.length ? chat.map(m => `<div class="msg ${m.sys ? 'sys' : ''} ${m.id === pid ? 'mine' : ''}">${m.by ? `<b>${esc(m.by)}</b> ` : ''}${esc(m.text)}<small>${clock(m.at)}</small></div>`).join('') : `<div class="small muted">${esc(ctx.t('chatEmpty'))}</div>`;
-    box.scrollTop = box.scrollHeight;
+    box.innerHTML = chat.length ? chat.map(m => {
+      const reacts = Object.entries(m.reacts).filter(([, n]) => n > 0).map(([e, n]) => `<span class="mr">${e} ${n}</span>`).join('');
+      const bar = reactBarFor === m.mid ? `<div class="mrbar">${MREACTS.map(e => `<button type="button" data-mr="${e}" data-mid="${esc(m.mid)}">${e}</button>`).join('')}</div>` : '';
+      return `<div class="msg ${m.sys ? 'sys' : ''} ${m.id === pid ? 'mine' : ''} ${m.big ? 'big' : ''}" data-mid="${esc(m.mid)}">${m.by ? `<b>${esc(m.by)}</b> ` : ''}${esc(m.text)}<small>${clock(m.at)}</small>${reacts ? `<div class="mrs">${reacts}</div>` : ''}${bar}</div>`;
+    }).join('') : `<div class="small muted">${esc(ctx.t('chatEmpty'))}</div>`;
+    if (!reactBarFor) box.scrollTop = box.scrollHeight;
   }
+  function setFace(id, face, ms) { faces[id] = { face, until: Date.now() + ms }; placePeople(); }
   function renderMasters() {
     const list = Object.entries(masters).sort((a, b) => b[1] - a[1]).slice(0, 5);
     const box = el.querySelector('#masters'); if (!box) return;
@@ -419,7 +446,9 @@ window.SK_ROOM = (function () {
         if (ev.emoji === '🙏') addLog(`🙏 ${by}: ${t('greet')}!`); else if (ev.emoji === '🌿') addLog(`🌿 ${by} ${t('whisked')}`); else addLog(`${ev.emoji} ${by}`);
       }
     }
-    else if (ev.type === 'say') { const text = String(ev.text || '').slice(0, 80); bubbles = bubbles.filter(b => !(b.id === ev.id && b.text)); bubbles.push({ id: ev.id, text, at: now, until: now + 7000 }); addLog(`💬 ${by}: ${text}`); addChat({ id: ev.id, by, text }); if (ev.id !== pid) ding(); }
+    else if (ev.type === 'say') { const text = String(ev.text || '').slice(0, 80); bubbles = bubbles.filter(b => !(b.id === ev.id && b.text)); bubbles.push({ id: ev.id, text, at: now, until: now + 7000 }); addLog(`💬 ${by}: ${text}`); addChat({ id: ev.id, by, text, mid: ev.mid }); if (ev.id !== pid) ding(); }
+    else if (ev.type === 'mood') { const face = String(ev.face || ''); setFace(ev.id, face, 9000); bubbles = bubbles.filter(b => !(b.id === ev.id && b.emoji)); bubbles.push({ id: ev.id, emoji: ev.emoji, at: now, until: now + 3500 }); addChat({ id: ev.id, by, text: ev.emoji, big: true, mid: ev.mid }); if (ev.id !== pid) ding(); }
+    else if (ev.type === 'mreact') { const m = chat.find(x => x.mid === ev.mid); if (!m) return; const key = ev.id + ':' + ev.emoji; if (m.who[key]) return; m.who[key] = true; m.reacts[ev.emoji] = (m.reacts[ev.emoji] || 0) + 1; renderChat(); if (m.id === pid && ev.id !== pid) { ctx.toast(`${ev.emoji} ${by}`); } }
     else if (ev.type === 'quiz') { if (quiz && !quiz.done) return; quiz = { q: ev.q % D.QUIZ.length, at: ev.at || now, by, answers: [], mine: null, done: false, winner: null }; addLog(`🧠 ${by} ${t('quizStarted')}`); addChat({ sys: true, text: `🧠 ${by} ${t('quizStarted')}` }); ding(); renderGame(); }
     else if (ev.type === 'answer') { if (!quiz || ev.q !== quiz.q) return; if (ev.id === pid) quiz.mine = ev.choice; if (!quiz.answers.some(a => a.id === ev.id)) quiz.answers.push({ id: ev.id, by, ok: !!ev.ok }); if (ev.ok && !quiz.winner) { quiz.winner = by; quiz.done = true; quiz.doneAt = now; addLog(`🏆 ${by} ${t('answered')}`); addChat({ sys: true, text: `🏆 ${by} ${t('answered')} · ${t('quiz')}` }); } renderGame(); }
     else if (ev.type === 'duel') { if (duel && !duel.done) return; duel = { at: ev.at || now, by, tally: {}, done: false }; addLog(`💧 ${by} ${t('duelStarted')}`); addChat({ sys: true, text: `💧 ${by} ${t('duelStarted')}` }); ctx.toast(t('duelLive')); ding(); renderGame(); }
@@ -450,7 +479,7 @@ window.SK_ROOM = (function () {
     const prof = ctx.profile();
     const name = prof.name || ctx.t('guest');
     me = { name, seat: SEATS[hash(pid) % SEATS.length].id, zone: 'in', hat: figure.hat, towel: figure.towel, crown: 0, first: !!prof.firstTimer, since: Date.now() };
-    people = []; steam = []; bubbles = []; log = []; chat = []; masters = {}; temp = 80; throws = []; tonttuUntil = 0; lastStarter = -1; quiz = null; duel = null; person = null;
+    people = []; steam = []; bubbles = []; log = []; chat = []; masters = {}; temp = 80; throws = []; tonttuUntil = 0; lastStarter = -1; quiz = null; duel = null; person = null; faces = {}; reactBarFor = null;
     enteredAt = Date.now(); inSince = enteredAt; rounds = 1; nudged = false;
     const t = ctx.t, nx = ctx.next;
     el.innerHTML = `<div class="roomRoot">
@@ -462,29 +491,31 @@ window.SK_ROOM = (function () {
       <div class="meter"><span>🔥 ${esc(t('yhteisloyly'))}</span><div class="bar"><div id="meterFill"></div></div><b id="meterText">0/8</b></div>
       <div class="roomMeta" id="roomMeta"><span>⏱ 0 ${esc(t('min'))} ${esc(t('inRoomFor'))}</span><span>🔁 1. ${esc(t('rounds'))}</span><span>🌡 80°C</span></div>
       <div class="pstrip" id="peopleStrip"></div>
-      <p class="small muted" style="margin:4px 0 8px">${esc(t('tapHint'))}</p>
+      <div class="card chat">
+        <div class="row between"><h3 style="margin:0">💬 ${esc(t('chat'))}</h3><span class="small muted">${esc(t('reactHint'))}</span></div>
+        <div id="chatList" class="chatList"></div>
+        <div class="moods"><span class="small muted">${esc(t('mood'))}</span>${MOODS.map(m => `<button class="chipbtn mood" data-mood="${m[1]}" data-emo="${m[0]}">${m[0]}</button>`).join('')}</div>
+        <div class="phrases">${D.PHRASES.map(p => `<button class="chipbtn" data-phrase="${esc(p[0])}" title="${esc(p[1])}">${esc(p[0])}${ctx.lang() === 'en' ? ` <small>· ${esc(p[1])}</small>` : ''}</button>`).join('')}</div>
+        <form class="row" id="sayForm" style="margin-top:8px">
+          <button type="button" class="chipbtn" id="emojiBtn" title="Emoji">😊</button>
+          <input id="sayInput" maxlength="80" placeholder="${esc(t('sayPh'))}" style="flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:9px 14px">
+          <button class="btn small" type="submit">${esc(t('send'))}</button>
+        </form>
+        <div class="emojiGrid" id="emojiGrid" style="display:none">${EMOJIS.map(e => `<button type="button" data-ins="${e}">${e}</button>`).join('')}</div>
+      </div>
       <div class="card personBar" id="personBar" style="display:none"></div>
       <div class="card gameBox" id="gameBox" style="display:none"></div>
+      <p class="small muted" style="margin:4px 0 8px">${esc(t('tapHint'))}</p>
       <div class="pill-row" style="margin:8px 0">
         <button class="btn small" data-act="loyly">💧 ${esc(t('throwLoyly'))}</button>
         <button class="btn small secondary" data-act="vihta">🌿 ${esc(t('vihta'))}</button>
         <button class="btn small secondary" data-act="cool" id="coolBtn">❄️ ${esc(t('coolOff'))}</button>
         <button class="btn small secondary" data-act="greet">🙏 ${esc(t('greet'))}</button>
         <button class="btn small secondary" data-act="figure">🎭 ${esc(t('myFigure'))}</button>
+        <button class="btn small lake" data-act="quiz">🧠 ${esc(t('quiz'))}</button>
+        <button class="btn small lake" data-act="duel">💧 ${esc(t('duel'))}</button>
       </div>
       <div class="card figureBar" id="figureBar" style="display:none"></div>
-      <div class="pill-row emo">${['😮‍💨','😌','🔥','❄️','🍺','😂'].map(e => `<button class="chipbtn" data-act="emo" data-emo="${e}">${e}</button>`).join('')}
-        <span class="small muted" style="align-self:center;margin-left:4px">${esc(t('games'))}:</span>
-        <button class="chipbtn" data-act="quiz">🧠 ${esc(t('quiz'))}</button><button class="chipbtn" data-act="duel">💧 ${esc(t('duel'))}</button></div>
-      <div class="card chat">
-        <h3 style="margin-bottom:6px">💬 ${esc(t('chat'))}</h3>
-        <div id="chatList" class="chatList"></div>
-        <div class="phrases">${D.PHRASES.map(p => `<button class="chipbtn" data-phrase="${esc(p[0])}" title="${esc(p[1])}">${esc(p[0])}${ctx.lang() === 'en' ? ` <small>· ${esc(p[1])}</small>` : ''}</button>`).join('')}</div>
-        <form class="row" id="sayForm" style="margin-top:8px">
-          <input id="sayInput" maxlength="80" placeholder="${esc(t('sayPh'))}" style="flex:1;border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:9px 14px">
-          <button class="btn small" type="submit">${esc(t('send'))}</button>
-        </form>
-      </div>
       ${nx ? `<div class="card nextCard" data-open="${esc(nx.id)}"><div><div class="small muted">🔥 ${esc(t('nextSauna'))}</div><b>${esc(nx.text)}</b></div><span class="btn small">${esc(nx.cta)} →</span></div>` : ''}
       <div class="grid2">
         <div class="card" style="margin:6px 0"><h3>${esc(t('loylyMasters'))}</h3><div id="masters"></div></div>
@@ -538,13 +569,18 @@ window.SK_ROOM = (function () {
       const hat = e.target.closest('[data-hat]'); if (hat) { me.hat = hat.dataset.hat; figure.hat = me.hat; saveFigure(); track(); showFigure(); showFigure(); return; }
       const tw = e.target.closest('[data-towel]'); if (tw) { me.towel = +tw.dataset.towel; figure.towel = me.towel; saveFigure(); track(); showFigure(); showFigure(); return; }
       const qa = e.target.closest('[data-qa]'); if (qa && quiz && !quiz.done && quiz.mine == null) { const c = +qa.dataset.qa; send({ type: 'answer', q: quiz.q, choice: c, ok: c === D.QUIZ[quiz.q].a }); return; }
-      const ph = e.target.closest('[data-phrase]'); if (ph) { send({ type: 'say', text: ph.dataset.phrase }); return; }
+      const ph = e.target.closest('[data-phrase]'); if (ph) { send({ type: 'say', text: ph.dataset.phrase, mid: pid + '-' + Date.now() }); return; }
+      const md = e.target.closest('[data-mood]'); if (md) { send({ type: 'mood', face: md.dataset.mood, emoji: md.dataset.emo, mid: pid + '-' + Date.now() }); return; }
+      if (e.target.closest('#emojiBtn')) { const g = el.querySelector('#emojiGrid'); g.style.display = g.style.display === 'none' ? '' : 'none'; return; }
+      const ins = e.target.closest('[data-ins]'); if (ins) { const inp = el.querySelector('#sayInput'); inp.value = (inp.value + ins.dataset.ins).slice(0, 80); inp.focus(); return; }
+      const mr = e.target.closest('[data-mr]'); if (mr) { send({ type: 'mreact', mid: mr.dataset.mid, emoji: mr.dataset.mr }); reactBarFor = null; renderChat(); return; }
+      const msg = e.target.closest('.msg[data-mid]'); if (msg && !msg.classList.contains('sys')) { reactBarFor = reactBarFor === msg.dataset.mid ? null : msg.dataset.mid; renderChat(); return; }
       const b = e.target.closest('[data-act]'); if (!b) return;
       if (b.dataset.act === 'loyly') { if (Date.now() - (root._lastLoyly || 0) < 1500) return; root._lastLoyly = Date.now(); }
       doAct(b.dataset.act, b.tagName === 'BUTTON' ? b : el.querySelector('button[data-act=loyly]'));
     });
     el.querySelector('#sayForm').addEventListener('submit', e => {
-      e.preventDefault(); const inp = el.querySelector('#sayInput'); const text = inp.value.trim(); if (!text) return; inp.value = ''; send({ type: 'say', text });
+      e.preventDefault(); const inp = el.querySelector('#sayInput'); const text = inp.value.trim(); if (!text) return; inp.value = ''; el.querySelector('#emojiGrid').style.display = 'none'; send({ type: 'say', text, mid: pid + '-' + Date.now() });
     });
 
     people = [Object.assign({ id: pid }, me)]; placePeople();

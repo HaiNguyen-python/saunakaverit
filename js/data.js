@@ -322,6 +322,7 @@ window.SK_DATA = (function () {
     personActions:'Mitä teet?', wave:'Vilkuta', whisk:'Vihdo', beer:'Tarjoa olut', snow:'Lumipallo', close:'Sulje',
     myFigure:'Oma hahmo', hatLabel:'Hattu', towelLabel:'Pyyhe', secondsLeft:'s jäljellä', youWon:'Sinä voitit! Kruunu on sinun.',
     waved:'vilkutti', whisked2:'vihtoi', offered:'tarjosi oluen', snowed:'heitti lumipallon', chatEmpty:'Ei vielä puhetta. Hiljaisuus on ok, mutta kysyäkin saa.',
+    mood:'Fiilis', reactHint:'Napauta viestiä reagoidaksesi',
   });
   Object.assign(UI.en, {
     chat:'Bench talk', phrases:'Quick phrases', starterBy:'Saunakaverit asks', games:'Games', quiz:'Sauna quiz', duel:'Löyly contest 30 s',
@@ -330,6 +331,7 @@ window.SK_DATA = (function () {
     personActions:'What do you do?', wave:'Wave', whisk:'Whisk', beer:'Offer a beer', snow:'Snowball', close:'Close',
     myFigure:'My figure', hatLabel:'Hat', towelLabel:'Towel', secondsLeft:'s left', youWon:'You won! The crown is yours.',
     waved:'waved at', whisked2:'whisked', offered:'offered a beer to', snowed:'threw a snowball at', chatEmpty:'No talk yet. Silence is fine, but asking is allowed.',
+    mood:'Mood', reactHint:'Tap a message to react',
   });
 
   return { SAUNAS, CITIES, THEMES, KINDS, HEATING, LANGS, ETIQUETTE, SEASONS, BADGES, UI, seedSessions, PHRASES, STARTERS, QUIZ, HATS };

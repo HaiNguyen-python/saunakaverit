@@ -2,6 +2,13 @@
 
 A social sauna app for Finland: fixed Sunday saunas, themed sessions (language sauna, newcomers, silent, avanto, after-the-run), a sauna passport with stamps and badges, and a twelve-point sauna etiquette for first-timers. Finnish first, English toggle.
 
+## Version 0.8 (chat first, 2026-11-01)
+
+- The chat card now sits directly under the sauna scene, above the action buttons.
+- **Fiilis / Mood** row: 😂 😍 😎 😮‍💨 😴 🥵 🥶 🤔 😮 🍺. A mood posts a big emoji in the chat and changes your figure's face for nine seconds (laughing, heart eyes, sunglasses, sleepy, sweating, blue lips, thinking, wow, a beer in hand), visible to everyone.
+- Emoji picker (😊) in the composer with 24 sauna-flavoured emoji.
+- Tap any message to react with ❤️ 🔥 😂 👍 🥶; counts show under the message on every phone, and the author gets a toast.
+
 ## Version 0.7 (look, 2026-11-01)
 
 - New scene palette: honey-cedar walls with grain and a vignette, a wall lantern, kiuas light falling on the wall, pale aspen lauteet with highlights, a steel kiuas with ember glow, a starry night window with snow and a moon halo, snow inside the open door.
