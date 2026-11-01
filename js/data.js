@@ -187,6 +187,10 @@ window.SK_DATA = (function () {
       roomRules:'Löylyhuone on avoin kaikille, aina. Ei kuvia, ei sukunimiä, ei kiirettä. Viestit katoavat höyryn mukana, mitään ei tallenneta.',
       coolZone:'Vilvoittelu', guest:'Vieras', enterRoom:'Astu löylyhuoneeseen', roomLead:'Istu lauteille muiden kanssa, heitä löylyä ja vilvoittele. Aina auki, kuka tahansa voi tulla.',
       nowPresent:'lauteilla nyt', sessionRoom:'Tämän saunan löylyhuone',
+      onbTitle:'Tervetuloa saunaan', onbLead:'Pelkkä etunimi tai lempinimi riittää. Ei salasanaa, ei sähköpostia.', onbDone:'Lauteille', onbFirst:'Olen ensikertalainen',
+      nowOn:'Nyt käynnissä', startsIn:'Alkaa {n} päästä', min:'min', h:'h', etiquetteCard:'Ensimmäistä kertaa suomalaisessa saunassa?', etiquetteCta:'Lue saunaetiketti',
+      back:'Takaisin', saunasSection:'Saunat ja leimat', inRoomFor:'lauteilla', rounds:'kierros', nudge:'Olet ollut lauteilla 15 minuuttia. Vilvoittelu tekee hyvää.',
+      empty:'Ei saunoja tällä viikolla. Ole ensimmäinen.', seatHint:'Vaihda paikkaa napauttamalla lauteita', nobodyYet:'Lauteet ovat tyhjät. Istu ensimmäisenä.',
     },
     en: {
       tagline:'Together to the sauna', 'tab.home':'Home', 'tab.saunas':'Saunas', 'tab.host':'Host', 'tab.passport':'Passport', 'tab.etiquette':'Etiquette', 'tab.profile':'Me',
@@ -224,6 +228,10 @@ window.SK_DATA = (function () {
       roomRules:'The löyly room is open to everyone, always. No photos, no surnames, no hurry. Messages vanish with the steam; nothing is stored.',
       coolZone:'Cooling off', guest:'Guest', enterRoom:'Enter the löyly room', roomLead:'Sit on the benches with others, throw löyly and cool off. Always open, anyone can come.',
       nowPresent:'on the benches now', sessionRoom:'This sauna\'s löyly room',
+      onbTitle:'Welcome to the sauna', onbLead:'A first name or nickname is enough. No password, no email.', onbDone:'To the benches', onbFirst:'I am a first-timer',
+      nowOn:'On now', startsIn:'Starts in {n}', min:'min', h:'h', etiquetteCard:'First time in a Finnish sauna?', etiquetteCta:'Read the sauna etiquette',
+      back:'Back', saunasSection:'Saunas and stamps', inRoomFor:'on the benches', rounds:'round', nudge:'You have been on the benches for 15 minutes. Cooling off does you good.',
+      empty:'No saunas this week. Be the first.', seatHint:'Tap the benches to change seats', nobodyYet:'The benches are empty. Be the first to sit.',
     }
   };
 

@@ -1,26 +1,24 @@
-/* Saunakaverit v0.2 - app logic. Online: shared sessions through SK_API (Supabase).
+/* Saunakaverit v0.4 - app logic. Online: shared sessions through SK_API (Supabase).
    Offline / no backend: seed sessions and local-only state, so the app always works. */
 (function () {
-  const D = window.SK_DATA, API = window.SK_API || { enabled: false, deviceSuffix: '' };
+  const D = window.SK_DATA, API = window.SK_API || { enabled: false, deviceSuffix: '' }, ROOM = window.SK_ROOM;
   const $ = (s, el=document) => el.querySelector(s);
   const $$ = (s, el=document) => Array.from(el.querySelectorAll(s));
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const PALETTE = ['#e9b8a6','#b8d8e9','#cfe3b8','#f3d9a4','#d9c2ec','#f2bcd0','#bfe6dd','#f0cfa0'];
+  const hash = (s) => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; };
+  const colorFor = (name) => PALETTE[hash(name) % PALETTE.length];
 
   /* ---------- state ---------- */
   const KEY = 'saunakaverit.v1' + (API.deviceSuffix || '');
   const defaults = () => ({
     lang: 'fi', theme: 'auto',
     profile: { name:'', city:'Helsinki', langs:['fi'], firstTimer:false, buddy:false },
-    sessions: [],            // offline: user-created sessions
-    joins: {},               // sessionId -> true (offline) | 'going' | 'waitlist' (online)
-    stamps: [],              // {saunaId, date}
-    hosted: 0, hostedIds: [],
-    removedSeeds: [],
+    sessions: [], joins: {}, stamps: [], hosted: 0, hostedIds: [], removedSeeds: [],
     filter: { city:'Kaikki', theme:'' },
   });
   let S = load();
-  let online = false, remote = [], connecting = API.enabled, sheetSession = null, roomCount = 0, currentRoom = { id: 'yhteinen', label: '' };
-  const ROOM = window.SK_ROOM;
+  let online = false, remote = [], connecting = API.enabled, sheetSession = null, roomCount = 0, roomNames = [], currentRoom = { id: 'yhteinen', label: '' }, onSheetClose = null, onboardShown = false;
   function load(){ try { const raw = localStorage.getItem(KEY); return raw ? Object.assign(defaults(), JSON.parse(raw)) : defaults(); } catch(e){ return defaults(); } }
   function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} }
 
@@ -41,12 +39,14 @@
         S.stamps = (r.me.stamps || []).map(s => ({ saunaId: s.sauna_id, date: s.date }));
         S.hosted = r.me.hosted || 0; S.hostedIds = r.me.hosted_ids || [];
       }
-      online = true; connecting = false; save(); renderAll();
-      if (sheetSession) openSession(sheetSession);
+      online = true;
     } catch (e) {
       console.warn('Saunakaverit: backend unavailable, using local mode', e);
-      online = false; connecting = false; renderAll();
+      online = false;
     }
+    connecting = false; save(); renderAll();
+    if (sheetSession) openSession(sheetSession);
+    if (!S.profile.name && !onboardShown) { onboardShown = true; openOnboarding(); }
   }
   let refreshTimer;
   const refreshSoon = () => { clearTimeout(refreshTimer); refreshTimer = setTimeout(refresh, 400); };
@@ -57,6 +57,7 @@
     if (/too many/.test(m)) return t('errLimit');
     return t('errGeneric');
   }
+  const pad = n => String(n).padStart(2,'0');
   const dateStr = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 
   /* ---------- sessions ---------- */
@@ -83,7 +84,6 @@
   const isMine = (s) => online ? S.hostedIds.includes(s.id) : S.sessions.some(x => x.id === s.id);
 
   /* ---------- date helpers ---------- */
-  const pad = n => String(n).padStart(2,'0');
   function fmtDate(iso){
     const d = new Date(iso), now = new Date();
     const wd = t('weekdays')[d.getDay()];
@@ -92,6 +92,14 @@
     let day = `${wd} ${d.getDate()}.${d.getMonth()+1}.`;
     if (sameDay(d, now)) day = t('today'); else if (sameDay(d, tmr)) day = t('tomorrow');
     return `${day} ${t('clock')} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  function timeLabel(iso){
+    const ms = new Date(iso) - Date.now();
+    if (ms <= 0) return { text: t('nowOn'), now: true };
+    const h = ms / 3600e3;
+    if (h < 1) return { text: t('startsIn').replace('{n}', Math.max(1, Math.round(ms / 60000)) + ' ' + t('min')) };
+    if (h < 12) return { text: t('startsIn').replace('{n}', Math.round(h) + ' ' + t('h')) };
+    return null;
   }
   function isThisWeek(iso){
     const d = new Date(iso), now = new Date();
@@ -115,27 +123,64 @@
   /* ---------- ui helpers ---------- */
   let toastTimer;
   function toast(msg){ const el = $('#toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 2200); }
-  function openSheet(html){ $('#sheet').innerHTML = '<div class="handle"></div>' + html; $('#sheetBg').classList.add('open'); document.body.style.overflow = 'hidden'; }
-  function closeSheet(){ $('#sheetBg').classList.remove('open'); document.body.style.overflow = ''; sheetSession = null; }
+  function openSheet(html){
+    onSheetClose = null;
+    $('#sheet').innerHTML = '<div class="handle"></div><button class="sheetClose" id="sheetClose" aria-label="Sulje">✕</button>' + html;
+    $('#sheetBg').classList.add('open'); document.body.style.overflow = 'hidden';
+    $('#sheetClose').addEventListener('click', closeSheet);
+  }
+  function closeSheet(){
+    $('#sheetBg').classList.remove('open'); document.body.style.overflow = ''; sheetSession = null;
+    const cb = onSheetClose; onSheetClose = null; if (cb) cb();
+  }
   $('#sheetBg').addEventListener('click', e => { if (e.target.id === 'sheetBg') closeSheet(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#sheetBg').classList.contains('open')) closeSheet(); });
 
-  function themeTag(theme){ const th = D.THEMES[theme]; return th ? `<span class="tag">${th.ic} ${esc(L(th))}</span>` : ''; }
-  function kindTag(kind){ const k = D.KINDS[kind]; return k ? `<span class="tag kind">${esc(L(k.short))}</span>` : ''; }
-  function priceTag(p){ const free = /ilmainen|free/i.test(p); return `<span class="tag ${free?'free':''}">${esc(p)}</span>`; }
-  function mapsUrl(sauna){ return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(sauna.name + ', ' + sauna.address); }
-  function statusLine(){
-    if (connecting) return `<div class="small muted" style="text-align:center;padding:4px">⏳ ${esc(t('loading'))}</div>`;
-    if (API.enabled && !online) return `<div class="card moss small">📴 ${esc(t('offlineNote'))}</div>`;
-    return '';
+  const kindTag = (kind) => { const k = D.KINDS[kind]; return k ? `<span class="tag kind">${esc(L(k.short))}</span>` : ''; };
+  const priceTag = (p) => `<span class="tag ${/ilmainen|free/i.test(p)?'free':''}">${esc(p)}</span>`;
+  const mapsUrl = (sauna) => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(sauna.name + ', ' + sauna.address);
+  const chip = (name, cls='') => `<span class="att ${cls}"><i style="background:${colorFor(name)}">${esc(name.charAt(0).toUpperCase())}</i>${esc(name)}</span>`;
+  const faces = (names, max=4) => names.slice(0, max).map(n => `<span>${esc(n)}</span>`).join('') + (names.length > max ? `<span>+${names.length - max}</span>` : '');
+
+  /* ---------- onboarding: name without leaving the flow ---------- */
+  function ensureName(){ return S.profile.name ? Promise.resolve(true) : new Promise(res => openOnboarding(res)); }
+  function openOnboarding(done){
+    const p = S.profile;
+    openSheet(`
+      <div class="onb">
+        <h2>🧖 ${esc(t('onbTitle'))}</h2><p class="muted">${esc(t('onbLead'))}</p>
+        <form class="form" id="onbForm">
+          <label>${esc(t('yourName'))}</label><input name="name" class="big" maxlength="24" value="${esc(p.name)}" placeholder="Hai, Mikko, Anna…" required autocomplete="nickname">
+          <label>${esc(t('yourCity'))}</label><select name="city">${D.CITIES.map(c => `<option ${p.city===c?'selected':''}>${c}</option>`).join('')}</select>
+          <div class="checks" style="margin-top:12px"><label class="${p.firstTimer?'on':''}"><input type="checkbox" name="firstTimer" ${p.firstTimer?'checked':''}>🙋 ${esc(t('onbFirst'))}</label></div>
+          <button class="btn full big" type="submit" style="margin-top:16px">${esc(t('onbDone'))} →</button>
+        </form>
+        <p class="small muted" style="margin-top:10px">${esc(t('profileLead'))}</p>
+      </div>`);
+    const input = $('#onbForm input[name=name]'); setTimeout(() => input.focus(), 150);
+    $('#onbForm').addEventListener('change', e => { if (e.target.type === 'checkbox') e.target.closest('label').classList.toggle('on', e.target.checked); });
+    let ok = false;
+    onSheetClose = () => { if (done) done(ok); };
+    $('#onbForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const f = new FormData(e.target);
+      const np = Object.assign({}, p, { name: (f.get('name')||'').trim(), city: f.get('city'), firstTimer: !!f.get('firstTimer') });
+      if (!np.name) return;
+      if (S.filter.city === 'Kaikki') S.filter.city = np.city;
+      const btn = $('#onbForm button[type=submit]'); btn.disabled = true;
+      if (API.enabled && online) { try { await API.saveProfile(np); } catch (err) { btn.disabled = false; toast(errMsg(err)); return; } }
+      S.profile = np; save(); ok = true; closeSheet(); toast(`${t('youJoined').split('!')[0]}, ${np.name}!`);
+      if (online) await refresh(); else renderAll();
+    });
   }
 
   /* ---------- views ---------- */
   function sessionCard(s){
     const d = new Date(s.start);
     const freeN = Math.max(0, s.cap - s.attendees.length);
-    const st = myStatus(s);
+    const st = myStatus(s), lbl = timeLabel(s.start);
     return `<div class="card session" data-open="${esc(s.id)}">
-      <div class="when"><b>${pad(d.getHours())}:${pad(d.getMinutes())}</b><span>${esc(fmtDate(s.start).split(' '+t('clock'))[0])}</span></div>
+      <div class="when"><b>${pad(d.getHours())}:${pad(d.getMinutes())}</b><span>${esc(fmtDate(s.start).split(' '+t('clock'))[0])}</span>${lbl ? `<span class="lbl ${lbl.now?'now':''}">${esc(lbl.text)}</span>` : ''}</div>
       <div>
         <h3>${D.THEMES[s.theme]?.ic || '🔥'} ${esc(L(D.THEMES[s.theme]) || s.theme)}</h3>
         <div class="small muted">${esc(s.sauna?.name)} · ${esc(s.sauna?.area)}, ${esc(s.sauna?.city)}</div>
@@ -154,67 +199,67 @@
     const next = nextSeason(now);
     const week = sessions.filter(s => isThisWeek(s.start));
     const later = sessions.filter(s => !isThisWeek(s.start));
-    const nameBanner = !S.profile.name && !connecting ? `<div class="card moss row between"><span>${esc(t('welcome'))}</span><button class="btn small" data-go="profile">${esc(t('setName'))}</button></div>` : '';
     const themeChips = ['', ...Object.keys(D.THEMES)].map(k => `<button class="chipbtn ${S.filter.theme===k?'active':''}" data-theme="${k}">${k?D.THEMES[k].ic+' '+esc(L(D.THEMES[k])):esc(t('all'))}</button>`).join('');
     const cityChips = ['Kaikki', ...D.CITIES].map(c => `<button class="chipbtn ${S.filter.city===c?'active':''}" data-city="${c}">${c==='Kaikki'?esc(t('all')):c}</button>`).join('');
     const sundaySt = sunday && myStatus(sunday);
+    const offline = API.enabled && !online && !connecting;
 
     $('#view-home').innerHTML = `
-      ${statusLine()}
-      ${nameBanner}
-      <div class="card roomCard">
-        <div><div class="small muted">🔴 LIVE · <b id="roomCount">${roomCount}</b> ${esc(t('nowPresent'))}</div><h3 style="margin:2px 0">🧖 ${esc(t('roomCommon'))}</h3><div class="small muted">${esc(t('roomLead'))}</div></div>
+      ${offline ? `<div class="card moss small">📴 ${esc(t('offlineNote'))}</div>` : ''}
+      <div class="card roomCard" data-room="yhteinen" style="cursor:pointer">
+        <div>
+          <div class="small muted">🔴 LIVE · <b id="roomCount">${roomCount}</b> ${esc(t('nowPresent'))}</div>
+          <h3 style="margin:2px 0">🧖 ${esc(t('roomCommon'))}</h3>
+          <div class="faces" id="roomFaces">${roomNames.length ? faces(roomNames, 5) : `<span>${esc(t('nobodyYet'))}</span>`}</div>
+        </div>
         <button class="btn" data-room="yhteinen">${esc(t('enterRoom'))}</button>
       </div>
-      ${sunday ? `<div class="card hero"><div class="steam"></div>
+      ${connecting ? '<div class="skel" style="height:150px"></div>' : sunday ? `<div class="card hero" data-open="${sunday.id}" style="cursor:pointer"><div class="steam"></div>
         <div class="small muted">${esc(t('nextSunday'))} · ${esc(fmtDate(sunday.start))}</div>
         <h2>🔥 ${esc(sunday.sauna.name)}</h2>
         <p class="muted">${esc(t('sundayLead'))}</p>
+        <div class="faces">${faces(sunday.attendees, 5)}</div>
         <div class="row between wrap" style="margin-top:10px"><span>${sunday.attendees.length}/${sunday.cap} · ${esc(L(D.KINDS[sunday.kind]))}</span><button class="btn" data-open="${sunday.id}">${sundaySt==='going' ? '✓ ' + esc(t('joined')) : sundaySt==='waitlist' ? '⏳ ' + esc(t('onWaitlist')) : esc(t('join'))}</button></div>
       </div>` : ''}
-      ${season ? `<div class="card season"><div class="small muted">${esc(t('seasonNow'))}</div><h3>${season.ic} ${esc(L(season)[0])}</h3><p class="small">${esc(L(season)[1])}</p></div>` : ''}
       <div class="filters">${cityChips}</div>
       <div class="filters">${themeChips}</div>
       <h2>${esc(t('thisWeek'))}</h2>
-      ${week.length ? week.map(sessionCard).join('') : `<div class="empty"><div class="ic">🧖</div>${esc(connecting ? t('loading') : t('noSessions'))}</div>`}
+      ${connecting ? '<div class="skel"></div><div class="skel"></div><div class="skel"></div>' : week.length ? week.map(sessionCard).join('') : `<div class="empty"><div class="ic">🧖</div>${esc(S.filter.theme || S.filter.city !== 'Kaikki' ? t('noSessions') : t('empty'))}</div>`}
       ${later.length ? `<h2>${esc(t('later'))}</h2>${later.map(sessionCard).join('')}` : ''}
       <button class="btn full" data-go="host" style="margin-top:8px">➕ ${esc(t('hostCta'))}</button>
-      ${next ? `<div class="card ${season?'':'season'}" style="margin-top:16px"><div class="small muted">${esc(t('seasonNext'))}</div><h3>${next.ic} ${esc(L(next)[0])}</h3><p class="small muted">${esc(L(next)[1])}</p></div>` : ''}
+      ${season ? `<div class="card season" style="margin-top:16px"><div class="small muted">${esc(t('seasonNow'))}</div><h3>${season.ic} ${esc(L(season)[0])}</h3><p class="small">${esc(L(season)[1])}</p></div>` : ''}
+      ${next ? `<div class="card ${season?'':'season'}"><div class="small muted">${esc(t('seasonNext'))}</div><h3>${next.ic} ${esc(L(next)[0])}</h3><p class="small muted">${esc(L(next)[1])}</p></div>` : ''}
+      <div class="card moss row between" data-go="etiquette" style="cursor:pointer"><span>🌿 <b>${esc(t('etiquetteCard'))}</b><br><span class="small muted">${esc(t('etiquetteCta'))}</span></span><span style="font-size:1.4rem">›</span></div>
     `;
   }
 
-  function renderSaunas(){
+  function saunasHtml(){
     const list = D.SAUNAS.filter(s => S.filter.city === 'Kaikki' || s.city === S.filter.city);
     const cityChips = ['Kaikki', ...D.CITIES].map(c => `<button class="chipbtn ${S.filter.city===c?'active':''}" data-city="${c}">${c==='Kaikki'?esc(t('all')):c}</button>`).join('');
-    $('#view-saunas').innerHTML = `
-      <h1>${esc(t('saunasTitle'))}</h1><p class="muted small">${esc(t('saunasLead'))}</p>
-      <div class="filters">${cityChips}</div>
-      ${list.map(sa => {
-        const stamped = S.stamps.some(st => st.saunaId === sa.id);
-        return `<div class="card sauna">
-          <div>
-            <h3>${esc(sa.name)}</h3>
-            <div class="small muted">${esc(sa.area)}, ${esc(sa.city)} · ${esc(sa.price)}</div>
-            <p class="small">${esc(L(sa.note))}</p>
-            <div class="facts">
-              <span class="tag">${sa.heating==='savu'?'🌫️':sa.heating==='puu'?'🪵':'⚡'} ${esc(L(D.HEATING[sa.heating]))}</span>
-              <span class="tag kind">${esc(L(D.KINDS[sa.policy].short))}</span>
-              ${sa.avanto?`<span class="tag free">🌊 ${esc(t('avanto'))}</span>`:''}
-              ${sa.terrace?`<span class="tag">☕ ${esc(t('terrace'))}</span>`:''}
-            </div>
-            <div class="row wrap" style="margin-top:8px">
-              <a class="btn small secondary" href="${mapsUrl(sa)}" target="_blank" rel="noopener">📍 ${esc(t('directions'))}</a>
-              <a class="btn small secondary" href="${esc(sa.url)}" target="_blank" rel="noopener">🔗 ${esc(t('website'))}</a>
-            </div>
+    return `<div class="filters">${cityChips}</div>` + list.map(sa => {
+      const stamped = S.stamps.some(st => st.saunaId === sa.id);
+      return `<div class="card sauna">
+        <div>
+          <h3>${esc(sa.name)}</h3>
+          <div class="small muted">${esc(sa.area)}, ${esc(sa.city)} · ${esc(sa.price)}</div>
+          <p class="small">${esc(L(sa.note))}</p>
+          <div class="facts">
+            <span class="tag">${sa.heating==='savu'?'🌫️':sa.heating==='puu'?'🪵':'⚡'} ${esc(L(D.HEATING[sa.heating]))}</span>
+            <span class="tag kind">${esc(L(D.KINDS[sa.policy].short))}</span>
+            ${sa.avanto?`<span class="tag free">🌊 ${esc(t('avanto'))}</span>`:''}
+            ${sa.terrace?`<span class="tag">☕ ${esc(t('terrace'))}</span>`:''}
           </div>
-          <div class="stamp ${stamped?'done':''}" data-stamp="${sa.id}" title="${esc(stamped?t('stamped'):t('stamp'))}">${stamped?'🔥':'＋'}</div>
-        </div>`;
-      }).join('')}`;
+          <div class="row wrap" style="margin-top:8px">
+            <a class="btn small secondary" href="${mapsUrl(sa)}" target="_blank" rel="noopener">📍 ${esc(t('directions'))}</a>
+            <a class="btn small secondary" href="${esc(sa.url)}" target="_blank" rel="noopener">🔗 ${esc(t('website'))}</a>
+          </div>
+        </div>
+        <div class="stamp ${stamped?'done':''}" data-stamp="${sa.id}" title="${esc(stamped?t('stamped'):t('stamp'))}">${stamped?'🔥':'＋'}</div>
+      </div>`;
+    }).join('');
   }
 
-  function stats(){
-    return { stamps: S.stamps, hosted: online ? S.hosted : S.sessions.length, joined: Object.keys(S.joins).filter(id => S.joins[id]).length };
-  }
+  const stats = () => ({ stamps: S.stamps, hosted: online ? S.hosted : S.sessions.length, joined: Object.keys(S.joins).filter(id => S.joins[id]).length });
 
   function renderPassport(){
     const st = stats();
@@ -227,11 +272,14 @@
       <div class="badges">${D.BADGES.map(b => { const e = b.test(st); return `<div class="badge ${e?'earned':''}"><div class="ic">${b.ic}</div><b>${esc(L(b)[0])}</b><small>${esc(L(b)[1])}</small></div>`; }).join('')}</div>
       <h2 style="margin-top:16px">${esc(cap(t('stamps')))}</h2>
       ${stampList.length ? stampList.map(s => { const sa = D.SAUNAS.find(x => x.id === s.saunaId); const d = new Date(s.date); return `<div class="card row between"><span>🔥 <b>${esc(sa?.name || s.saunaId)}</b> <span class="muted small">${esc(sa?.city || '')}</span></span><span class="muted small">${d.getDate()}.${d.getMonth()+1}.${d.getFullYear()}</span></div>`; }).join('') : `<div class="empty"><div class="ic">📖</div>${esc(t('noStamps'))}</div>`}
+      <h2 style="margin-top:16px">${esc(t('saunasSection'))}</h2><p class="muted small">${esc(t('saunasLead'))}</p>
+      ${saunasHtml()}
     `;
   }
 
   function renderEtiquette(){
     $('#view-etiquette').innerHTML = `
+      <button class="backlink" data-go="home">← ${esc(t('back'))}</button>
       <h1>${esc(t('etiquetteTitle'))}</h1><p class="muted small">${esc(t('etiquetteLead'))}</p>
       ${D.ETIQUETTE.map((e,i) => `<div class="card etq"><div class="ic">${e.ic}</div><div><h3>${i+1}. ${esc(L(e)[0])}</h3><p class="small">${esc(L(e)[1])}</p></div></div>`).join('')}
     `;
@@ -253,6 +301,7 @@
         <p class="small muted" style="margin-top:8px">${esc(t('buddyLead'))}</p>
         <button class="btn full" type="submit" style="margin-top:12px">${esc(t('save'))}</button>
       </form>
+      <div class="card moss row between" data-go="etiquette" style="cursor:pointer"><span>🌿 ${esc(t('etiquetteTitle'))}</span><span style="font-size:1.4rem">›</span></div>
       <p class="small muted" style="text-align:center">${esc(online ? t('versionOnline') : t('version'))}</p>
       <div style="text-align:center"><button class="btn small danger" id="resetBtn">${esc(t('resetData'))}</button></div>
     `;
@@ -262,12 +311,11 @@
       const p = { name: (f.get('name')||'').trim(), city: f.get('city'), langs: f.getAll('langs'), firstTimer: !!f.get('firstTimer'), buddy: !!f.get('buddy') };
       if (!p.name) return;
       if (S.filter.city === 'Kaikki' && p.city) S.filter.city = p.city;
-      if (API.enabled) {
-        try { await API.saveProfile(p); S.profile = p; save(); toast(t('saved')); await refresh(); } catch (err) { toast(errMsg(err)); }
-      } else { S.profile = p; save(); toast(t('saved')); renderAll(); }
+      if (API.enabled && online) { try { await API.saveProfile(p); S.profile = p; save(); toast(t('saved')); await refresh(); } catch (err) { toast(errMsg(err)); } }
+      else { S.profile = p; save(); toast(t('saved')); renderAll(); }
     });
     $('#profileForm').addEventListener('change', e => { if (e.target.type === 'checkbox') e.target.closest('label').classList.toggle('on', e.target.checked); });
-    $('#resetBtn').addEventListener('click', () => { if (confirm(t('confirmReset'))) { try { localStorage.removeItem('saunakaverit.token' + (API.deviceSuffix||'')); } catch(e){} S = defaults(); save(); toast(t('resetDone')); location.reload(); } });
+    $('#resetBtn').addEventListener('click', () => { if (confirm(t('confirmReset'))) { try { localStorage.removeItem('saunakaverit.token' + (API.deviceSuffix||'')); localStorage.removeItem('saunakaverit.pid' + (API.deviceSuffix||'')); } catch(e){} S = defaults(); save(); toast(t('resetDone')); location.reload(); } });
   }
 
   /* ---------- session detail ---------- */
@@ -280,7 +328,7 @@
     const full = s.attendees.length >= s.cap;
     const past = new Date(s.start) < new Date();
     const stamped = S.stamps.some(x => x.saunaId === s.saunaId && new Date(x.date).toDateString() === new Date(s.start).toDateString());
-    const mine = isMine(s);
+    const mine = isMine(s), lbl = timeLabel(s.start);
     let action;
     if (going) action = `<button class="btn full danger" data-leave="${s.id}">${esc(t('leave'))}</button>`;
     else if (waiting) action = `<button class="btn full danger" data-leave="${s.id}">${esc(t('onWaitlist'))} · ${esc(t('leave'))}</button>`;
@@ -288,7 +336,7 @@
     else action = `<button class="btn full" data-join="${s.id}">${esc(t('join'))}</button>`;
 
     openSheet(`
-      <div class="small muted">${esc(fmtDate(s.start))}</div>
+      <div class="small muted">${esc(fmtDate(s.start))}${lbl ? ` · <b style="color:${lbl.now?'var(--warn)':'var(--ok)'}">${esc(lbl.text)}</b>` : ''}</div>
       <h2>${D.THEMES[s.theme]?.ic || '🔥'} ${esc(L(D.THEMES[s.theme]) || s.theme)}</h2>
       <h3 class="muted" style="font-weight:500">${esc(s.sauna.name)} · ${esc(s.sauna.area)}, ${esc(s.sauna.city)}</h3>
       <div>${kindTag(s.kind)}${priceTag(s.price)}${s.after?`<span class="tag">☕ ${esc(t('after'))}</span>`:''}${(s.langs||[]).map(l => `<span class="tag">${esc(D.LANGS[l]||l)}</span>`).join('')}</div>
@@ -304,7 +352,7 @@
       <p class="small muted">🧺 ${esc(t('bringTowel'))}</p>
       <hr class="soft">
       <div class="small muted">${esc(t('attendees'))} ${s.attendees.length}/${s.cap}${s.waitlist.length ? ` · ${esc(t('waiting'))} ${s.waitlist.length}` : ''}</div>
-      <div class="attendees">${s.attendees.map(a => `<span class="att ${a===s.host?'host':''} ${a===me&&going?'me':''}">${esc(a)}</span>`).join('')}${s.waitlist.map(a => `<span class="att wait ${a===me&&waiting?'me':''}">${esc(a)}</span>`).join('')}</div>
+      <div class="attendees">${s.attendees.map(a => chip(a, (a===s.host?'host ':'') + (a===me&&going?'me':''))).join('')}${s.waitlist.map(a => chip(a, 'wait ' + (a===me&&waiting?'me':''))).join('')}</div>
       ${action}
       ${going ? `<button class="btn full lake" style="margin-top:8px" data-room="session:${esc(s.id)}" data-room-label="${esc(L(D.THEMES[s.theme]) || s.theme)} · ${esc(s.sauna.name)}">🧖 ${esc(t('sessionRoom'))}</button>` : ''}
       <div class="row" style="margin-top:8px">
@@ -317,14 +365,16 @@
 
   function shareText(s){
     const fi = S.lang === 'fi';
+    const url = location.origin + location.pathname;
     const lines = fi
-      ? [`🔥 Tule saunaan! ${L(D.THEMES[s.theme])}`, `${s.sauna.name}, ${s.sauna.address}`, `${fmtDate(s.start)}`, `${L(D.KINDS[s.kind])} · ${s.price}`, s.after ? 'Jälkeen terassilla ☕' : '', `Isäntä: ${s.host}. Vapaita paikkoja: ${Math.max(0, s.cap - s.attendees.length)}`, 'Muista pyyhe ja pefletti. Hyvät löylyt!']
-      : [`🔥 Come to the sauna! ${L(D.THEMES[s.theme])}`, `${s.sauna.name}, ${s.sauna.address}`, `${fmtDate(s.start)}`, `${L(D.KINDS[s.kind])} · ${s.price}`, s.after ? 'Terrace afterwards ☕' : '', `Host: ${s.host}. Free spots: ${Math.max(0, s.cap - s.attendees.length)}`, 'Bring a towel and a seat cover. Hyvät löylyt!'];
+      ? [`🔥 Tule saunaan! ${L(D.THEMES[s.theme])}`, `${s.sauna.name}, ${s.sauna.address}`, `${fmtDate(s.start)}`, `${L(D.KINDS[s.kind])} · ${s.price}`, s.after ? 'Jälkeen terassilla ☕' : '', `Isäntä: ${s.host}. Vapaita paikkoja: ${Math.max(0, s.cap - s.attendees.length)}`, 'Muista pyyhe ja pefletti. Hyvät löylyt!', url]
+      : [`🔥 Come to the sauna! ${L(D.THEMES[s.theme])}`, `${s.sauna.name}, ${s.sauna.address}`, `${fmtDate(s.start)}`, `${L(D.KINDS[s.kind])} · ${s.price}`, s.after ? 'Terrace afterwards ☕' : '', `Host: ${s.host}. Free spots: ${Math.max(0, s.cap - s.attendees.length)}`, 'Bring a towel and a seat cover. Hyvät löylyt!', url];
     return lines.filter(Boolean).join('\n');
   }
 
   /* ---------- host form ---------- */
-  function openHost(){
+  async function openHost(){
+    if (!(await ensureName())) return;
     const p = S.profile;
     sheetSession = null;
     const now = new Date(); now.setDate(now.getDate()+1);
@@ -332,7 +382,6 @@
     const saunas = D.SAUNAS.slice().sort((a,b) => (a.city===p.city?0:1) - (b.city===p.city?0:1));
     openSheet(`
       <h2>${esc(t('hostTitle'))}</h2><p class="small muted">${esc(t('hostLead'))}</p>
-      ${!p.name ? `<div class="card moss small">${esc(t('nameNeeded'))}</div>` : ''}
       <form class="form" id="hostForm">
         <label>${esc(t('hSauna'))}</label>
         <select name="saunaId" id="hSauna">${saunas.map(sa => `<option value="${sa.id}" data-price="${esc(sa.price)}" data-policy="${sa.policy}">${esc(sa.name)} · ${esc(sa.city)}</option>`).join('')}</select>
@@ -351,7 +400,7 @@
         <div class="checks">${Object.entries(D.LANGS).map(([k,v]) => `<label class="${p.langs.includes(k)?'on':''}"><input type="checkbox" name="langs" value="${k}" ${p.langs.includes(k)?'checked':''}>${v}</label>`).join('')}</div>
         <div class="checks" style="margin-top:12px"><label class="on"><input type="checkbox" name="after" checked>☕ ${esc(t('hAfter'))}</label></div>
         <label>${esc(t('hNote'))}</label><textarea name="note" maxlength="500" placeholder="${esc(t('hNotePh'))}"></textarea>
-        <div class="row" style="margin-top:14px"><button class="btn secondary" type="button" id="hostCancel">${esc(t('cancel'))}</button><button class="btn" type="submit" id="hostSubmit" style="flex:1" ${!p.name?'disabled':''}>${esc(t('publish'))}</button></div>
+        <div class="row" style="margin-top:14px"><button class="btn secondary" type="button" id="hostCancel">${esc(t('cancel'))}</button><button class="btn" type="submit" id="hostSubmit" style="flex:1">${esc(t('publish'))}</button></div>
       </form>
     `);
     const sel = $('#hSauna');
@@ -379,23 +428,23 @@
   /* ---------- actions ---------- */
   document.addEventListener('click', async e => {
     const el = e.target.closest('[data-open],[data-join],[data-leave],[data-share],[data-stamp],[data-stamp-session],[data-remove],[data-go],[data-city],[data-theme],[data-room]');
-    if (!el) return;
+    if (!el || el.closest('.sheetClose')) return;
     const d = el.dataset;
     if (d.room) { currentRoom = { id: d.room, label: d.roomLabel || '' }; closeSheet(); return showView('room'); }
     if (d.open) return openSession(d.open);
     if (d.go) { if (d.go === 'host') return openHost(); return showView(d.go); }
-    if (d.city) { S.filter.city = d.city; save(); renderHome(); renderSaunas(); return; }
+    if (d.city) { S.filter.city = d.city; save(); renderHome(); renderPassport(); return; }
     if (d.theme !== undefined) { S.filter.theme = d.theme; save(); renderHome(); return; }
     if (d.join) {
-      if (!S.profile.name) { toast(t('nameNeeded')); closeSheet(); showView('profile'); return; }
-      const s = findSession(d.join); if (!s) return;
-      el.disabled = true;
+      const id = d.join;
+      if (!(await ensureName())) return;
+      const s = findSession(id); if (!s) return;
       if (online) {
-        try { const st = await API.join(d.join); toast(st === 'waitlist' ? t('youWait') : t('youJoined')); await refresh(); }
-        catch (err) { toast(errMsg(err)); el.disabled = false; }
+        try { const st = await API.join(id); toast(st === 'waitlist' ? t('youWait') : t('youJoined')); await refresh(); openSession(id); }
+        catch (err) { toast(errMsg(err)); }
       } else {
         const full = s.attendees.length >= s.cap;
-        S.joins[d.join] = true; save(); toast(full ? t('youWait') : t('youJoined')); renderAll(); openSession(d.join);
+        S.joins[id] = true; save(); toast(full ? t('youWait') : t('youJoined')); renderAll(); openSession(id);
       }
       return;
     }
@@ -422,17 +471,15 @@
   async function addStamp(saunaId, date){
     const sameDay = S.stamps.some(st => st.saunaId === saunaId && new Date(st.date).toDateString() === date.toDateString());
     if (sameDay) { toast(t('stamped')); return; }
-    if (online) {
-      if (!S.profile.name) { toast(t('nameNeeded')); showView('profile'); return; }
-      try { await API.stamp(saunaId, dateStr(date)); toast(t('stampDone')); await refresh(); } catch (err) { toast(errMsg(err)); }
-    } else {
-      S.stamps.push({ saunaId, date: date.toISOString() }); save(); toast(t('stampDone')); renderAll(); if (sheetSession) openSession(sheetSession);
-    }
+    if (!(await ensureName())) return;
+    if (online) { try { await API.stamp(saunaId, dateStr(date)); toast(t('stampDone')); await refresh(); } catch (err) { toast(errMsg(err)); } }
+    else { S.stamps.push({ saunaId, date: date.toISOString() }); save(); toast(t('stampDone')); renderAll(); if (sheetSession) openSession(sheetSession); }
   }
 
   /* ---------- navigation, language, theme ---------- */
-  function showView(name){
+  async function showView(name){
     if (name === 'host') return openHost();
+    if (name === 'room' && !(await ensureName())) return;
     $$('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
     $$('nav.tabs button').forEach(b => b.classList.toggle('active', b.dataset.view === name));
     window.scrollTo({ top: 0 });
@@ -445,7 +492,7 @@
   }
   $$('nav.tabs button').forEach(b => b.addEventListener('click', () => showView(b.dataset.view)));
   $('#brandHome').addEventListener('click', e => { e.preventDefault(); showView('home'); });
-  $('#langBtn').addEventListener('click', () => { S.lang = S.lang === 'fi' ? 'en' : 'fi'; save(); renderAll(); if (sheetSession) openSession(sheetSession); });
+  $('#langBtn').addEventListener('click', () => { S.lang = S.lang === 'fi' ? 'en' : 'fi'; save(); renderAll(); if (sheetSession) openSession(sheetSession); if (ROOM.isOpen()) showView('room'); });
   $('#themeBtn').addEventListener('click', () => {
     const cur = document.documentElement.dataset.theme;
     const dark = cur ? cur === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
@@ -457,17 +504,17 @@
     document.documentElement.lang = S.lang;
     $('#langBtn').textContent = S.lang === 'fi' ? 'EN' : 'FI';
     $$('[data-i18n]').forEach(el => el.textContent = t(el.dataset.i18n));
-    renderHome(); renderSaunas(); renderPassport(); renderEtiquette(); renderProfile();
+    renderHome(); renderPassport(); renderEtiquette(); renderProfile();
   }
 
   applyTheme(); renderAll();
   if (API.enabled) {
     refresh();
     API.subscribe(refreshSoon);
-    const onCount = (n) => { roomCount = n; const el = $('#roomCount'); if (el) el.textContent = n; };
+    const onCount = (n, names) => { roomCount = n; roomNames = names || []; const el = $('#roomCount'); if (el) el.textContent = n; const f = $('#roomFaces'); if (f) f.innerHTML = roomNames.length ? faces(roomNames, 5) : `<span>${esc(t('nobodyYet'))}</span>`; };
     onCount.deviceSuffix = API.deviceSuffix || '';
     ROOM.watch(API.client, 'yhteinen', onCount);
     setInterval(refresh, 60000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
-  }
+  } else if (!S.profile.name) { onboardShown = true; openOnboarding(); }
 })();

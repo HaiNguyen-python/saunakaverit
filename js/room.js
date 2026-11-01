@@ -9,9 +9,9 @@ window.SK_ROOM = (function () {
 
   // Benches: three tiers, back tier highest and farthest.
   const TIERS = [
-    { y: 440, scale: 1.0,  x0: 335, n: 7, dx: 70 },
-    { y: 372, scale: 0.9,  x0: 350, n: 7, dx: 66 },
-    { y: 308, scale: 0.8,  x0: 365, n: 7, dx: 62 },
+    { y: 440, scale: 1.18, x0: 338, n: 7, dx: 72 },
+    { y: 372, scale: 1.04, x0: 352, n: 7, dx: 68 },
+    { y: 308, scale: 0.92, x0: 366, n: 7, dx: 64 },
   ];
   const SEATS = [];
   TIERS.forEach((tr, ti) => { for (let i = 0; i < tr.n; i++) SEATS.push({ id: ti * 10 + i, tier: ti, x: tr.x0 + i * tr.dx, y: tr.y, scale: tr.scale }); });
@@ -24,8 +24,10 @@ window.SK_ROOM = (function () {
     if (channels[id]) return channels[id];
     const c = client.channel('room:' + id, { config: { presence: { key: pid }, broadcast: { self: false } } });
     c.on('presence', { event: 'sync' }, () => {
-      counts[id] = Object.keys(c.presenceState()).length;
-      (watchers[id] || []).forEach(cb => cb(counts[id]));
+      const st = c.presenceState();
+      counts[id] = Object.keys(st).length;
+      const names = Object.values(st).map(m => m && m.length ? m[m.length - 1].name : null).filter(Boolean);
+      (watchers[id] || []).forEach(cb => cb(counts[id], names));
       if (raf && roomId === id) syncPresence();
     });
     c.on('broadcast', { event: 'sk' }, ({ payload }) => { if (raf && roomId === id) onEvent(payload || {}); });
@@ -144,7 +146,7 @@ window.SK_ROOM = (function () {
     let html = seated.map(({ p, seat }) => avatar(p, seat.x, seat.y, seat.scale, p.id === pid, p.hat)).join('');
     cooling.forEach((p, i) => { html += avatar(p, 45 + (i % 2) * 36, 445 - Math.floor(i / 2) * 60, 0.85, p.id === pid, p.hat) + `<text x="${45 + (i % 2) * 36 + 12}" y="${445 - Math.floor(i / 2) * 60 - 70}" font-size="12">❄️</text>`; });
     el.querySelector('#people').innerHTML = html;
-    el.querySelector('#seatHits').innerHTML = SEATS.filter(s => !taken[s.id]).map(s => `<ellipse cx="${s.x}" cy="${s.y - 20 * s.scale}" rx="${24 * s.scale}" ry="${30 * s.scale}" fill="#fff" fill-opacity=".04" stroke="#ffd166" stroke-opacity=".25" stroke-dasharray="3 3" data-seat="${s.id}" style="cursor:pointer"/>`).join('');
+    el.querySelector('#seatHits').innerHTML = SEATS.filter(s => !taken[s.id]).map(s => `<ellipse cx="${s.x}" cy="${s.y - 20 * s.scale}" rx="${24 * s.scale}" ry="${30 * s.scale}" fill="#fff" fill-opacity=".02" stroke="#ffd166" stroke-opacity=".12" stroke-dasharray="3 3" data-seat="${s.id}" style="cursor:pointer"/>`).join('');
     el.querySelector('#presentCount').textContent = people.length;
     renderMasters();
   }
@@ -153,10 +155,16 @@ window.SK_ROOM = (function () {
   function spawnSteam(n, big) {
     for (let i = 0; i < n; i++) steam.push({ x: 209 + (Math.random() - .5) * 90, y: 292, r: big ? 14 + Math.random() * 22 : 6 + Math.random() * 8, vy: big ? 0.9 + Math.random() * 1.1 : 0.35 + Math.random() * 0.4, vx: (Math.random() - .5) * 0.6, life: 1, decay: big ? 0.006 : 0.009 });
   }
+  let enteredAt = 0, rounds = 1, nudged = false, inSince = 0;
   function tick(ts) {
     const dt = Math.min(50, ts - (lastTick || ts)); lastTick = ts;
     if (ts - lastAmbient > 420) { spawnSteam(1, false); lastAmbient = ts; }
-    if (ts - lastTemp > 1000) { temp = Math.max(70, temp - (temp > 95 ? 0.12 : 0.05)); lastTemp = ts; el.querySelector('#tempText').textContent = Math.round(temp) + '°'; }
+    if (ts - lastTemp > 1000) {
+      temp = Math.max(70, temp - (temp > 95 ? 0.12 : 0.05)); lastTemp = ts; el.querySelector('#tempText').textContent = Math.round(temp) + '°';
+      const mins = Math.floor((Date.now() - enteredAt) / 60000);
+      const meta = el.querySelector('#roomMeta'); if (meta) meta.innerHTML = `<span>⏱ ${mins} ${esc(ctx.t('min'))} ${esc(ctx.t('inRoomFor'))}</span><span>🔁 ${rounds}. ${esc(ctx.t('rounds'))}</span><span>🌡 ${Math.round(temp)}°C</span>`;
+      if (!nudged && me.zone === 'in' && Date.now() - inSince > 15 * 60000) { nudged = true; ctx.toast(ctx.t('nudge')); addLog(`❄️ ${ctx.t('nudge')}`); }
+    }
     for (const s of steam) { s.y -= s.vy * dt / 16; s.x += s.vx * dt / 16; s.r += 0.06 * dt / 16; s.life -= s.decay * dt / 16; }
     steam = steam.filter(s => s.life > 0 && s.y > -40);
     el.querySelector('#steam').innerHTML = steam.map(s => `<circle cx="${s.x.toFixed(1)}" cy="${s.y.toFixed(1)}" r="${s.r.toFixed(1)}" fill="#fff" fill-opacity="${(s.life * 0.28).toFixed(3)}"/>`).join('');
@@ -227,14 +235,16 @@ window.SK_ROOM = (function () {
     const name = prof.name || ctx.t('guest');
     me = { name, seat: SEATS[hash(pid) % SEATS.length].id, zone: 'in', hat: false, first: !!prof.firstTimer, since: Date.now() };
     people = []; steam = []; bubbles = []; log = []; masters = {}; temp = 80;
+    enteredAt = Date.now(); inSince = enteredAt; rounds = 1; nudged = false;
     const t = ctx.t;
-    el.innerHTML = `
+    el.innerHTML = `<div class="roomRoot">
       <div class="row between" style="margin:4px 0 6px">
         <div><div class="small muted">${esc(t('roomTitle'))}</div><h2 style="margin:0">🧖 ${esc(options.label || t('roomCommon'))}</h2></div>
         <div class="live"><span class="dot"></span> LIVE · <b id="presentCount">1</b> ${esc(t('present'))}</div>
       </div>
       <div class="roomWrap">${scene()}</div>
-      <p class="small muted" style="margin:6px 0">${esc(t('pickSeat'))}</p>
+      <div class="roomMeta" id="roomMeta"><span>⏱ 0 ${esc(t('min'))} ${esc(t('inRoomFor'))}</span><span>🔁 1. ${esc(t('rounds'))}</span><span>🌡 80°C</span></div>
+      <p class="small muted" style="margin:0 0 6px">${esc(t('seatHint'))}</p>
       <div class="pill-row" style="margin:8px 0">
         <button class="btn small" data-act="loyly">💧 ${esc(t('throwLoyly'))}</button>
         <button class="btn small secondary" data-act="vihta">🌿 ${esc(t('vihta'))}</button>
@@ -250,7 +260,8 @@ window.SK_ROOM = (function () {
         <div class="card" style="margin:6px 0"><h3>${esc(t('loylyMasters'))}</h3><div id="masters"></div></div>
         <div class="card" style="margin:6px 0"><h3>${esc(t('happening'))}</h3><div id="roomLog" class="small muted">${esc(t('quietRoom'))}</div></div>
       </div>
-      <p class="small muted">${esc(t('roomRules'))}</p>`;
+      <p class="small muted">${esc(t('roomRules'))}</p></div>`;
+    const root = el.querySelector('.roomRoot');
     el.querySelector('#coolLabel').textContent = t('coolZone');
 
     el.querySelector('#roomSvg').addEventListener('click', e => {
@@ -258,14 +269,14 @@ window.SK_ROOM = (function () {
       me.seat = +hit.dataset.seat; if (me.zone === 'cool') { me.zone = 'in'; updateCoolBtn(); }
       track();
     });
-    el.addEventListener('click', e => {
+    root.addEventListener('click', e => {
       const b = e.target.closest('[data-act]'); if (!b) return;
       const act = b.dataset.act;
-      if (act === 'loyly') { b.disabled = true; setTimeout(() => b.disabled = false, 1500); send({ type: 'loyly' }); }
+      if (act === 'loyly') { b.disabled = true; b.classList.add('pulse'); setTimeout(() => { b.disabled = false; b.classList.remove('pulse'); }, 1500); try { navigator.vibrate && navigator.vibrate(30); } catch (e) {} send({ type: 'loyly' }); }
       if (act === 'vihta') send({ type: 'react', emoji: '🌿' });
       if (act === 'greet') send({ type: 'react', emoji: '🙏' });
       if (act === 'hat') { me.hat = !me.hat; track(); }
-      if (act === 'cool') { me.zone = me.zone === 'cool' ? 'in' : 'cool'; updateCoolBtn(); addLog(me.zone === 'cool' ? `❄️ ${me.name} ${t('wentOut')}` : `🔥 ${me.name} ${t('cameIn')}`); track(); }
+      if (act === 'cool') { me.zone = me.zone === 'cool' ? 'in' : 'cool'; if (me.zone === 'in') { rounds++; inSince = Date.now(); nudged = false; } updateCoolBtn(); addLog(me.zone === 'cool' ? `❄️ ${me.name} ${t('wentOut')}` : `🔥 ${me.name} ${t('cameIn')}`); track(); }
     });
     el.querySelector('#sayForm').addEventListener('submit', e => {
       e.preventDefault(); const inp = el.querySelector('#sayInput'); const text = inp.value.trim(); if (!text) return; inp.value = ''; send({ type: 'say', text });

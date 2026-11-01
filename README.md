@@ -2,6 +2,16 @@
 
 A social sauna app for Finland: fixed Sunday saunas, themed sessions (language sauna, newcomers, silent, avanto, after-the-run), a sauna passport with stamps and badges, and a twelve-point sauna etiquette for first-timers. Finnish first, English toggle.
 
+## Version 0.4 (UX pass, 2026-11-01)
+
+- Five tabs instead of seven, with a raised ＋ Isännöi button in the middle. Saunas and stamps live under Passi; the etiquette is a card on Home and in Minä.
+- Onboarding happens where you are: the first open, a join, a stamp or the room asks for a name in a bottom sheet and then continues the action, instead of sending you to the profile tab.
+- Home: LIVE room card with the names on the benches, the Sunday hero with attendee chips, then this week's saunas. Season and etiquette cards moved below. Skeleton cards while loading.
+- Session cards show "Alkaa 34 min päästä" / "Nyt käynnissä"; attendee chips have coloured initials.
+- Sheets have a close button and close on Escape. Sharing includes the app link.
+- Room: larger figures, a line with minutes on the benches, round number and temperature, a cooling nudge after 15 minutes, a pulse and vibration on löyly.
+- PWA: manifest and icons, so "Add to Home Screen" gives a real app icon and full-screen launch.
+
 ## Version 0.3 (Löylyhuone, 2026-11-01)
 
 - **Löylyhuone**, a shared virtual sauna (tab "Löyly" and a LIVE card on Home). Everyone present sits on the three-tier lauteet as a small towel-wrapped figure with a name tag; tap a free spot to change seats.

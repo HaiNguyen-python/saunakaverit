@@ -168,4 +168,37 @@ hr.soft{border:0;border-top:1px solid var(--line);margin:12px 0}
 .roomCard{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;background:linear-gradient(135deg,#2a170c,#5c3b22);color:#fff;border:0}
 .roomCard .muted{color:rgba(255,255,255,.8)}
 .roomCard .btn{background:#ffd166;border-color:#ffd166;color:#3a2415}
-nav.tabs button{font-size:.68rem}
+.roomCard{padding:12px 16px}
+@media (max-width:520px){.roomCard{grid-template-columns:1fr}.roomCard .btn{width:100%}}
+.roomCard .faces{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.roomCard .faces span{background:rgba(255,255,255,.18);border-radius:999px;padding:2px 9px;font-size:.75rem}
+
+/* Tab bar with raised host button */
+nav.tabs button.fab .ic{width:48px;height:48px;border-radius:50%;background:var(--wood);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.7rem;margin-top:-26px;box-shadow:0 6px 16px rgba(60,40,20,.3);border:3px solid var(--bg2);line-height:1}
+nav.tabs button.fab{color:var(--wood);font-weight:600}
+nav.tabs button.fab.active{background:none}
+
+/* Sheets */
+.sheetClose{position:absolute;right:14px;top:12px;width:34px;height:34px;border-radius:50%;border:0;background:var(--steam);color:var(--ink2);cursor:pointer;font-size:1rem}
+.sheet{position:relative}
+.sheet h2{padding-right:40px}
+
+/* Loading skeleton */
+.skel{height:84px;background:linear-gradient(90deg,var(--bg2) 25%,var(--steam) 50%,var(--bg2) 75%);background-size:200% 100%;animation:shimmer 1.3s infinite;border:1px solid var(--line);border-radius:var(--radius);margin:12px 0}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* Attendee chips with initials */
+.att{display:inline-flex;align-items:center;gap:6px;padding:3px 10px 3px 3px}
+.att i{width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-style:normal;font-size:.7rem;font-weight:700;color:#3a2415}
+.att.wait i{opacity:.6}
+.when .lbl{display:block;font-size:.68rem;color:var(--ok);font-weight:600;margin-top:2px}
+.when .lbl.now{color:var(--warn)}
+.hero .faces{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px}
+.hero .faces span{background:rgba(255,255,255,.22);border-radius:999px;padding:2px 9px;font-size:.78rem}
+.backlink{display:inline-flex;align-items:center;gap:6px;color:var(--ink2);text-decoration:none;font-size:.9rem;margin:6px 0 10px;cursor:pointer;background:none;border:0;padding:0}
+.btn.pulse{animation:btnpulse .5s ease}
+@keyframes btnpulse{0%{transform:scale(1)}40%{transform:scale(1.08)}100%{transform:scale(1)}}
+.onb h2{font-size:1.5rem}
+.onb .big{font-size:1.1rem;padding:14px}
+.subnav{display:flex;gap:6px;margin:4px 0 10px}
+.roomMeta{font-size:.8rem;color:var(--ink2);display:flex;gap:10px;flex-wrap:wrap;margin:4px 0 8px}
