@@ -354,6 +354,39 @@ window.SK_DATA = (function () {
     ['ahven', 'a perch', '🐟'], ['hauki', 'a pike', '🐟'], ['kuha', 'a zander', '🐟'], ['vanhan saappaan', 'an old boot', '👢'], ['jääpalan', 'a lump of ice', '🧊'],
     ['pikkuruisen kalan', 'a tiny fish', '🐠'], ['lohen! Kukaan ei usko', 'a salmon! Nobody will believe it', '🐟'], ['saunakauhan', 'a sauna ladle', '🥄'], ['ei mitään. Kalat nauravat', 'nothing. The fish are laughing', '💤'],
   ];
+  /* Finnish practice: words anchored to things in the scene (world coordinates). */
+  const WORDS = [
+    { fi:'kiuas', en:'stove', x:849, y:262 }, { fi:'löyly', en:'steam from the stones', x:849, y:215 }, { fi:'lauteet', en:'benches', x:1200, y:290 },
+    { fi:'vihta', en:'birch whisk', x:940, y:195 }, { fi:'ikkuna', en:'window', x:1305, y:80 }, { fi:'lyhty', en:'lantern', x:1140, y:66 },
+    { fi:'ovi', en:'door', x:710, y:110 }, { fi:'lattia', en:'floor', x:1000, y:690 }, { fi:'kiulu', en:'bucket', x:766, y:482 },
+    { fi:'kauha', en:'ladle', x:830, y:376 }, { fi:'lämpömittari', en:'thermometer', x:1040, y:150 }, { fi:'saunatonttu', en:'sauna elf', x:775, y:545 },
+    { fi:'avanto', en:'ice hole', x:330, y:575 }, { fi:'lumi', en:'snow', x:200, y:470 }, { fi:'kuu', en:'moon', x:520, y:40 },
+    { fi:'revontulet', en:'northern lights', x:300, y:110 }, { fi:'nuotio', en:'bonfire', x:140, y:520 }, { fi:'lumiukko', en:'snowman', x:540, y:420 },
+    { fi:'puu', en:'tree', x:230, y:296 }, { fi:'järvi', en:'lake', x:430, y:660 }, { fi:'tähdet', en:'stars', x:120, y:60 }, { fi:'terassi', en:'terrace', x:320, y:415 },
+    { fi:'sohva', en:'sofa', x:1650, y:496 }, { fi:'olut', en:'beer', x:1800, y:556 }, { fi:'jääkaappi', en:'fridge', x:1930, y:456 },
+    { fi:'pyyhe', en:'towel', x:1515, y:118 }, { fi:'kissa', en:'cat', x:1690, y:512 }, { fi:'lamppu', en:'lamp', x:1490, y:426 }, { fi:'matto', en:'rug', x:1730, y:680 }, { fi:'pukuhuone', en:'changing room', x:1720, y:40 },
+  ];
+  const VOCAB = [
+    ['pyyhe','towel'],['kuuma','hot'],['kylmä','cold'],['vesi','water'],['kivi','stone'],['puu','wood'],['ovi','door'],['ikkuna','window'],['olut','beer'],['kahvi','coffee'],
+    ['lumi','snow'],['jää','ice'],['järvi','lake'],['kuu','moon'],['ystävä','friend'],['ilta','evening'],['lämmin','warm'],['märkä','wet'],['kuiva','dry'],['hiljainen','quiet'],
+    ['kiitos','thank you'],['tervetuloa','welcome'],['hyvä','good'],['iso','big'],['pieni','small'],['uusi','new'],['vanha','old'],['nälkä','hunger'],['jano','thirst'],['sauna','sauna'],
+  ];
+  /* Opettaja Aino asks, learners answer in Finnish. */
+  const AINO = [
+    ['Mistä sinä olet kotoisin?', 'Where are you from?', 'Olen kotoisin Vietnamista.'],
+    ['Mitä kuuluu?', 'How are you?', 'Kiitos, hyvää!'],
+    ['Onko sauna kuuma vai kylmä?', 'Is the sauna hot or cold?', 'Sauna on kuuma.'],
+    ['Mikä on sinun lempipaikkasi saunassa?', 'What is your favourite spot in the sauna?', 'Ylälauteet!'],
+    ['Haluatko olutta vai vettä?', 'Do you want beer or water?', 'Haluan vettä, kiitos.'],
+    ['Mikä päivä tänään on?', 'What day is it today?', 'Tänään on sunnuntai.'],
+    ['Kuinka monta löylyä heitit?', 'How many löyly did you throw?', 'Heitin kolme löylyä.'],
+    ['Onko ulkona lunta?', 'Is there snow outside?', 'On, paljon lunta!'],
+    ['Mitä teet saunan jälkeen?', 'What do you do after the sauna?', 'Juon kahvia.'],
+    ['Pidätkö avannosta?', 'Do you like the ice hole?', 'Pidän! Avanto on ihana.'],
+    ['Kenen kanssa olet saunassa?', 'Who are you in the sauna with?', 'Olen saunassa kavereiden kanssa.'],
+    ['Milloin käyt saunassa?', 'When do you go to the sauna?', 'Käyn saunassa sunnuntaina.'],
+  ];
+  const NUMBERS = ['nolla','yksi','kaksi','kolme','neljä','viisi','kuusi','seitsemän','kahdeksan','yhdeksän','kymmenen','yksitoista','kaksitoista'];
   const HATS = { none:{fi:'Ei hattua', en:'No hat'}, felt:{fi:'Huopahattu', en:'Felt hat'}, tonttu:{fi:'Tonttulakki', en:'Elf hat'}, viking:{fi:'Viikinkikypärä', en:'Viking helmet'}, bucket:{fi:'Ämpäri', en:'Bucket'}, crown:{fi:'Kruunu', en:'Crown'} };
 
   Object.assign(UI.fi, {
@@ -377,6 +410,10 @@ window.SK_DATA = (function () {
     sing:'Laula', sang:'lauloi', chorus:'Kuoro! {n} laulaa yhdessä.', ladleGame:'Kauhakisa', ladleHint:'Napauta, kun merkki on keskellä vihreää.', ladleThrow:'Heitä!', perfectLoyly:'heitti täydellisen löylyn!', goodLoyly:'heitti hyvän löylyn', splashLoyly:'roiskaisi lattialle',
     powerCut:'Sähkökatko! Kuka vei lyhdyn?', powerBack:'Sähköt palasivat.', avalanche:'Lumivyöry katolta!', buried:'sai lumet niskaansa', pentti:'Naapurin Pentti', penttiCame:'Naapurin Pentti kävelee sisään.',
     stats:'Illan tilastot', sLoyly:'löylyä', sDips:'avantoa', sSnow:'lumipalloa', sCheers:'kippistä', sSongs:'laulua', sTeases:'kiusoittelua', kiuasSays:'Kiuas',
+    practice:'Suomi-tila', practiceOn:'Suomi-tila päällä: sanat, Sanavisa, opettaja Aino ja päivän lause.', practiceOff:'Suomi-tila pois.', wordsBtn:'Sanat', wordsHint:'Napauta sanaa kuullaksesi sen.',
+    vocabQuiz:'Sanavisa', vocabQ:'Mikä on suomeksi: {w}?', vocabQ2:'Mitä tarkoittaa: {w}?', aino:'Opettaja Aino', ainoHint:'vihje', ainoModel:'Esimerkkivastaus', ainoPraise:'Hienoa, {n}! Hyvä suomi. 👏',
+    phraseDay:'Päivän lause', listen:'Kuuntele', sayIt:'Sano se', practiceStats:'Suomen harjoitus', pWords:'sanaa kuultu', pQuiz:'sanavisaa', pPhrases:'lausetta sanottu', pAnswers:'vastausta Ainolle',
+    classroom:'Luokkahuone', classroomAsk:'Luokan nimi (esim. A1-ryhmä)', classroomLink:'Linkki kopioitu. Jaa se oppilaille.', classLabel:'Luokka',
     petLabel:'Lemmikki', rocket:'Raketti', fired:'ampui raketin', sled:'Pulkkamäki', sledded:'laski pulkkamäen', fish:'Pilkki', fishing:'istuu pilkillä', caught:'sai', postcard:'Postikortti', postcardText:'Terveisiä Saunakavereilta', postcardDone:'Postikortti valmis', postcardFail:'Kuvaa ei saatu tehtyä tällä selaimella.',
   });
   Object.assign(UI.en, {
@@ -400,8 +437,12 @@ window.SK_DATA = (function () {
     sing:'Sing', sang:'sang', chorus:'A choir! {n} singing together.', ladleGame:'Ladle game', ladleHint:'Tap when the marker is in the middle of the green.', ladleThrow:'Throw!', perfectLoyly:'threw a perfect löyly!', goodLoyly:'threw a good löyly', splashLoyly:'splashed the floor',
     powerCut:'Power cut! Who took the lantern?', powerBack:'The power is back.', avalanche:'Avalanche off the roof!', buried:'got snow down the neck', pentti:'Neighbour Pentti', penttiCame:'Neighbour Pentti walks in.',
     stats:'Tonight so far', sLoyly:'löyly', sDips:'dips', sSnow:'snowballs', sCheers:'cheers', sSongs:'songs', sTeases:'teases', kiuasSays:'Kiuas',
+    practice:'Finnish mode', practiceOn:'Finnish mode on: words, Sanavisa, teacher Aino and the phrase of the day.', practiceOff:'Finnish mode off.', wordsBtn:'Words', wordsHint:'Tap a word to hear it.',
+    vocabQuiz:'Word quiz', vocabQ:'What is "{w}" in Finnish?', vocabQ2:'What does "{w}" mean?', aino:'Teacher Aino', ainoHint:'hint', ainoModel:'Model answer', ainoPraise:'Great, {n}! Good Finnish. 👏',
+    phraseDay:'Phrase of the day', listen:'Listen', sayIt:'Say it', practiceStats:'Finnish practice', pWords:'words heard', pQuiz:'word quizzes', pPhrases:'phrases said', pAnswers:'answers to Aino',
+    classroom:'Classroom', classroomAsk:'Class name (e.g. A1 group)', classroomLink:'Link copied. Share it with your students.', classLabel:'Class',
     petLabel:'Pet', rocket:'Rocket', fired:'fired a rocket', sled:'Sledding', sledded:'sledded down the hill', fish:'Ice fishing', fishing:'is ice fishing', caught:'caught', postcard:'Postcard', postcardText:'Greetings from Saunakaverit', postcardDone:'Postcard ready', postcardFail:'Could not make the picture in this browser.',
   });
 
-  return { SAUNAS, CITIES, THEMES, KINDS, HEATING, LANGS, ETIQUETTE, SEASONS, BADGES, UI, seedSessions, PHRASES, STARTERS, QUIZ, HATS, TEASES, CHALLENGES, KIUAS, PENTTI, PETS, CATCHES };
+  return { SAUNAS, CITIES, THEMES, KINDS, HEATING, LANGS, ETIQUETTE, SEASONS, BADGES, UI, seedSessions, PHRASES, STARTERS, QUIZ, HATS, TEASES, CHALLENGES, KIUAS, PENTTI, PETS, CATCHES, WORDS, VOCAB, AINO, NUMBERS };
 })();

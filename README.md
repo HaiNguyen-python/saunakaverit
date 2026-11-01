@@ -2,6 +2,18 @@
 
 A social sauna app for Finland: fixed Sunday saunas, themed sessions (language sauna, newcomers, silent, avanto, after-the-run), a sauna passport with stamps and badges, and a twelve-point sauna etiquette for first-timers. Finnish first, English toggle.
 
+## Version 0.15 (Finnish practice, 2026-11-01)
+
+- **Suomi-tila** (toggle in the room header, remembered on the phone). When on:
+  - **Sanat**: 30 word labels on the things in the scene (kiuas, löyly, lauteet, vihta, avanto, revontulet, lumiukko, pyyhe, jääkaappi…). Tap one to hear it in Finnish and see the English.
+  - **Sanavisa**: a group vocabulary quiz from 30 everyday words, Finnish→English or English→Finnish, with the Finnish word spoken aloud; same 20-second race as the sauna quiz.
+  - **Opettaja Aino**: a teacher bot in the chat who asks a simple Finnish question every 2½ minutes with an English hint and reads it aloud. Anyone who answers gets praise and the model answer; after 90 seconds she posts the model answer anyway.
+  - **Päivän lause**: the phrase of the day with Kuuntele (spoken) and Sano se (send it to the chat).
+  - Löyly counts are spoken in Finnish as you throw ("kolme löylyä").
+  - A practice tally: words heard, word quizzes won, phrases said, answers to Aino.
+- **Luokkahuone**: a teacher taps Luokkahuone, names the class, and gets a link like `?room=a1-ryhma`. Everyone who opens it lands in that class's own sauna with its own chat, quizzes and presence.
+- Speech uses the phone's own Finnish voice (iOS and Android both ship one); without a Finnish voice the words still show, just silently.
+
 ## Version 0.14 (pets, rockets, sledding, fishing, postcards, 2026-11-01)
 
 - **Lemmikki**: pick a dog, cat, reindeer calf, hedgehog or duck in Oma hahmo. It follows your figure everywhere with a little lag and everyone sees it.

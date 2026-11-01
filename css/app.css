@@ -300,6 +300,8 @@ nav.tabs button.fab.active{background:none}
 @keyframes dizzy{from{transform:rotate(0)}to{transform:rotate(360deg)}}
 .challenge{background:linear-gradient(90deg,#fff3c4,#ffe29a);border-color:transparent;font-size:.9rem;margin:8px 0}
 .roomScene .pet{pointer-events:none}
+.phraseCard{background:linear-gradient(135deg,#e8f1ff,#dbe9f1);border-color:transparent;margin:6px 0}
+.ainoCard{background:#fff3c4;border-color:transparent;margin:6px 0}
 .roomScene .fall{animation:fall 1.1s ease-in infinite}
 @keyframes fall{from{transform:translateY(0);opacity:1}to{transform:translateY(420px);opacity:.2}}
 .ladleGame{margin:8px 0;background:var(--lake2);border-color:transparent}

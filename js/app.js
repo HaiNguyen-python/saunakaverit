@@ -525,6 +525,9 @@
     setInterval(refresh, 60000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
   }
+  // A classroom link (?room=name) opens that class's own sauna; otherwise the common room.
+  const roomParam = new URLSearchParams(location.search).get('room');
+  if (roomParam) { const slug = roomParam.toLowerCase().replace(/[^a-z0-9äöå-]+/g, '-'); currentRoom = { id: 'luokka:' + slug, label: `${t('classLabel')} ${roomParam}` }; }
   // The common place is the front door: open straight onto the benches.
   showView('room');
 })();

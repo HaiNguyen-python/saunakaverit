@@ -33,6 +33,52 @@ window.SK_ROOM = (function () {
   let counters = {}, hero = false, imprints = [], warned = {}, snowfight = null, dipAt = 0, angelAt = 0, lastStage = 0, hotWarned = false, tonttuCallAt = 0;
   let singers = {}, npc = null, npcStage = -1, stats = {}, ladle = null, throwTimes = [], lastKiuasScold = 0, lastKiuasLonely = 0, lastLoylyAt = 0, pcut = false, lastPcut = -1, lastAval = -1, lastPentti = -1, lastChorus = 0;
   let petPos = {}, fireworks = [], sledding = {}, fishing = {}, fishAt = 0, catchAt = 0;
+  /* Finnish practice mode */
+  let practice = false, showWords = false, pstats = { words: 0, quiz: 0, phrases: 0, answers: 0 }, ainoOpen = null, ainoAt = 0, ainoIdx = 0, myThrows = 0, praised = {};
+  try { practice = localStorage.getItem('saunakaverit.practice') === 'on'; pstats = Object.assign(pstats, JSON.parse(localStorage.getItem('saunakaverit.pstats') || '{}')); } catch (e) {}
+  function savePractice() { try { localStorage.setItem('saunakaverit.practice', practice ? 'on' : 'off'); localStorage.setItem('saunakaverit.pstats', JSON.stringify(pstats)); } catch (e) {} }
+  function speakFi(text) {
+    if (!soundOn || !window.speechSynthesis) return;
+    try {
+      const v = speechSynthesis.getVoices().find(v => v.lang && v.lang.toLowerCase().startsWith('fi'));
+      const u = new SpeechSynthesisUtterance(text); if (v) u.voice = v; u.lang = 'fi-FI'; u.rate = 0.9; u.volume = .95; speechSynthesis.cancel(); speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+  function renderLabels() {
+    const g = el.querySelector('#roomSvg .labels'); if (!g) return;
+    g.style.display = (practice && showWords) ? '' : 'none';
+    if (!g.innerHTML) g.innerHTML = D.WORDS.map((w, i) => { const wdt = 14 + w.fi.length * 8.5; return `<g data-word="${i}" style="cursor:pointer" transform="translate(${w.x},${w.y})"><rect x="${-wdt / 2}" y="-12" width="${wdt}" height="22" rx="11" fill="#fff8e1" fill-opacity=".95" stroke="#8c5a35" stroke-width="1.5"/><text x="0" y="4" text-anchor="middle" font-size="13" font-weight="700" fill="#3a2415" font-family="Inter,sans-serif">${esc(w.fi)}</text></g>`; }).join('');
+  }
+  function renderPractice() {
+    const box = el.querySelector('#practicePanel'); if (!box) return;
+    const t = ctx.t;
+    if (!practice) { box.style.display = 'none'; box.innerHTML = ''; return; }
+    box.style.display = '';
+    const ph = D.PHRASES[Math.floor(Date.now() / 86400000) % D.PHRASES.length];
+    const aino = ainoOpen ? `<div class="card ainoCard"><div class="small muted">👩‍🏫 ${esc(t('aino'))}</div><b>${esc(D.AINO[ainoOpen.i][0])}</b><div class="small muted">${esc(t('ainoHint'))}: ${esc(D.AINO[ainoOpen.i][1])}</div>${ainoOpen.model ? `<div class="small">${esc(t('ainoModel'))}: <b>${esc(D.AINO[ainoOpen.i][2])}</b></div>` : ''}</div>` : '';
+    box.innerHTML = `
+      <div class="card phraseCard"><div class="small muted">🇫🇮 ${esc(t('phraseDay'))}</div><b style="font-size:1.1rem">${esc(ph[0])}</b><div class="small muted">${esc(ph[1])}</div>
+        <div class="pill-row" style="margin-top:6px"><button class="btn small secondary" data-act="phraseListen">🔊 ${esc(t('listen'))}</button><button class="btn small" data-act="phraseSay">💬 ${esc(t('sayIt'))}</button><button class="btn small secondary" data-act="words">🔤 ${esc(t('wordsBtn'))} ${showWords ? '✓' : ''}</button><button class="btn small lake" data-act="vocab">🔡 ${esc(t('vocabQuiz'))}</button></div>
+        ${showWords ? `<div class="small muted" style="margin-top:4px">${esc(t('wordsHint'))}</div>` : ''}</div>
+      ${aino}
+      <div class="small muted" style="margin:4px 0 8px">📚 <b>${esc(t('practiceStats'))}:</b> ${pstats.words} ${esc(t('pWords'))} · ${pstats.quiz} ${esc(t('pQuiz'))} · ${pstats.phrases} ${esc(t('pPhrases'))} · ${pstats.answers} ${esc(t('pAnswers'))}</div>`;
+  }
+  function ainoTick() {
+    if (!practice) return;
+    const now = Date.now(), t = ctx.t;
+    if (!ainoOpen && now - ainoAt > 150000) {
+      ainoAt = now; ainoIdx = (ainoIdx + 1 + Math.floor(Math.random() * 3)) % D.AINO.length; ainoOpen = { i: ainoIdx, at: now, model: false };
+      const q = D.AINO[ainoIdx]; addChat({ sys: true, by: `👩‍🏫 ${t('aino')}`, text: `${q[0]}  (${t('ainoHint')}: ${q[1]})` }); speakFi(q[0]); praised = {}; renderPractice();
+    }
+    if (ainoOpen && !ainoOpen.model && now - ainoOpen.at > 90000) { ainoOpen.model = true; addChat({ sys: true, by: `👩‍🏫 ${t('aino')}`, text: `${t('ainoModel')}: ${D.AINO[ainoOpen.i][2]}` }); renderPractice(); }
+    if (ainoOpen && now - ainoOpen.at > 130000) { ainoOpen = null; renderPractice(); }
+  }
+  function ainoHears(ev) {
+    if (!practice || !ainoOpen || praised[ev.id] || Date.now() - ainoOpen.at > 90000) return;
+    praised[ev.id] = true; const t = ctx.t;
+    addChat({ sys: true, by: `👩‍🏫 ${t('aino')}`, text: `${t('ainoPraise').replace('{n}', ev.by)} ${!ainoOpen.model ? `${t('ainoModel')}: ${D.AINO[ainoOpen.i][2]}` : ''}` });
+    if (ev.id === pid) { pstats.answers++; savePractice(); renderPractice(); }
+  }
   const FX_COLORS = ['#ffd166', '#ff7a7a', '#7ad3ff', '#3dff9a', '#c67bff', '#fff'];
   function boom() {
     if (!soundOn) return;
@@ -375,6 +421,7 @@ window.SK_ROOM = (function () {
   <ellipse class="emberGlow" cx="849" cy="300" rx="110" ry="50" fill="url(#${u}glow)" style="opacity:0;transition:opacity .6s" pointer-events="none"/>
   <g class="roofsnow" style="display:none">${[...Array(16)].map((_, i) => `<circle cx="${480 + (i * 23) % 170}" cy="${140 + (i * 31) % 60}" r="${3 + (i % 3) * 2}" fill="#fff" class="fall" style="animation-delay:${(i % 4) * 0.15}s"/>`).join('')}</g>
   <g class="imprints"></g>
+  <g class="labels" style="display:none"></g>
   <g class="seatHits"></g>
   <g class="people"></g>
   <g class="steam" ${mini ? '' : `filter="url(#${u}blur)"`}></g>
@@ -561,7 +608,7 @@ window.SK_ROOM = (function () {
       const meta = el.querySelector('#roomMeta'); if (meta) meta.innerHTML = `<span>⏱ ${mins} ${esc(ctx.t('min'))} ${esc(ctx.t('inRoomFor'))}</span><span>🔁 ${rounds}. ${esc(ctx.t('rounds'))}</span><span>🌡 ${Math.round(temp)}°C</span><span>🌨 ${esc(ctx.t('outTemp'))} ${outTempNow()}°C</span>`;
       const ot = el.querySelector('.outTempText'); if (ot) ot.textContent = outTempNow() + '°C';
       if (!nudged && me.zone === 'in' && Date.now() - inSince > 15 * 60000) { nudged = true; ctx.toast(ctx.t('nudge')); addLog(`❄️ ${ctx.t('nudge')}`); }
-      renderStrip(); renderMeter(); starterTick(); gameTick(); bodyTick(); eventsTick();
+      renderStrip(); renderMeter(); starterTick(); gameTick(); bodyTick(); eventsTick(); ainoTick();
       if (me.icecrown && me.icecrown < Date.now()) { me.icecrown = 0; track(); }
       if (me.crown && me.crown < Date.now()) { me.crown = 0; track(); }
       const expired = Object.keys(faces).filter(k => faces[k].until <= Date.now()); if (expired.length) { expired.forEach(k => delete faces[k]); placePeople(); }
@@ -801,13 +848,15 @@ window.SK_ROOM = (function () {
     const box = el.querySelector('#gameBox'); if (!box) return;
     const t = ctx.t, now = Date.now();
     if (quiz) {
-      const q = D.QUIZ[quiz.q], Q = L(q);
+      let Q, ans;
+      if (quiz.kind === 'vocab') { const w = D.VOCAB[quiz.q]; Q = [t(quiz.dir ? 'vocabQ2' : 'vocabQ').replace('{w}', quiz.dir ? w[0] : w[1]), quiz.opts.map(i => quiz.dir ? D.VOCAB[i][1] : D.VOCAB[i][0])]; ans = quiz.a; }
+      else { const q = D.QUIZ[quiz.q]; Q = L(q); ans = q.a; }
       const left = Math.max(0, Math.ceil((quiz.at + 20000 - now) / 1000));
       box.style.display = '';
-      box.innerHTML = `<div class="small muted">🧠 ${esc(t('quiz'))} · ${esc(quiz.by)}${quiz.done ? '' : ` · ${left} ${esc(t('secondsLeft'))}`}</div>
+      box.innerHTML = `<div class="small muted">${quiz.kind === 'vocab' ? '🔡 ' + esc(t('vocabQuiz')) : '🧠 ' + esc(t('quiz'))} · ${esc(quiz.by)}${quiz.done ? '' : ` · ${left} ${esc(t('secondsLeft'))}`}</div>
         <h3>${esc(Q[0])}</h3>
-        <div class="qopts">${Q[1].map((o, i) => `<button class="btn small ${quiz.done ? (i === q.a ? '' : 'secondary') : (quiz.mine === i ? '' : 'secondary')}" data-qa="${i}" ${quiz.done || quiz.mine != null ? 'disabled' : ''}>${esc(o)}${quiz.done && i === q.a ? ' ✓' : ''}</button>`).join('')}</div>
-        ${quiz.done ? `<p class="small"><b>${quiz.winner ? `🏆 ${esc(quiz.winner)} ${esc(t('winner'))}!` : esc(t('nobody'))}</b> · ${esc(t('correctIs'))}: ${esc(Q[1][q.a])}</p>` : ''}
+        <div class="qopts">${Q[1].map((o, i) => `<button class="btn small ${quiz.done ? (i === ans ? '' : 'secondary') : (quiz.mine === i ? '' : 'secondary')}" data-qa="${i}" ${quiz.done || quiz.mine != null ? 'disabled' : ''}>${esc(o)}${quiz.done && i === ans ? ' ✓' : ''}</button>`).join('')}</div>
+        ${quiz.done ? `<p class="small"><b>${quiz.winner ? `🏆 ${esc(quiz.winner)} ${esc(t('winner'))}!` : esc(t('nobody'))}</b> · ${esc(t('correctIs'))}: ${esc(Q[1][ans])}</p>` : ''}
         ${quiz.answers.length ? `<div class="small muted">${quiz.answers.map(a => `${a.ok ? '✅' : '❌'} ${esc(a.by)}`).join(' · ')}</div>` : ''}`;
     } else if (snowfight) {
       const left = Math.max(0, Math.ceil((snowfight.at + 30000 - now) / 1000));
@@ -927,7 +976,7 @@ window.SK_ROOM = (function () {
         else addLog(`${ev.emoji} ${by}`);
       }
     }
-    else if (ev.type === 'say') { const text = String(ev.text || '').slice(0, 80); bubbles = bubbles.filter(b => !(b.id === ev.id && b.text)); bubbles.push({ id: ev.id, text, at: now, until: now + 7000 }); addLog(`💬 ${by}: ${text}`); addChat({ id: ev.id, by, text, mid: ev.mid }); if (ev.id !== pid) ding(); }
+    else if (ev.type === 'say') { const text = String(ev.text || '').slice(0, 80); bubbles = bubbles.filter(b => !(b.id === ev.id && b.text)); bubbles.push({ id: ev.id, text, at: now, until: now + 7000 }); addLog(`💬 ${by}: ${text}`); addChat({ id: ev.id, by, text, mid: ev.mid }); if (ev.id !== pid) ding(); ainoHears(ev); }
     else if (ev.type === 'mood') { const face = String(ev.face || ''); setFace(ev.id, face, ev.ms || 9000); if (ev.note === 'dipped') { stats.dips = (stats.dips || 0) + 1; renderStats(); } bubbles = bubbles.filter(b => !(b.id === ev.id && b.emoji)); bubbles.push({ id: ev.id, emoji: ev.emoji, at: now, until: now + 3500 }); if (ev.note) { addLog(`${ev.emoji} ${by} ${t(ev.note)}`); addChat({ sys: true, text: `${ev.emoji} ${by} ${t(ev.note)}` }); } else addChat({ id: ev.id, by, text: ev.emoji, big: true, mid: ev.mid }); if (ev.id !== pid) ding(); }
     else if (ev.type === 'rocket') { fireworks.push({ x: ev.x || 300, top: 150 + Math.floor(Math.random() * 120), t0: now, seed: (ev.seed || 0) % 7, color: FX_COLORS[(ev.seed || 0) % FX_COLORS.length] }); hiss(false); addLog(`🎆 ${by} ${t('fired')}`); addChat({ sys: true, text: `🎆 ${by} ${t('fired')}` }); }
     else if (ev.type === 'sled') {
@@ -952,7 +1001,13 @@ window.SK_ROOM = (function () {
     else if (ev.type === 'snowfight') { if (snowfight && !snowfight.done) return; snowfight = { at: ev.at || now, by, tally: {}, done: false }; addLog(`❄️ ${by} ${t('snowfightStarted')}`); addChat({ sys: true, text: `❄️ ${by} ${t('snowfightStarted')}` }); ctx.toast(t('snowfightLive')); ding(); renderGame(); }
     else if (ev.type === 'move') { const p = people.find(x => x.id === ev.id); if (p) { if (p.zone !== 'floor') { const from = findPos(ev.id); if (from) pos[ev.id] = clampFloor(from.x, from.y); } p.zone = 'floor'; p.x = ev.x; p.y = ev.y; } dest[ev.id] = { x: ev.x, y: ev.y }; if (!pos[ev.id]) pos[ev.id] = { x: ev.x, y: ev.y }; placePeople(); }
     else if (ev.type === 'mreact') { const m = chat.find(x => x.mid === ev.mid); if (!m) return; const key = ev.id + ':' + ev.emoji; if (m.who[key]) return; m.who[key] = true; m.reacts[ev.emoji] = (m.reacts[ev.emoji] || 0) + 1; renderChat(); if (m.id === pid && ev.id !== pid) { ctx.toast(`${ev.emoji} ${by}`); } }
-    else if (ev.type === 'quiz') { if (quiz && !quiz.done) return; quiz = { q: ev.q % D.QUIZ.length, at: ev.at || now, by, answers: [], mine: null, done: false, winner: null }; addLog(`🧠 ${by} ${t('quizStarted')}`); addChat({ sys: true, text: `🧠 ${by} ${t('quizStarted')}` }); ding(); renderGame(); }
+    else if (ev.type === 'quiz') {
+      if (quiz && !quiz.done) return;
+      if (ev.kind === 'vocab') quiz = { kind: 'vocab', q: ev.q % D.VOCAB.length, dir: ev.dir ? 1 : 0, opts: (ev.opts || [ev.q, 0, 1]).map(i => i % D.VOCAB.length), a: ev.a || 0, at: ev.at || now, by, answers: [], mine: null, done: false, winner: null };
+      else quiz = { q: ev.q % D.QUIZ.length, at: ev.at || now, by, answers: [], mine: null, done: false, winner: null };
+      addLog(`🧠 ${by} ${t('quizStarted')}`); addChat({ sys: true, text: `${ev.kind === 'vocab' ? '🔡' : '🧠'} ${by} ${t('quizStarted')}` }); ding(); renderGame();
+      if (ev.kind === 'vocab' && quiz.dir === 0 && practice) speakFi(D.VOCAB[quiz.q][0]);
+    }
     else if (ev.type === 'answer') { if (!quiz || ev.q !== quiz.q) return; if (ev.id === pid) quiz.mine = ev.choice; if (!quiz.answers.some(a => a.id === ev.id)) quiz.answers.push({ id: ev.id, by, ok: !!ev.ok }); if (ev.ok && !quiz.winner) { quiz.winner = by; quiz.done = true; quiz.doneAt = now; addLog(`🏆 ${by} ${t('answered')}`); addChat({ sys: true, text: `🏆 ${by} ${t('answered')} · ${t('quiz')}` }); if (ev.id === pid) bump('quizWin'); } renderGame(); }
     else if (ev.type === 'duel') { if (duel && !duel.done) return; duel = { at: ev.at || now, by, tally: {}, done: false }; addLog(`💧 ${by} ${t('duelStarted')}`); addChat({ sys: true, text: `💧 ${by} ${t('duelStarted')}` }); ctx.toast(t('duelLive')); ding(); renderGame(); }
   }
@@ -1003,6 +1058,8 @@ window.SK_ROOM = (function () {
         <div><div class="small muted">${esc(t('roomTitle'))}</div><h2 style="margin:0">🧖 ${esc(options.label || t('roomCommon'))}</h2></div>
         <div class="row"><button class="chipbtn ghost" data-act="sound" id="soundBtn" title="${esc(t('sound'))}">${soundOn ? '🔊' : '🔇'}</button><div class="live"><span class="dot"></span> LIVE · <b id="presentCount">1</b> ${esc(t('present'))}</div></div>
       </div>
+      <div class="pill-row" style="margin:0 0 8px"><button class="chipbtn ${practice ? 'active' : ''}" data-act="practice" id="practiceBtn">🇫🇮 ${esc(t('practice'))}</button><button class="chipbtn" data-act="classroom">🏫 ${esc(t('classroom'))}</button></div>
+      <div id="practicePanel" style="display:none"></div>
       <div class="roomWrap">${scene(false)}</div>
       <div class="minimap" id="minimap" title="${esc(t('mapHint'))}"><span class="mmArea" style="left:0;width:32%">❄️ ${esc(t('terraceLbl'))}</span><span class="mmArea" style="left:32%;width:40%">🔥 ${esc(t('saunaLbl'))}</span><span class="mmArea" style="left:72%;width:28%">🛋 ${esc(t('loungeLbl'))}</span><div class="mmView" id="mmView"></div><div class="mmDots" id="mmDots"></div></div>
       <div class="meter"><span>🔥 ${esc(t('yhteisloyly'))}</span><div class="bar"><div id="meterFill"></div></div><b id="meterText">0/8</b></div>
@@ -1093,7 +1150,7 @@ window.SK_ROOM = (function () {
         <div class="small muted" style="margin-top:8px">${esc(t('petLabel'))}</div><div class="pill-row" style="margin-top:4px">${Object.keys(D.PETS).map(k => `<button class="chipbtn ${(me.pet || 'none') === k ? 'active' : ''}" data-pet="${k}">${D.PETS[k].e ? D.PETS[k].e + ' ' : ''}${esc(L(D.PETS[k]))}</button>`).join('')}</div>`;
     }
     function doAct(act, b) {
-      if (act === 'loyly') { if (b) { b.disabled = true; b.classList.add('pulse'); setTimeout(() => { b.disabled = false; b.classList.remove('pulse'); }, 1500); } try { navigator.vibrate && navigator.vibrate(30); } catch (e) {} send({ type: 'loyly' }); bump('loyly'); }
+      if (act === 'loyly') { if (b) { b.disabled = true; b.classList.add('pulse'); setTimeout(() => { b.disabled = false; b.classList.remove('pulse'); }, 1500); } try { navigator.vibrate && navigator.vibrate(30); } catch (e) {} send({ type: 'loyly' }); bump('loyly'); myThrows++; if (practice) speakFi(`${D.NUMBERS[Math.min(12, myThrows)]} löylyä`); }
       if (act === 'vihta') send({ type: 'react', emoji: '🌿' });
       if (act === 'greet') send({ type: 'react', emoji: '🙏' });
       if (act === 'emo') send({ type: 'react', emoji: b.dataset.emo });
@@ -1115,6 +1172,25 @@ window.SK_ROOM = (function () {
       if (act === 'sled') { if (coldStage(me) >= 3) { ctx.toast(t('frozenCantMove')); return; } me.zone = 'floor'; me.x = 90; me.y = 430; if (!me.outSince) me.outSince = Date.now(); send({ type: 'sled' }); track(); }
       if (act === 'fish') { if (coldStage(me) >= 3) { ctx.toast(t('frozenCantMove')); return; } const d = findPos(pid); walkTo(486, 596); const dist = d ? Math.hypot(486 - d.x, 596 - Math.max(478, d.y)) : 500; fishAt = Date.now() + dist / 230 * 1000 + 300; }
       if (act === 'postcard') makePostcard();
+      if (act === 'practice') { practice = !practice; savePractice(); ctx.toast(t(practice ? 'practiceOn' : 'practiceOff')); el.querySelector('#practiceBtn').classList.toggle('active', practice); renderPractice(); renderLabels(); if (practice) { ainoAt = Date.now() - 140000; } }
+      if (act === 'words') { showWords = !showWords; renderLabels(); renderPractice(); }
+      if (act === 'phraseListen') speakFi(D.PHRASES[Math.floor(Date.now() / 86400000) % D.PHRASES.length][0]);
+      if (act === 'phraseSay') { const ph = D.PHRASES[Math.floor(Date.now() / 86400000) % D.PHRASES.length]; send({ type: 'say', text: ph[0], mid: pid + '-' + Date.now() }); pstats.phrases++; savePractice(); renderPractice(); }
+      if (act === 'vocab') {
+        if (quiz && !quiz.done) return;
+        const q = Math.floor(Math.random() * D.VOCAB.length), dir = Math.random() < 0.5 ? 0 : 1;
+        const others = []; while (others.length < 2) { const r = Math.floor(Math.random() * D.VOCAB.length); if (r !== q && !others.includes(r)) others.push(r); }
+        const opts = [q, ...others].sort(() => Math.random() - 0.5);
+        send({ type: 'quiz', kind: 'vocab', q, dir, opts, a: opts.indexOf(q), at: Date.now() });
+      }
+      if (act === 'classroom') {
+        const name = prompt(t('classroomAsk')); if (!name) return;
+        const slug = name.trim().toLowerCase().replace(/[^a-z0-9äöå]+/g, '-').replace(/^-|-$/g, '');
+        const link = location.origin + location.pathname + '?room=' + encodeURIComponent(slug);
+        try { navigator.clipboard && navigator.clipboard.writeText(link); } catch (e) {}
+        if (navigator.share) navigator.share({ title: 'Saunakaverit', text: `${t('classLabel')} ${name}`, url: link }).catch(() => {});
+        ctx.toast(t('classroomLink')); addChat({ sys: true, text: `🏫 ${t('classLabel')} ${name}: ${link}` });
+      }
       if (act === 'ladlegame') {
         const box = el.querySelector('#ladleGame'); ladle = { start: Date.now() }; box.style.display = '';
         box.innerHTML = `<div class="small muted">🥄 ${esc(t('ladleGame'))} · ${esc(t('ladleHint'))}</div><div class="ladleBar"><div class="zone"></div><div class="marker"></div></div><div class="row" style="margin-top:8px"><button class="btn small" data-act="ladlethrow">💧 ${esc(t('ladleThrow'))}</button><button class="btn small secondary" data-act="ladleclose">✕</button></div>`;
@@ -1161,7 +1237,8 @@ window.SK_ROOM = (function () {
       const hat = e.target.closest('[data-hat]'); if (hat) { me.hat = hat.dataset.hat; figure.hat = me.hat; saveFigure(); track(); showFigure(); showFigure(); return; }
       const tw = e.target.closest('[data-towel]'); if (tw) { me.towel = +tw.dataset.towel; figure.towel = me.towel; saveFigure(); track(); showFigure(); showFigure(); return; }
       const pt2 = e.target.closest('[data-pet]'); if (pt2 && !pt2.classList.contains('pet')) { me.pet = pt2.dataset.pet; figure.pet = me.pet; saveFigure(); delete petPos[pid]; track(); placePeople(); showFigure(); showFigure(); return; }
-      const qa = e.target.closest('[data-qa]'); if (qa && quiz && !quiz.done && quiz.mine == null) { const c = +qa.dataset.qa; send({ type: 'answer', q: quiz.q, choice: c, ok: c === D.QUIZ[quiz.q].a }); return; }
+      const qa = e.target.closest('[data-qa]'); if (qa && quiz && !quiz.done && quiz.mine == null) { const c = +qa.dataset.qa; const ok = c === (quiz.kind === 'vocab' ? quiz.a : D.QUIZ[quiz.q].a); send({ type: 'answer', q: quiz.q, choice: c, ok }); if (ok && quiz.kind === 'vocab') { pstats.quiz++; savePractice(); renderPractice(); speakFi(D.VOCAB[quiz.q][0]); } return; }
+      const wd = e.target.closest('[data-word]'); if (wd) { const w = D.WORDS[+wd.dataset.word]; speakFi(w.fi); ctx.toast(`${w.fi} = ${w.en}`); pstats.words++; savePractice(); renderPractice(); return; }
       const ph = e.target.closest('[data-phrase]'); if (ph) { send({ type: 'say', text: ph.dataset.phrase, mid: pid + '-' + Date.now() }); return; }
       const md = e.target.closest('[data-mood]'); if (md) { send({ type: 'mood', face: md.dataset.mood, emoji: md.dataset.emo, mid: pid + '-' + Date.now() }); return; }
       if (e.target.closest('#emojiBtn')) { const g = el.querySelector('#emojiGrid'); g.style.display = g.style.display === 'none' ? '' : 'none'; return; }
@@ -1177,6 +1254,7 @@ window.SK_ROOM = (function () {
     });
 
     people = [Object.assign({ id: pid }, me)]; placePeople(); renderChallenge();
+    ainoOpen = null; ainoAt = Date.now() - 120000; myThrows = 0; praised = {}; showWords = false; renderLabels(); renderPractice();
     lastTick = 0; raf = requestAnimationFrame(tick);
     starterTick();
     if (ctx.client) {
@@ -1239,5 +1317,5 @@ window.SK_ROOM = (function () {
     if (counts[id] != null) cb(counts[id], (metasByRoom[id] || []).map(m => m.name), metasByRoom[id] || []);
   }
 
-  return { enter, leave, watch, preview, isOpen: () => !!raf, count: (id) => counts[id] || 0, metas: (id) => metasByRoom[id] || [], _state: () => ({ me, pos, dest, people, ch }) };
+  return { enter, leave, watch, preview, isOpen: () => !!raf, count: (id) => counts[id] || 0, metas: (id) => metasByRoom[id] || [], _state: () => ({ me, pos, dest, people, ch, quiz, practice, ainoOpen }) };
 })();
