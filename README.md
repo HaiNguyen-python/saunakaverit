@@ -2,6 +2,15 @@
 
 A social sauna app for Finland: fixed Sunday saunas, themed sessions (language sauna, newcomers, silent, avanto, after-the-run), a sauna passport with stamps and badges, and a twelve-point sauna etiquette for first-timers. Finnish first, English toggle.
 
+## Version 0.12 (warm up, cool down, play, 2026-11-01)
+
+- **Cold outside.** The terrace has a real outdoor temperature that follows the hour (about −4 °C in the afternoon, −20 °C at night) and the colder it is, the faster this happens: after 90 s outside a warning asks you in; after 3 min the saunatonttu appears and calls you by name in the chat; after 5 min you freeze into an ice block and cannot walk. A friend can tap you and choose 🔥 Sulata to thaw you, or after 7 min you thaw and stumble back in on your own.
+- **Hot inside.** After 25 minutes on the benches you get dizzy stars and the room asks for water; a friend can tap you and 💧 Tarjoa vettä.
+- **Avanto dip**: a button (or tapping the hole) walks you to the ice hole and dips you with a splash. **Lumienkeli**: lie down in the snow and leave a snow-angel print that stays for a couple of minutes.
+- **Lumisota**: a 30-second snowball fight; most hits wins the ice crown for ten minutes.
+- A cat sleeps on the lounge sofa and purrs when tapped.
+- **Päivän haaste**: one challenge per day (throw 5 löyly, take a dip, clink with two friends, two rounds, win a quiz, make a snow angel, tease three friends). Completing it makes you Päivän sankari with a ⭐ by your name for the day.
+
 ## Version 0.11 (the whole yard, 2026-11-01)
 
 - The world is now 2000 units wide, two and a half screens: a snowy **terassi** on the left with a frozen lake, the avanto with a ladder, a bonfire, a log bench, a snowman in a bucket hat, pine trees, the moon and the northern lights; the **sauna** in the middle; a **pukuhuone** lounge on the right with birch panelling, a sofa, a rug, towels on hooks, a floor lamp, board games, the beer table and a fridge marked KYLMÄ.

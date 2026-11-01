@@ -326,6 +326,16 @@ window.SK_DATA = (function () {
     ['Hiljaisuus on ok, mutta nyt sinä kuorsaat.', 'Silence is fine, but now you are snoring.'],
     ['Ylälauteelle, jos uskallat!', 'Top bench, if you dare!'],
   ];
+  /* Daily challenges, one per weekday index. */
+  const CHALLENGES = [
+    { fi:'Heitä 5 löylyä', en:'Throw löyly 5 times', key:'loyly', goal:5 },
+    { fi:'Käy avannossa', en:'Take an avanto dip', key:'dip', goal:1 },
+    { fi:'Kilistä kahden kaverin kanssa', en:'Clink with two friends', key:'cheers', goal:2 },
+    { fi:'Vilvoittele ja palaa lauteille kahdesti', en:'Cool off and come back twice', key:'rounds', goal:2 },
+    { fi:'Voita Saunavisa', en:'Win a Sauna quiz', key:'quizWin', goal:1 },
+    { fi:'Tee lumienkeli', en:'Make a snow angel', key:'angel', goal:1 },
+    { fi:'Kiusaa kolmea kaveria', en:'Tease three friends', key:'tease', goal:3 },
+  ];
   const HATS = { none:{fi:'Ei hattua', en:'No hat'}, felt:{fi:'Huopahattu', en:'Felt hat'}, tonttu:{fi:'Tonttulakki', en:'Elf hat'}, viking:{fi:'Viikinkikypärä', en:'Viking helmet'}, bucket:{fi:'Ämpäri', en:'Bucket'}, crown:{fi:'Kruunu', en:'Crown'} };
 
   Object.assign(UI.fi, {
@@ -340,6 +350,11 @@ window.SK_DATA = (function () {
     cheers:'Kippis', tease:'Kiusaa', hifive:'Yläfemma', ladle:'Anna kauha', tookBeer:'otti oluen pöydältä', cheered:'kilisti', teased:'kiusoitteli', hifived:'antoi yläfemman', gaveLadle:'antoi kauhan',
     floorHint:'Napauta lattiaa tai lunta kävelläksesi · olutpöytä = 🍺 · kaveri = kippis, kiusaa, yläfemma', walked:'käveli lattialle',
     terraceLbl:'Terassi', saunaLbl:'Sauna', loungeLbl:'Pukuhuone', goLounge:'Pukuhuoneeseen', mapHint:'Vedä kuvaa katsellaksesi ympärillesi. Kartta näyttää, missä kaikki ovat.',
+    coldWarn1:'Alkaa olla kylmä. Tule sisään lämmittelemään!', coldWarn2:'Saunatonttu: Tule sisään, {n}! Löyly odottaa.', frozenMsg:'{n} jäätyi jääpalikaksi! Joku sulattakaa.', youFroze:'Jäädyit! Odota, että joku sulattaa sinut, tai kompuroi sisään.',
+    thaw:'Sulata', thawed:'sulatti', stumbled:'suli ja kompuroi sisään', hotWarn:'{n} on ollut lauteilla 25 minuuttia. Joku hakekaa vettä!', water:'Tarjoa vettä', watered:'tarjosi vettä', dizzy:'Pyörryttää! Mene vilvoittelemaan.',
+    outTemp:'Ulkona', avantoBtn:'Avantoon', dipped:'kävi avannossa', angelBtn:'Lumienkeli', madeAngel:'teki lumienkelin', snowfight:'Lumisota 30 s', snowfightStarted:'aloitti lumisodan',
+    snowfightLive:'Lumisota käynnissä! Napauta kaveria ja heitä lumipallo.', snowfightOver:'Lumisota ohi', snowKing:'Lumikuningas', hits:'Osumat', catPurr:'Kissa kehrää sohvalla. Älä herätä.',
+    challenge:'Päivän haaste', challengeDone:'Päivän sankari! Tähti nimesi viereen.', hero:'Päivän sankari', frozenCantMove:'Olet jäässä. Joku sulattakoon sinut!',
   });
   Object.assign(UI.en, {
     chat:'Bench talk', phrases:'Quick phrases', starterBy:'Saunakaverit asks', games:'Games', quiz:'Sauna quiz', duel:'Löyly contest 30 s',
@@ -353,7 +368,12 @@ window.SK_DATA = (function () {
     cheers:'Cheers', tease:'Tease', hifive:'High five', ladle:'Hand the ladle', tookBeer:'took a beer from the table', cheered:'clinked with', teased:'teased', hifived:'high-fived', gaveLadle:'handed the ladle to',
     floorHint:'Tap the floor or the snow to walk · beer table = 🍺 · a person = cheers, tease, high five', walked:'walked onto the floor',
     terraceLbl:'Terrace', saunaLbl:'Sauna', loungeLbl:'Lounge', goLounge:'To the lounge', mapHint:'Drag the picture to look around. The map shows where everyone is.',
+    coldWarn1:'Getting cold. Come inside to warm up!', coldWarn2:'Saunatonttu: Come in, {n}! The löyly is waiting.', frozenMsg:'{n} froze into an ice block! Someone thaw them.', youFroze:'You froze! Wait for someone to thaw you, or stumble back in.',
+    thaw:'Thaw', thawed:'thawed', stumbled:'thawed out and stumbled back in', hotWarn:'{n} has been on the benches for 25 minutes. Someone bring water!', water:'Offer water', watered:'offered water to', dizzy:'Feeling dizzy! Go cool off.',
+    outTemp:'Outside', avantoBtn:'Avanto dip', dipped:'took an avanto dip', angelBtn:'Snow angel', madeAngel:'made a snow angel', snowfight:'Snowball fight 30 s', snowfightStarted:'started a snowball fight',
+    snowfightLive:'Snowball fight on! Tap a friend and throw a snowball.', snowfightOver:'Snowball fight over', snowKing:'Snow king', hits:'Hits', catPurr:'The cat purrs on the sofa. Do not wake it.',
+    challenge:'Daily challenge', challengeDone:'Hero of the day! A star by your name.', hero:'Hero of the day', frozenCantMove:'You are frozen. Someone needs to thaw you!',
   });
 
-  return { SAUNAS, CITIES, THEMES, KINDS, HEATING, LANGS, ETIQUETTE, SEASONS, BADGES, UI, seedSessions, PHRASES, STARTERS, QUIZ, HATS, TEASES };
+  return { SAUNAS, CITIES, THEMES, KINDS, HEATING, LANGS, ETIQUETTE, SEASONS, BADGES, UI, seedSessions, PHRASES, STARTERS, QUIZ, HATS, TEASES, CHALLENGES };
 })();
