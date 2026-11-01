@@ -313,6 +313,19 @@ window.SK_DATA = (function () {
     { fi:['Kuka asuu kansanperinteen mukaan saunassa?', ['Saunatonttu', 'Joulupukki', 'Näkki']], en:['Who lives in the sauna according to folklore?', ['The saunatonttu', 'Santa Claus', 'The näkki']], a:0 },
     { fi:['Mitä tehdään ennen lauteille nousua?', ['Käydään suihkussa', 'Heitetään löylyä', 'Juodaan olut']], en:['What do you do before going up to the benches?', ['Take a shower', 'Throw löyly', 'Drink a beer']], a:0 },
   ];
+  /* Friendly sauna teasing. Always kind, always about the sauna. */
+  const TEASES = [
+    ['Istutko sinä aina alalauteella?', 'Do you always sit on the bottom bench?'],
+    ['Kestätkö vielä yhden kauhallisen?', 'Can you take one more ladleful?'],
+    ['Vihta sidotaan koivusta, ei kuusesta!', 'The vihta is made of birch, not spruce!'],
+    ['Sinäkö heitit sen viimeisen löylyn?!', 'Was it you who threw that last löyly?!'],
+    ['Pefletti unohtui kotiin, vai?', 'Forgot your seat cover at home, did you?'],
+    ['Avanto odottaa. Pelottaako?', 'The ice hole is waiting. Scared?'],
+    ['Olut ennen saunaa? Rohkea valinta.', 'A beer before the sauna? Brave choice.'],
+    ['Tuo hattu on nähnyt parempiakin löylyjä.', 'That hat has seen better löyly.'],
+    ['Hiljaisuus on ok, mutta nyt sinä kuorsaat.', 'Silence is fine, but now you are snoring.'],
+    ['Ylälauteelle, jos uskallat!', 'Top bench, if you dare!'],
+  ];
   const HATS = { none:{fi:'Ei hattua', en:'No hat'}, felt:{fi:'Huopahattu', en:'Felt hat'}, tonttu:{fi:'Tonttulakki', en:'Elf hat'}, viking:{fi:'Viikinkikypärä', en:'Viking helmet'}, bucket:{fi:'Ämpäri', en:'Bucket'}, crown:{fi:'Kruunu', en:'Crown'} };
 
   Object.assign(UI.fi, {
@@ -324,6 +337,8 @@ window.SK_DATA = (function () {
     waved:'vilkutti', whisked2:'vihtoi', offered:'tarjosi oluen', snowed:'heitti lumipallon', chatEmpty:'Ei vielä puhetta. Hiljaisuus on ok, mutta kysyäkin saa.',
     mood:'Fiilis', reactHint:'Napauta viestiä reagoidaksesi',
     moose:'Hirvi kävelee ikkunan ohi!', aurora:'Revontulet! Katsokaa ikkunasta.',
+    cheers:'Kippis', tease:'Kiusaa', hifive:'Yläfemma', ladle:'Anna kauha', tookBeer:'otti oluen pöydältä', cheered:'kilisti', teased:'kiusoitteli', hifived:'antoi yläfemman', gaveLadle:'antoi kauhan',
+    floorHint:'Napauta lattiaa kävelläksesi · olutpöytä = 🍺 · kaveri = kippis, kiusaa, yläfemma', walked:'käveli lattialle',
   });
   Object.assign(UI.en, {
     chat:'Bench talk', phrases:'Quick phrases', starterBy:'Saunakaverit asks', games:'Games', quiz:'Sauna quiz', duel:'Löyly contest 30 s',
@@ -334,7 +349,9 @@ window.SK_DATA = (function () {
     waved:'waved at', whisked2:'whisked', offered:'offered a beer to', snowed:'threw a snowball at', chatEmpty:'No talk yet. Silence is fine, but asking is allowed.',
     mood:'Mood', reactHint:'Tap a message to react',
     moose:'A moose is walking past the window!', aurora:'Northern lights! Look out of the window.',
+    cheers:'Cheers', tease:'Tease', hifive:'High five', ladle:'Hand the ladle', tookBeer:'took a beer from the table', cheered:'clinked with', teased:'teased', hifived:'high-fived', gaveLadle:'handed the ladle to',
+    floorHint:'Tap the floor to walk · beer table = 🍺 · a person = cheers, tease, high five', walked:'walked onto the floor',
   });
 
-  return { SAUNAS, CITIES, THEMES, KINDS, HEATING, LANGS, ETIQUETTE, SEASONS, BADGES, UI, seedSessions, PHRASES, STARTERS, QUIZ, HATS };
+  return { SAUNAS, CITIES, THEMES, KINDS, HEATING, LANGS, ETIQUETTE, SEASONS, BADGES, UI, seedSessions, PHRASES, STARTERS, QUIZ, HATS, TEASES };
 })();

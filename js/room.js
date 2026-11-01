@@ -11,10 +11,12 @@ window.SK_ROOM = (function () {
   const clock = (ms) => { const d = new Date(ms); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 
   const TIERS = [
-    { y: 440, scale: 1.18, x0: 338, n: 7, dx: 72 },
-    { y: 372, scale: 1.04, x0: 352, n: 7, dx: 68 },
-    { y: 308, scale: 0.92, x0: 366, n: 7, dx: 64 },
+    { y: 420, scale: 1.12, x0: 338, n: 7, dx: 72 },
+    { y: 360, scale: 1.0,  x0: 352, n: 7, dx: 68 },
+    { y: 300, scale: 0.9,  x0: 366, n: 7, dx: 64 },
   ];
+  const FLOOR = { x0: 140, x1: 790, y0: 478, y1: 592 };
+  const floorScale = (y) => 1.18 + (y - FLOOR.y0) / (FLOOR.y1 - FLOOR.y0) * 0.32;
   const SEATS = [];
   TIERS.forEach((tr, ti) => { for (let i = 0; i < tr.n; i++) SEATS.push({ id: ti * 10 + i, tier: ti, x: tr.x0 + i * tr.dx, y: tr.y, scale: tr.scale }); });
 
@@ -23,6 +25,7 @@ window.SK_ROOM = (function () {
   const channels = {}, subscribed = {}, counts = {}, metasByRoom = {}, watchers = {};
   let figure = { hat: 'none', towel: -1 };
   let faces = {}, reactBarFor = null, projectiles = [], lastMoose = -1, lastAurora = -1, shockUntil = 0;
+  let pos = {}, dest = {}, lastMove = 0;   // floor positions and walk targets by person id
   const MOODS = [['😂','laugh'],['😍','love'],['😎','cool'],['😮‍💨','relax'],['😴','sleepy'],['🥵','hot'],['🥶','cold'],['🤔','think'],['😮','wow'],['🍺','beer']];
   const EMOJIS = ['😀','😂','😍','😎','😅','🤗','😮','🙏','👍','👏','❤️','🔥','💧','🌿','❄️','🧊','🍺','☕','🧖','🏊','🌲','🌙','⭐','🎉'];
   const MREACTS = ['❤️','🔥','😂','👍','🥶'];
@@ -82,16 +85,17 @@ window.SK_ROOM = (function () {
 
   /* ---------- scene ---------- */
   function scene(mini) {
-    const planks = []; for (let y = 60; y < 480; y += 26) planks.push(`<line x1="0" y1="${y}" x2="800" y2="${y}"/>`);
+    const planks = []; for (let y = 60; y < 460; y += 26) planks.push(`<line x1="0" y1="${y}" x2="800" y2="${y}"/>`);
+    const boards = []; for (let y = 482; y < 600; y += 22) boards.push(`<line x1="0" y1="${y}" x2="800" y2="${y}"/>`);
     const stones = [];
     for (let i = 0; i < 14; i++) { const x = 160 + (i % 5) * 20 + (Math.floor(i / 5) % 2) * 10, y = 296 + Math.floor(i / 5) * 10; stones.push(`<ellipse cx="${x}" cy="${y}" rx="11" ry="8" fill="#55524f" stroke="#2e2c2a"/>`); }
-    const flakes = []; for (let i = 0; i < 14; i++) flakes.push(`<circle cx="${30 + (i * 37) % 80}" cy="${150 + (i * 53) % 260}" r="${1.5 + (i % 3)}" fill="#fff" opacity=".7"/>`);
+    const flakes = []; for (let i = 0; i < 16; i++) flakes.push(`<circle cx="${30 + (i * 37) % 80}" cy="${130 + (i * 53) % 400}" r="${1.5 + (i % 3)}" fill="#fff" opacity=".7"/>`);
     const slats = (x, y, w, h) => { let s = ''; for (let i = 0; i < w; i += 24) s += `<rect x="${x + i}" y="${y}" width="22" height="${h}" rx="3" fill="url(#${u}bench)" stroke="#8a5a2b" stroke-opacity=".8"/><rect x="${x + i + 2}" y="${y + 1.5}" width="18" height="2" rx="1" fill="#fff" fill-opacity=".35"/>`; return s; };
     const u = mini ? 'p' : 'r';
-    const grain = []; for (let x = 0; x < 800; x += 97) grain.push(`<line x1="${x}" y1="60" x2="${x + 3}" y2="480"/>`);
+    const grain = []; for (let x = 0; x < 800; x += 97) grain.push(`<line x1="${x}" y1="60" x2="${x + 3}" y2="460"/>`);
     const stars = []; for (let i = 0; i < 12; i++) stars.push(`<circle cx="${600 + (i * 53) % 130}" cy="${98 + (i * 29) % 40}" r="${0.8 + (i % 3) * 0.5}" fill="#fff" opacity="${0.5 + (i % 2) * 0.4}"/>`);
     return `
-<svg viewBox="0 0 800 480" class="roomScene" xmlns="http://www.w3.org/2000/svg" ${mini ? '' : 'id="roomSvg"'}>
+<svg viewBox="0 0 800 600" class="roomScene" xmlns="http://www.w3.org/2000/svg" ${mini ? '' : 'id="roomSvg"'}>
   <defs>
     <linearGradient id="${u}wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a2c16"/><stop offset=".45" stop-color="#7a4a26"/><stop offset="1" stop-color="#8f5c33"/></linearGradient>
     <linearGradient id="${u}bench" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f0cf9a"/><stop offset="1" stop-color="#cf9a60"/></linearGradient>
@@ -107,15 +111,33 @@ window.SK_ROOM = (function () {
     <radialGradient id="${u}moon" cx=".5" cy=".5" r=".5"><stop offset=".5" stop-color="#fff5d6" stop-opacity=".9"/><stop offset="1" stop-color="#fff5d6" stop-opacity="0"/></radialGradient>
     <linearGradient id="${u}aurora" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3dff9a" stop-opacity="0"/><stop offset=".3" stop-color="#3dff9a"/><stop offset=".6" stop-color="#7ad3ff"/><stop offset=".85" stop-color="#c67bff"/><stop offset="1" stop-color="#c67bff" stop-opacity="0"/></linearGradient>
     <clipPath id="${u}winclip"><rect x="590" y="93" width="150" height="100" rx="4"/></clipPath>
-    <clipPath id="${u}doorclip"><rect x="26" y="124" width="88" height="332"/></clipPath>
+    <clipPath id="${u}doorclip"><rect x="26" y="124" width="88" height="432"/></clipPath>
+    <linearGradient id="${u}floor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6b3f1f"/><stop offset="1" stop-color="#3d2210"/></linearGradient>
     ${mini ? '' : `<filter id="${u}blur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.5"/></filter>`}
   </defs>
-  <rect width="800" height="480" fill="url(#${u}wall)"/>
+  <rect width="800" height="600" fill="url(#${u}wall)"/>
   <g stroke="#2a170c" stroke-opacity=".5">${planks.join('')}</g>
   <g stroke="#ffd9a8" stroke-opacity=".07" transform="translate(0,1)">${planks.join('')}</g>
   <g stroke="#2a170c" stroke-opacity=".18">${grain.join('')}</g>
   <rect width="800" height="60" fill="#2b170a"/>
   <rect y="58" width="800" height="4" fill="#1d0f06"/>
+  <!-- floor -->
+  <rect y="460" width="800" height="140" fill="url(#${u}floor)"/>
+  <g stroke="#1d0f06" stroke-opacity=".6">${boards.join('')}</g>
+  <g stroke="#ffd9a8" stroke-opacity=".05" transform="translate(0,1)">${boards.join('')}</g>
+  <rect y="458" width="800" height="5" fill="#241308"/>
+  <circle cx="430" cy="585" r="9" fill="#1a0e06" stroke="#4a2c16" stroke-width="2"/><path d="M424 585 L436 585 M430 579 L430 591" stroke="#4a2c16" stroke-width="1.5"/>
+  <!-- beer table -->
+  <g class="hot" data-act="beertable" style="cursor:pointer" transform="translate(600,540)">
+    <rect x="-34" y="-6" width="68" height="8" rx="3" fill="#b57c4a" stroke="#5b3a1f" stroke-width="2"/>
+    <rect x="-26" y="2" width="6" height="36" fill="#8a5a2b"/><rect x="20" y="2" width="6" height="36" fill="#8a5a2b"/>
+    <rect x="-30" y="-24" width="60" height="18" rx="3" fill="#f6ecd8" stroke="#8c5a35" stroke-width="2"/>
+    <rect x="-22" y="-34" width="9" height="22" rx="2" fill="#f2b632" stroke="#8a5a1a"/><rect x="-22" y="-37" width="9" height="5" rx="2" fill="#fff8e1"/>
+    <rect x="-5" y="-34" width="9" height="22" rx="2" fill="#f2b632" stroke="#8a5a1a"/><rect x="-5" y="-37" width="9" height="5" rx="2" fill="#fff8e1"/>
+    <rect x="12" y="-34" width="9" height="22" rx="2" fill="#f2b632" stroke="#8a5a1a"/><rect x="12" y="-37" width="9" height="5" rx="2" fill="#fff8e1"/>
+    ${mini ? '' : '<text x="0" y="56" text-anchor="middle" font-size="11" fill="#ffd166" font-family="Inter,sans-serif" class="kiuasHint">🍺</text>'}
+  </g>
+  <rect class="floorHit" x="${FLOOR.x0}" y="${FLOOR.y0 - 30}" width="${FLOOR.x1 - FLOOR.x0}" height="${FLOOR.y1 - FLOOR.y0 + 38}" fill="#fff" fill-opacity="0" style="cursor:pointer"/>
   <!-- kiuas light on the wall and the lantern -->
   <ellipse cx="215" cy="330" rx="260" ry="200" fill="url(#${u}kiuaslight)"/>
   <ellipse cx="500" cy="150" rx="230" ry="150" fill="url(#${u}lamp)"/>
@@ -152,12 +174,12 @@ window.SK_ROOM = (function () {
   <rect x="585" y="88" width="160" height="110" rx="6" fill="none" stroke="#3b2a1c" stroke-width="3"/>
   <!-- the door to the cold -->
   <g class="hot" data-act="cool" style="cursor:pointer">
-    <rect x="22" y="120" width="96" height="340" rx="4" fill="url(#${u}cold)" stroke="#1d110a" stroke-width="8"/>
-    <rect x="26" y="124" width="88" height="332" fill="#9fd0ff" fill-opacity=".08"/>
-    <path d="M26 456 L114 456 L114 420 Q70 405 26 420 Z" fill="#e6eef7"/>
-    <ellipse cx="70" cy="452" rx="30" ry="7" fill="#1b4a7a" stroke="#cfe6ff" stroke-width="2"/>
-    <ellipse cx="70" cy="452" rx="22" ry="4" fill="#2d6aa3"/>
-    <g clip-path="url(#${u}doorclip)"><g class="snowfall slow">${flakes.join('')}</g><g class="snowfall" transform="translate(0,-160)">${flakes.join('')}</g></g>
+    <rect x="22" y="120" width="96" height="440" rx="4" fill="url(#${u}cold)" stroke="#1d110a" stroke-width="8"/>
+    <rect x="26" y="124" width="88" height="432" fill="#9fd0ff" fill-opacity=".08"/>
+    <path d="M26 556 L114 556 L114 520 Q70 505 26 520 Z" fill="#e6eef7"/>
+    <ellipse cx="70" cy="552" rx="30" ry="7" fill="#1b4a7a" stroke="#cfe6ff" stroke-width="2"/>
+    <ellipse cx="70" cy="552" rx="22" ry="4" fill="#2d6aa3"/>
+    <g clip-path="url(#${u}doorclip)"><g class="snowfall slow">${flakes.join('')}</g><g class="snowfall" transform="translate(0,-160)">${flakes.join('')}</g><g class="snowfall" transform="translate(0,-320)">${flakes.join('')}</g></g>
     <text x="70" y="140" text-anchor="middle" font-size="11" fill="#bfe0ff" font-family="Inter,sans-serif" class="coolLabel">Vilvoittelu</text>
   </g>
   <!-- vihta -->
@@ -175,7 +197,7 @@ window.SK_ROOM = (function () {
     <text x="0" y="10" text-anchor="middle" font-size="18" font-weight="700" fill="#8c5a35" font-family="Outfit,Inter,sans-serif" class="tempText">80°</text>
     <text x="0" y="28" text-anchor="middle" font-size="9" fill="#8c5a35" font-family="Inter,sans-serif">löyly</text>
   </g>
-  <g transform="translate(130,400)"><g class="tonttu" style="opacity:0;transition:opacity .6s">
+  <g transform="translate(135,470)"><g class="tonttu" style="opacity:0;transition:opacity .6s">
     <ellipse cx="0" cy="40" rx="16" ry="20" fill="#9b2d2d"/>
     <ellipse cx="-8" cy="58" rx="6" ry="3" fill="#2b1d12"/><ellipse cx="8" cy="58" rx="6" ry="3" fill="#2b1d12"/>
     <circle cx="0" cy="12" r="12" fill="#f1c9a5"/>
@@ -203,11 +225,11 @@ window.SK_ROOM = (function () {
     ${mini ? '' : '<text x="209" y="476" text-anchor="middle" font-size="11" fill="#ffd166" font-family="Inter,sans-serif" class="kiuasHint">💧</text>'}
   </g>
   <!-- lauteet: pale aspen tops, warm fronts -->
-  <rect x="330" y="308" width="470" height="64" fill="url(#${u}face)"/><rect x="330" y="308" width="470" height="6" fill="#000" fill-opacity=".2"/>${slats(330, 300, 470, 14)}
-  <rect x="315" y="372" width="485" height="68" fill="url(#${u}face)"/><rect x="315" y="372" width="485" height="6" fill="#000" fill-opacity=".2"/>${slats(315, 364, 485, 14)}
-  <rect x="300" y="440" width="500" height="40" fill="url(#${u}face)"/><rect x="300" y="440" width="500" height="6" fill="#000" fill-opacity=".2"/>${slats(300, 432, 500, 14)}
-  <rect width="800" height="480" fill="url(#${u}vignette)" pointer-events="none"/>
-  <rect width="800" height="480" fill="#ff6a00" class="heatTint" style="opacity:0" pointer-events="none"/>
+  <rect x="330" y="300" width="470" height="60" fill="url(#${u}face)"/><rect x="330" y="300" width="470" height="6" fill="#000" fill-opacity=".2"/>${slats(330, 292, 470, 14)}
+  <rect x="315" y="360" width="485" height="60" fill="url(#${u}face)"/><rect x="315" y="360" width="485" height="6" fill="#000" fill-opacity=".2"/>${slats(315, 352, 485, 14)}
+  <rect x="300" y="420" width="500" height="40" fill="url(#${u}face)"/><rect x="300" y="420" width="500" height="6" fill="#000" fill-opacity=".2"/>${slats(300, 412, 500, 14)}
+  <rect width="800" height="600" fill="url(#${u}vignette)" pointer-events="none"/>
+  <rect width="800" height="600" fill="#ff6a00" class="heatTint" style="opacity:0" pointer-events="none"/>
   <g class="seatHits"></g>
   <g class="people"></g>
   <g class="steam" ${mini ? '' : `filter="url(#${u}blur)"`}></g>
@@ -237,7 +259,7 @@ window.SK_ROOM = (function () {
       default: return `<ellipse cx="-5" cy="-78" rx="5" ry="3" fill="#fff" fill-opacity=".25"/>`;                                                               // bald shine
     }
   }
-  function avatar(p, x, y, s, isMe) {
+  function avatar(p, x, y, s, isMe, moving, faceLeft) {
     const ti = (p.towel >= 0 && p.towel < TOWELS.length) ? p.towel : hash(p.name) % TOWELS.length;
     const tow = TOWELS[ti], towDark = shade(tow, -22);
     const si = hash(p.name + 'k') % SKINS.length, skin = SKINS[si], skinD = SKIN_SHADE[si];
@@ -249,11 +271,15 @@ window.SK_ROOM = (function () {
     const cold = p.zone === 'cool', hot = temp > 95 && !cold;
     const blush = cold ? .15 : hot ? .6 : .32;
     const mouth = cold ? `<path d="M-4 -60 q4 -3 8 0" stroke="#5a2d1a" stroke-width="1.4" fill="none"/>` : hot ? `<ellipse cx="0" cy="-59" rx="3" ry="2.4" fill="#5a2d1a"/>` : `<path d="M-5 -61 q5 5 10 0" stroke="#5a2d1a" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
+    const standing = p.zone === 'floor' || cold;
+    const legs = standing
+      ? `<path d="M-14 -10 L-15 10 L-7 10 L-6 -8 Z M6 -8 L7 10 L15 10 L14 -10 Z" fill="${skin}"/><ellipse cx="-11" cy="11" rx="7" ry="3" fill="${skinD}"/><ellipse cx="11" cy="11" rx="7" ry="3" fill="${skinD}"/>`
+      : `<path d="M-17 -12 L-17 6 L-10 6 L-10 -8 Z M10 -8 L10 6 L17 6 L17 -12 Z" fill="${skin}"/><ellipse cx="-13.5" cy="7.5" rx="6" ry="3" fill="${skinD}"/><ellipse cx="13.5" cy="7.5" rx="6" ry="3" fill="${skinD}"/>`;
     return `<g class="av" data-person="${esc(p.id)}" data-pname="${esc(p.name)}" transform="translate(${x},${y}) scale(${s})" style="cursor:${isMe?'default':'pointer'}">
       ${ring}
-      <g class="${cold ? 'shiver' : 'bob'}" style="animation-delay:-${(hash(p.id || p.name) % 30) / 10}s">
-      <path d="M-17 -12 L-17 6 L-10 6 L-10 -8 Z M10 -8 L10 6 L17 6 L17 -12 Z" fill="${skin}"/>
-      <ellipse cx="-13.5" cy="7.5" rx="6" ry="3" fill="${skinD}"/><ellipse cx="13.5" cy="7.5" rx="6" ry="3" fill="${skinD}"/>
+      <g transform="scale(${faceLeft ? -1 : 1},1)">
+      <g class="${cold ? 'shiver' : moving ? 'walk' : 'bob'}" style="animation-delay:-${(hash(p.id || p.name) % 30) / 10}s">
+      ${legs}
       <path d="M-21 -44 Q-24 -24 -23 -8 L23 -8 Q24 -24 21 -44 Q0 -53 -21 -44 Z" fill="${tow}" stroke="${towDark}" stroke-opacity=".7"/>
       <path d="M-21 -44 L6 -36 L7 -10" stroke="#000" stroke-opacity=".12" stroke-width="1.5" fill="none"/>
       <path d="M-23 -8 L23 -8 L24 -2 Q0 4 -24 -2 Z" fill="${towDark}"/>
@@ -268,6 +294,7 @@ window.SK_ROOM = (function () {
       ${faceSvg((faces[p.id] && faces[p.id].until > Date.now()) ? faces[p.id].face : '', { hot, cold, hairC, mouth, skin })}
       ${hat}
       </g>
+      </g>
       ${p.first ? `<text x="19" y="-80" font-size="12">🙋</text>` : ''}
       ${label}
     </g>`;
@@ -275,14 +302,16 @@ window.SK_ROOM = (function () {
   function armSvg(pose, skin) {
     if (pose === 'wave') return `<g class="wavehand"><path d="M20 -42 Q34 -56 28 -78" stroke="${skin}" stroke-width="7.5" fill="none" stroke-linecap="round"/><circle cx="28" cy="-80" r="5" fill="${skin}"/></g>`;
     if (pose === 'vihta') return `<g class="swing"><path d="M20 -42 Q36 -50 34 -70" stroke="${skin}" stroke-width="7.5" fill="none" stroke-linecap="round"/><circle cx="34" cy="-72" r="4.5" fill="${skin}"/><path d="M34 -72 L40 -92" stroke="#6b4a2b" stroke-width="3"/><ellipse cx="36" cy="-100" rx="7" ry="11" fill="#5fa04a" transform="rotate(-20 36 -100)"/><ellipse cx="46" cy="-98" rx="7" ry="11" fill="#74b35a" transform="rotate(15 46 -98)"/></g>`;
+    if (pose === 'ladle') return `<path d="M20 -42 Q34 -40 30 -22" stroke="${skin}" stroke-width="7.5" fill="none" stroke-linecap="round"/><circle cx="30" cy="-20" r="4.5" fill="${skin}"/><path d="M30 -20 L52 -46" stroke="#d9b07a" stroke-width="4" stroke-linecap="round"/><ellipse cx="54" cy="-48" rx="7" ry="4.5" fill="#d9b07a" stroke="#5b3a1f"/>`;
     if (pose === 'snowhit') return `<path d="M20 -42 Q30 -30 24 -12" stroke="${skin}" stroke-width="7.5" fill="none" stroke-linecap="round"/><circle cx="23" cy="-10" r="4.5" fill="${skin}"/><circle cx="4" cy="-84" r="7" fill="#fff" fill-opacity=".9"/><circle cx="-6" cy="-80" r="4" fill="#fff" fill-opacity=".8"/><circle cx="12" cy="-78" r="3" fill="#fff" fill-opacity=".8"/>`;
     return `<path d="M20 -42 Q30 -30 24 -12" stroke="${skin}" stroke-width="7.5" fill="none" stroke-linecap="round"/><circle cx="23" cy="-10" r="4.5" fill="${skin}"/>`;
   }
   function faceSvg(face, o) {
     const eyes = `<g class="blink" style="animation-delay:-${(Math.random() * 4).toFixed(1)}s"><ellipse cx="-6" cy="-69" rx="2.7" ry="3.4" fill="#2b1d12"/><ellipse cx="6" cy="-69" rx="2.7" ry="3.4" fill="#2b1d12"/><circle cx="-5" cy="-70.5" r="1" fill="#fff"/><circle cx="7" cy="-70.5" r="1" fill="#fff"/></g>`;
     if (face === 'snowhit') face = 'cold';
-    if (face === 'wave' || face === 'vihta') face = 'laugh';
+    if (face === 'wave' || face === 'vihta' || face === 'ladle') face = 'laugh';
     const brows = `<path d="M-9.5 -75 q3.5 -2.5 7 0 M2.5 -75 q3.5 -2.5 7 0" stroke="${o.hairC}" stroke-width="1.4" fill="none" stroke-linecap="round"/>`;
+    if (face === 'tongue') return `<path d="M-9 -69 q3 -4.5 6 0" stroke="#2b1d12" stroke-width="1.8" fill="none" stroke-linecap="round"/><circle cx="6" cy="-69" r="3" fill="#2b1d12"/><circle cx="7" cy="-70.5" r="1" fill="#fff"/>${brows}<path d="M-5 -61 q5 4 10 0" stroke="#5a2d1a" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M1 -60 q4 0 4 5 q0 4 -4 4 q-3 0 -3 -4 Z" fill="#f06a7a"/>`;
     const sweat = `<path d="M15 -74 q3 5 0 8 q-3 -3 0 -8" fill="#9fd3f5"/><path d="M-17 -60 q2.5 4 0 7 q-2.5 -3 0 -7" fill="#9fd3f5"/>`;
     const smile = `<path d="M-5 -61 q5 5 10 0" stroke="#5a2d1a" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
     const happyEyes = `<path d="M-9 -69 q3 -4.5 6 0 M3 -69 q3 -4.5 6 0" stroke="#2b1d12" stroke-width="1.8" fill="none" stroke-linecap="round"/>`;
@@ -306,23 +335,29 @@ window.SK_ROOM = (function () {
   }
 
   function layout(list) {
-    const taken = {}, seated = [], cooling = [];
+    const taken = {}, seated = [], cooling = [], floor = [];
     const sorted = list.slice().sort((a, b) => (a.since || 0) - (b.since || 0));
     for (const p of sorted) {
       if (p.zone === 'cool') { cooling.push(p); continue; }
+      if (p.zone === 'floor') { floor.push(p); continue; }
       let seat = SEATS.find(s => s.id === p.seat && !taken[s.id]) || SEATS.find(s => !taken[s.id]);
-      if (!seat) { cooling.push(p); continue; }
+      if (!seat) { floor.push(Object.assign({}, p, { zone: 'floor', x: 300 + floor.length * 60, y: 540 })); continue; }
       taken[seat.id] = p; seated.push({ p, seat });
     }
     seated.sort((a, b) => b.seat.tier - a.seat.tier);
-    return { taken, seated, cooling };
+    return { taken, seated, cooling, floor };
   }
-  function coolPos(i) { return { x: 45 + (i % 2) * 36, y: 445 - Math.floor(i / 2) * 60 }; }
+  function coolPos(i) { return { x: 45 + (i % 2) * 36, y: 548 - Math.floor(i / 2) * 60 }; }
+  function floorPos(p) {
+    const cur = pos[p.id] || { x: p.x || 400, y: p.y || 540 };
+    return { x: Math.max(FLOOR.x0, Math.min(FLOOR.x1, cur.x)), y: Math.max(FLOOR.y0, Math.min(FLOOR.y1, cur.y)) };
+  }
 
   function placePeople() {
-    const { taken, seated, cooling } = layout(people);
+    const { taken, seated, cooling, floor } = layout(people);
     let html = seated.map(({ p, seat }) => avatar(p, seat.x, seat.y, seat.scale, p.id === pid)).join('');
     cooling.forEach((p, i) => { const c = coolPos(i); html += avatar(p, c.x, c.y, 0.85, p.id === pid) + `<text x="${c.x + 12}" y="${c.y - 70}" font-size="12">❄️</text>`; });
+    floor.slice().sort((a, b) => floorPos(a).y - floorPos(b).y).forEach(p => { const c = floorPos(p); const moving = !!dest[p.id]; html += avatar(p, c.x, c.y, floorScale(c.y), p.id === pid, moving, moving && dest[p.id].x < c.x); });
     el.querySelector('.people').innerHTML = html;
     el.querySelector('.seatHits').innerHTML = SEATS.filter(s => !taken[s.id]).map(s => `<ellipse cx="${s.x}" cy="${s.y - 20 * s.scale}" rx="${24 * s.scale}" ry="${30 * s.scale}" fill="#fff" fill-opacity=".02" stroke="#ffd166" stroke-opacity=".12" stroke-dasharray="3 3" data-seat="${s.id}" style="cursor:pointer"/>`).join('');
     el.querySelector('#presentCount').textContent = people.length;
@@ -354,6 +389,7 @@ window.SK_ROOM = (function () {
       if (me.crown && me.crown < Date.now()) { me.crown = 0; track(); }
       const expired = Object.keys(faces).filter(k => faces[k].until <= Date.now()); if (expired.length) { expired.forEach(k => delete faces[k]); placePeople(); }
     }
+    moveTick(dt);
     for (const s of steam) { s.y -= s.vy * dt / 16; s.x += s.vx * dt / 16; s.r += 0.06 * dt / 16; s.life -= s.decay * dt / 16; }
     steam = steam.filter(s => s.life > 0 && s.y > -40);
     el.querySelector('.steam').innerHTML = steam.map(s => `<circle cx="${s.x.toFixed(1)}" cy="${s.y.toFixed(1)}" r="${s.r.toFixed(1)}" fill="#fff" fill-opacity="${(s.life * 0.28).toFixed(3)}"/>`).join('');
@@ -397,9 +433,20 @@ window.SK_ROOM = (function () {
     if (auroraOn && lastAurora !== ac) { lastAurora = ac; addChat({ sys: true, text: `🌌 ${ctx.t('aurora')}` }); addLog(`🌌 ${ctx.t('aurora')}`); }
   }
   function findPos(id) {
-    const { seated, cooling } = layout(people);
+    const { seated, cooling, floor } = layout(people);
     const s = seated.find(e => e.p.id === id); if (s) return { x: s.seat.x, y: s.seat.y };
+    const f = floor.find(e => e.id === id); if (f) return floorPos(f);
     const i = cooling.findIndex(e => e.id === id); return i >= 0 ? coolPos(i) : null;
+  }
+  function moveTick(dt) {
+    let any = false;
+    for (const id of Object.keys(dest)) {
+      const d = dest[id], c = pos[id] || (pos[id] = { x: d.x, y: d.y + 1 });
+      const dx = d.x - c.x, dy = d.y - c.y, dist = Math.hypot(dx, dy), step = 230 * dt / 1000;
+      if (dist <= step) { pos[id] = { x: d.x, y: d.y }; delete dest[id]; } else { c.x += dx / dist * step; c.y += dy / dist * step; }
+      any = true;
+    }
+    if (any) placePeople();
   }
   function renderMeter() {
     const bar = el.querySelector('#meterFill'); if (!bar) return;
@@ -497,7 +544,21 @@ window.SK_ROOM = (function () {
     else if (ev.type === 'react') {
       if (ev.target) {
         const line = `${ev.emoji} ${by} ${t(ev.verb || 'waved')} ${ev.targetName || ''}`; addLog(line); addChat({ sys: true, text: line });
-        if (ev.verb === 'snowed' || ev.verb === 'whisked2' || ev.verb === 'offered') {
+        if (ev.verb === 'cheered') {
+          setFace(ev.id, 'beer', 8000); setFace(ev.target, 'beer', 8000);
+          bubbles.push({ id: ev.id, emoji: '🍻', at: now, until: now + 3000 }); bubbles.push({ id: ev.target, emoji: '🍻', at: now, until: now + 3000 });
+          el.querySelectorAll('.people .av').forEach(a => { if (a.dataset.person === ev.id || a.dataset.person === ev.target) { const g = a.querySelector('.bob,.walk'); if (g) g.classList.add('clink'); } });
+          ding(); setTimeout(ding, 180);
+        } else if (ev.verb === 'teased') {
+          setFace(ev.id, 'tongue', 3000); setFace(ev.target, 'wow', 1500); setTimeout(() => { if (raf) setFace(ev.target, 'laugh', 4000); }, 1500);
+          const tl = D.TEASES[(ev.line || 0) % D.TEASES.length]; addChat({ id: ev.id, by, text: `😜 ${ev.targetName}: ${LP(tl)}`, mid: ev.mid });
+          bubbles.push({ id: ev.id, emoji: '😜', at: now, until: now + 3000 });
+        } else if (ev.verb === 'hifived') {
+          setFace(ev.id, 'wave', 2500); setFace(ev.target, 'wave', 2500);
+          bubbles.push({ id: ev.id, emoji: '✋', at: now, until: now + 2500 }); bubbles.push({ id: ev.target, emoji: '✋', at: now, until: now + 2500 }); ding();
+        } else if (ev.verb === 'gaveLadle') {
+          setFace(ev.target, 'ladle', 12000); bubbles.push({ id: ev.target, emoji: '🥄', at: now, until: now + 3000 });
+        } else if (ev.verb === 'snowed' || ev.verb === 'whisked2' || ev.verb === 'offered') {
           const from = findPos(ev.id), to = findPos(ev.target);
           const after = ev.verb === 'snowed' ? () => setFace(ev.target, 'snowhit', 5000) : ev.verb === 'whisked2' ? () => setFace(ev.target, 'relax', 6000) : () => setFace(ev.target, 'beer', 9000);
           if (from && to) projectiles.push({ x0: from.x, y0: from.y - 70, x1: to.x, y1: to.y - 80, t0: now, dur: 700, emoji: ev.verb === 'snowed' ? '❄️' : ev.verb === 'whisked2' ? '🌿' : '🍺', after });
@@ -517,7 +578,8 @@ window.SK_ROOM = (function () {
       }
     }
     else if (ev.type === 'say') { const text = String(ev.text || '').slice(0, 80); bubbles = bubbles.filter(b => !(b.id === ev.id && b.text)); bubbles.push({ id: ev.id, text, at: now, until: now + 7000 }); addLog(`💬 ${by}: ${text}`); addChat({ id: ev.id, by, text, mid: ev.mid }); if (ev.id !== pid) ding(); }
-    else if (ev.type === 'mood') { const face = String(ev.face || ''); setFace(ev.id, face, 9000); bubbles = bubbles.filter(b => !(b.id === ev.id && b.emoji)); bubbles.push({ id: ev.id, emoji: ev.emoji, at: now, until: now + 3500 }); addChat({ id: ev.id, by, text: ev.emoji, big: true, mid: ev.mid }); if (ev.id !== pid) ding(); }
+    else if (ev.type === 'mood') { const face = String(ev.face || ''); setFace(ev.id, face, ev.ms || 9000); bubbles = bubbles.filter(b => !(b.id === ev.id && b.emoji)); bubbles.push({ id: ev.id, emoji: ev.emoji, at: now, until: now + 3500 }); if (ev.note) { addLog(`${ev.emoji} ${by} ${t(ev.note)}`); addChat({ sys: true, text: `${ev.emoji} ${by} ${t(ev.note)}` }); } else addChat({ id: ev.id, by, text: ev.emoji, big: true, mid: ev.mid }); if (ev.id !== pid) ding(); }
+    else if (ev.type === 'move') { const p = people.find(x => x.id === ev.id); if (p) { if (p.zone !== 'floor') { const from = findPos(ev.id); if (from) pos[ev.id] = { x: from.x, y: Math.max(FLOOR.y0, from.y) }; } p.zone = 'floor'; p.x = ev.x; p.y = ev.y; } dest[ev.id] = { x: ev.x, y: ev.y }; if (!pos[ev.id]) pos[ev.id] = { x: ev.x, y: ev.y }; placePeople(); }
     else if (ev.type === 'mreact') { const m = chat.find(x => x.mid === ev.mid); if (!m) return; const key = ev.id + ':' + ev.emoji; if (m.who[key]) return; m.who[key] = true; m.reacts[ev.emoji] = (m.reacts[ev.emoji] || 0) + 1; renderChat(); if (m.id === pid && ev.id !== pid) { ctx.toast(`${ev.emoji} ${by}`); } }
     else if (ev.type === 'quiz') { if (quiz && !quiz.done) return; quiz = { q: ev.q % D.QUIZ.length, at: ev.at || now, by, answers: [], mine: null, done: false, winner: null }; addLog(`🧠 ${by} ${t('quizStarted')}`); addChat({ sys: true, text: `🧠 ${by} ${t('quizStarted')}` }); ding(); renderGame(); }
     else if (ev.type === 'answer') { if (!quiz || ev.q !== quiz.q) return; if (ev.id === pid) quiz.mine = ev.choice; if (!quiz.answers.some(a => a.id === ev.id)) quiz.answers.push({ id: ev.id, by, ok: !!ev.ok }); if (ev.ok && !quiz.winner) { quiz.winner = by; quiz.done = true; quiz.doneAt = now; addLog(`🏆 ${by} ${t('answered')}`); addChat({ sys: true, text: `🏆 ${by} ${t('answered')} · ${t('quiz')}` }); } renderGame(); }
@@ -538,6 +600,12 @@ window.SK_ROOM = (function () {
     for (const p of next) if (!before.has(p.id) && p.id !== pid && people.length) { addLog(`🚪 ${p.name} ${ctx.t('entered')}`); addChat({ sys: true, text: `🚪 ${p.name} ${ctx.t('entered')}` }); }
     const after = new Set(next.map(p => p.id));
     for (const p of people) if (!after.has(p.id) && p.id !== pid) addLog(`👋 ${p.name} ${ctx.t('leftRoom')}`);
+    for (const p of next) {
+      if (p.zone === 'floor' && p.x != null) {
+        if (!pos[p.id]) pos[p.id] = { x: p.x, y: p.y };
+        else if (!dest[p.id] && Math.hypot(pos[p.id].x - p.x, pos[p.id].y - p.y) > 3) dest[p.id] = { x: p.x, y: p.y };
+      } else { delete dest[p.id]; delete pos[p.id]; }
+    }
     people = next.sort((a, b) => (a.since || 0) - (b.since || 0)); placePeople();
   }
 
@@ -549,7 +617,7 @@ window.SK_ROOM = (function () {
     const prof = ctx.profile();
     const name = prof.name || ctx.t('guest');
     me = { name, seat: SEATS[hash(pid) % SEATS.length].id, zone: 'in', hat: figure.hat, towel: figure.towel, crown: 0, first: !!prof.firstTimer, since: Date.now() };
-    people = []; steam = []; bubbles = []; log = []; chat = []; masters = {}; temp = 80; throws = []; tonttuUntil = 0; lastStarter = -1; quiz = null; duel = null; person = null; faces = {}; reactBarFor = null; projectiles = [];
+    people = []; steam = []; bubbles = []; log = []; chat = []; masters = {}; temp = 80; throws = []; tonttuUntil = 0; lastStarter = -1; quiz = null; duel = null; person = null; faces = {}; reactBarFor = null; projectiles = []; pos = {}; dest = {};
     lastMoose = Math.floor(Date.now() / 420000); lastAurora = Math.floor((Date.now() + 150000) / 300000);
     enteredAt = Date.now(); inSince = enteredAt; rounds = 1; nudged = false;
     const t = ctx.t, nx = ctx.next;
@@ -576,7 +644,7 @@ window.SK_ROOM = (function () {
       </div>
       <div class="card personBar" id="personBar" style="display:none"></div>
       <div class="card gameBox" id="gameBox" style="display:none"></div>
-      <p class="small muted" style="margin:4px 0 8px">${esc(t('tapHint'))}</p>
+      <p class="small muted" style="margin:4px 0 8px">${esc(t('floorHint'))}<br>${esc(t('tapHint'))}</p>
       <div class="pill-row" style="margin:8px 0">
         <button class="btn small" data-act="loyly">💧 ${esc(t('throwLoyly'))}</button>
         <button class="btn small secondary" data-act="vihta">🌿 ${esc(t('vihta'))}</button>
@@ -602,10 +670,14 @@ window.SK_ROOM = (function () {
       const bar = el.querySelector('#personBar'); bar.style.display = '';
       bar.innerHTML = `<div class="row between wrap"><b>${esc(name)} · ${esc(t('personActions'))}</b><button class="chipbtn ghost" data-pact="close">✕</button></div>
         <div class="pill-row" style="margin-top:6px">
-          <button class="btn small" data-pact="wave">👋 ${esc(t('wave'))}</button>
+          <button class="btn small" data-pact="cheers">🍻 ${esc(t('cheers'))}</button>
+          <button class="btn small" data-pact="tease">😜 ${esc(t('tease'))}</button>
+          <button class="btn small" data-pact="hifive">✋ ${esc(t('hifive'))}</button>
+          <button class="btn small secondary" data-pact="wave">👋 ${esc(t('wave'))}</button>
           <button class="btn small secondary" data-pact="whisk">🌿 ${esc(t('whisk'))}</button>
           <button class="btn small secondary" data-pact="beer">🍺 ${esc(t('beer'))}</button>
           <button class="btn small secondary" data-pact="snow">☃️ ${esc(t('snow'))}</button>
+          <button class="btn small secondary" data-pact="ladle">🥄 ${esc(t('ladle'))}</button>
         </div>`;
     }
     function showFigure() {
@@ -622,21 +694,32 @@ window.SK_ROOM = (function () {
       if (act === 'quiz') { if (quiz && !quiz.done) return; send({ type: 'quiz', q: Math.floor(Math.random() * D.QUIZ.length), at: Date.now() }); }
       if (act === 'duel') { if (duel && !duel.done) return; send({ type: 'duel', at: Date.now() }); }
       if (act === 'sound') { soundOn = !soundOn; try { localStorage.setItem('saunakaverit.sound', soundOn ? 'on' : 'off'); } catch (e) {} el.querySelector('#soundBtn').textContent = soundOn ? '🔊' : '🔇'; if (soundOn) hiss(false); }
-      if (act === 'cool') { me.zone = me.zone === 'cool' ? 'in' : 'cool'; if (me.zone === 'in') { rounds++; inSince = Date.now(); nudged = false; } updateCoolBtn(); addLog(me.zone === 'cool' ? `❄️ ${me.name} ${t('wentOut')}` : `🔥 ${me.name} ${t('cameIn')}`); track(); }
+      if (act === 'cool') { me.zone = me.zone === 'cool' ? 'in' : 'cool'; if (me.zone === 'in') { rounds++; inSince = Date.now(); nudged = false; } delete me.x; delete me.y; delete dest[pid]; delete pos[pid]; updateCoolBtn(); addLog(me.zone === 'cool' ? `❄️ ${me.name} ${t('wentOut')}` : `🔥 ${me.name} ${t('cameIn')}`); track(); }
     }
     root.addEventListener('click', e => {
       const seat = e.target.closest('[data-seat]');
-      if (seat) { me.seat = +seat.dataset.seat; if (me.zone === 'cool') { me.zone = 'in'; rounds++; inSince = Date.now(); updateCoolBtn(); } track(); return; }
+      if (seat) { me.seat = +seat.dataset.seat; if (me.zone === 'cool') { rounds++; inSince = Date.now(); nudged = false; } me.zone = 'in'; delete me.x; delete me.y; delete dest[pid]; delete pos[pid]; updateCoolBtn(); track(); return; }
       const pr = e.target.closest('[data-person]');
       if (pr) { if (pr.dataset.person !== pid) showPerson(pr.dataset.person, pr.dataset.pname); return; }
       const pa = e.target.closest('[data-pact]');
       if (pa && person) {
         const k = pa.dataset.pact;
         if (k === 'close') { el.querySelector('#personBar').style.display = 'none'; person = null; return; }
-        const map = { wave: ['👋', 'waved'], whisk: ['🌿', 'whisked2'], beer: ['🍺', 'offered'], snow: ['☃️', 'snowed'] };
-        send({ type: 'react', emoji: map[k][0], verb: map[k][1], target: person.id, targetName: person.name });
+        const map = { wave: ['👋', 'waved'], whisk: ['🌿', 'whisked2'], beer: ['🍺', 'offered'], snow: ['☃️', 'snowed'], cheers: ['🍻', 'cheered'], tease: ['😜', 'teased'], hifive: ['✋', 'hifived'], ladle: ['🥄', 'gaveLadle'] };
+        send({ type: 'react', emoji: map[k][0], verb: map[k][1], target: person.id, targetName: person.name, line: Math.floor(Math.random() * D.TEASES.length), mid: pid + '-' + Date.now() });
         return;
       }
+      const fh = e.target.closest('.floorHit');
+      if (fh) {
+        const svg = el.querySelector('#roomSvg'); const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+        const m = svg.getScreenCTM(); if (!m) return; const q = pt.matrixTransform(m.inverse());
+        const x = Math.max(FLOOR.x0, Math.min(FLOOR.x1, q.x)), y = Math.max(FLOOR.y0, Math.min(FLOOR.y1, q.y));
+        if (me.zone !== 'floor') { const from = findPos(pid); if (from) pos[pid] = { x: from.x, y: Math.max(FLOOR.y0, from.y) }; }
+        if (me.zone === 'cool') { rounds++; inSince = Date.now(); nudged = false; updateCoolBtn(); }
+        me.zone = 'floor'; me.x = x; me.y = y;
+        send({ type: 'move', x, y }); track(); return;
+      }
+      if (e.target.closest('[data-act=beertable]')) { send({ type: 'mood', face: 'beer', emoji: '🍺', note: 'tookBeer', ms: 15000, mid: pid + '-' + Date.now() }); return; }
       const hat = e.target.closest('[data-hat]'); if (hat) { me.hat = hat.dataset.hat; figure.hat = me.hat; saveFigure(); track(); showFigure(); showFigure(); return; }
       const tw = e.target.closest('[data-towel]'); if (tw) { me.towel = +tw.dataset.towel; figure.towel = me.towel; saveFigure(); track(); showFigure(); showFigure(); return; }
       const qa = e.target.closest('[data-qa]'); if (qa && quiz && !quiz.done && quiz.mine == null) { const c = +qa.dataset.qa; send({ type: 'answer', q: quiz.q, choice: c, ok: c === D.QUIZ[quiz.q].a }); return; }
@@ -673,9 +756,10 @@ window.SK_ROOM = (function () {
   function preview(container, metas) {
     if (!container) return;
     if (!container.querySelector('svg')) container.innerHTML = scene(true);
-    const { seated, cooling } = layout(metas || []);
+    const { seated, cooling, floor } = layout(metas || []);
     let html = seated.map(({ p, seat }) => avatar(p, seat.x, seat.y, seat.scale, p.id === pid)).join('');
     cooling.forEach((p, i) => { const c = coolPos(i); html += avatar(p, c.x, c.y, 0.85, false); });
+    floor.forEach(p => { const c = { x: Math.max(FLOOR.x0, Math.min(FLOOR.x1, p.x || 400)), y: Math.max(FLOOR.y0, Math.min(FLOOR.y1, p.y || 540)) }; html += avatar(p, c.x, c.y, floorScale(c.y), false); });
     container.querySelector('.people').innerHTML = html;
   }
 
@@ -687,5 +771,5 @@ window.SK_ROOM = (function () {
     if (counts[id] != null) cb(counts[id], (metasByRoom[id] || []).map(m => m.name), metasByRoom[id] || []);
   }
 
-  return { enter, leave, watch, preview, isOpen: () => !!raf, count: (id) => counts[id] || 0, metas: (id) => metasByRoom[id] || [] };
+  return { enter, leave, watch, preview, isOpen: () => !!raf, count: (id) => counts[id] || 0, metas: (id) => metasByRoom[id] || [], _state: () => ({ me, pos, dest, people }) };
 })();

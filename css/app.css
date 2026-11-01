@@ -290,4 +290,8 @@ nav.tabs button.fab.active{background:none}
 .roomScene .swing{transform-box:fill-box;transform-origin:0% 100%;animation:swing .5s ease-in-out infinite alternate}
 @keyframes swing{from{transform:rotate(-15deg)}to{transform:rotate(25deg)}}
 .roomScene .wavehand{transform-box:fill-box;transform-origin:0% 100%;animation:wavearm .4s ease-in-out infinite alternate}
+.roomScene .walk{animation:walk .35s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:50% 100%}
+@keyframes walk{from{transform:translateY(0) rotate(-2deg)}to{transform:translateY(-4px) rotate(2deg)}}
+.roomScene .clink{animation:clink .5s ease-in-out 3;transform-box:fill-box;transform-origin:50% 100%}
+@keyframes clink{0%,100%{transform:rotate(0)}50%{transform:rotate(-12deg)}}
 .roomCard .btn.full{width:100%;margin-top:10px}

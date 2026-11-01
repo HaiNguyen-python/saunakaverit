@@ -2,6 +2,13 @@
 
 A social sauna app for Finland: fixed Sunday saunas, themed sessions (language sauna, newcomers, silent, avanto, after-the-run), a sauna passport with stamps and badges, and a twelve-point sauna etiquette for first-timers. Finnish first, English toggle.
 
+## Version 0.10 (room to move, 2026-11-01)
+
+- The scene is taller (800×600): the benches moved up and a wooden floor opens in front of them, with a drain and a beer table.
+- Tap the floor to walk there. Your figure walks at a steady pace on every phone, faces the way it goes, and stands bigger the closer it is to the front. Tap a bench to sit again, or the door to cool off.
+- Beer table: tap it to take a beer (your figure holds it for 15 seconds).
+- New person actions: 🍻 Kippis (both clink with beers in hand and a double ding), 😜 Kiusaa (a friendly sauna tease from ten lines, your figure sticks out its tongue, they go wide-eyed then laugh), ✋ Yläfemma (both raise an arm), 🥄 Anna kauha (they hold the löyly ladle).
+
 ## Version 0.9 (alive, 2026-11-01)
 
 - Living scene: flickering fire and lantern, softly blurred steam, snow falling outside the door and window, northern lights that sway in the window and put on a show every five minutes, a moose that walks past the window every seven minutes (same moment on every phone, announced in the chat), an avanto by the door, and a warm tint when it gets really hot.
