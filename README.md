@@ -2,6 +2,16 @@
 
 A social sauna app for Finland: fixed Sunday saunas, themed sessions (language sauna, newcomers, silent, avanto, after-the-run), a sauna passport with stamps and badges, and a twelve-point sauna etiquette for first-timers. Finnish first, English toggle.
 
+## Version 1.1.1 (movement fix, 2026-11-01)
+
+- Other people's walks were often invisible: Supabase closed a phone's realtime channel after a burst of
+  presence updates (`ClientPresenceRateLimitReached`), and the app never rejoined, so everyone on that phone
+  stayed frozen in their last pose. Presence updates are now coalesced (one per 700 ms) and a closed channel
+  rejoins automatically, with a "reconnected" line in the log.
+- A presence snapshot can no longer cancel a walk that started in the last 15 seconds.
+- Walks keep advancing from a 500 ms timer when the browser pauses animation frames (hidden tab).
+- Each figure carries the app version; an older version in the room shows a "please reopen" toast.
+
 ## Version 1.1 (the whole lakeside, 2026-11-01)
 
 - The world is 4400 units wide, six areas: **Ranta** (lake shore with a pier, a rowing boat on the open-water lane, a savusauna hut and a sign), **Terassi**, **Sauna**, **Pukuhuone**, **Mökki** (cottage with a stone fireplace, a table with candles and sausages, a bunk bed, a shelf) and **Piha** (yard with a grill hut, string lights, a woodpile and birches). The shore and the yard are outdoors and cold.

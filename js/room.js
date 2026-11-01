@@ -31,7 +31,9 @@ window.SK_ROOM = (function () {
   const channels = {}, subscribed = {}, counts = {}, metasByRoom = {}, watchers = {};
   let figure = { hat: 'none', towel: -1 };
   let faces = {}, reactBarFor = null, projectiles = [], lastMoose = -1, lastAurora = -1, shockUntil = 0;
-  let pos = {}, dest = {}, lastMove = 0;   // floor positions and walk targets by person id
+  let pos = {}, dest = {}, lastMove = {}, warnedVersion = false;   // floor positions, walk targets and last walk time by person id
+  const APP_V = '1.1.1';
+  let walkTimer = null;
   let counters = {}, hero = false, imprints = [], warned = {}, snowfight = null, dipAt = 0, angelAt = 0, lastStage = 0, hotWarned = false, tonttuCallAt = 0;
   let singers = {}, npc = null, npcStage = -1, stats = {}, ladle = null, throwTimes = [], lastKiuasScold = 0, lastKiuasLonely = 0, lastLoylyAt = 0, pcut = false, lastPcut = -1, lastAval = -1, lastPentti = -1, lastChorus = 0;
   let petPos = {}, fireworks = [], sledding = {}, fishing = {}, fishAt = 0, catchAt = 0;
@@ -289,7 +291,14 @@ window.SK_ROOM = (function () {
     });
     c.on('broadcast', { event: 'sk' }, ({ payload }) => { if (raf && roomId === id) onEvent(payload || {}); });
     c.on('broadcast', { event: 'rtc' }, ({ payload }) => { if (raf && roomId === id) onRtc(payload || {}); });
-    c.subscribe(status => { if (status === 'SUBSCRIBED') { subscribed[id] = true; if (raf && roomId === id) track(); } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') subscribed[id] = false; });
+    c.subscribe(status => {
+      if (status === 'SUBSCRIBED') { subscribed[id] = true; if (raf && roomId === id) { track(); syncPresence(); } }
+      else if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        subscribed[id] = false;
+        /* The server closed the channel (network blip, phone sleep, rate limit). Join again, or everyone on this phone looks frozen. */
+        if (status === 'CLOSED' && channels[id] === c) { delete channels[id]; if (raf && roomId === id) setTimeout(() => rejoin(id), 1500); }
+      }
+    });
     channels[id] = c;
     return c;
   }
@@ -862,6 +871,7 @@ window.SK_ROOM = (function () {
       renderStrip(); renderMeter(); starterTick(); gameTick(); bodyTick(); eventsTick(); ainoTick(); eveningTick();
       if (Date.now() - lastFlush > 6000 && Object.keys(scoreQueue).length) { lastFlush = Date.now(); flushScores(); }
       if (ctx.leaderboard && Date.now() - lbAt > 90000) { lbAt = Date.now(); refreshLeaderboard(); }
+      if (ch && ch.state === 'closed' && roomId) rejoin(roomId);
       if (me.icecrown && me.icecrown < Date.now()) { me.icecrown = 0; track(); }
       if (me.crown && me.crown < Date.now()) { me.crown = 0; track(); }
       const expired = Object.keys(faces).filter(k => faces[k].until <= Date.now()); if (expired.length) { expired.forEach(k => delete faces[k]); placePeople(); }
@@ -1061,7 +1071,7 @@ window.SK_ROOM = (function () {
     for (const id of Object.keys(dest)) {
       const d = dest[id], c = pos[id] || (pos[id] = { x: d.x, y: d.y + 1 });
       const dx = d.x - c.x, dy = d.y - c.y, dist = Math.hypot(dx, dy), step = 230 * dt / 1000;
-      if (dist <= step || (dist > 1500 && id !== pid)) { pos[id] = { x: d.x, y: d.y }; delete dest[id]; } else { c.x += dx / dist * step; c.y += dy / dist * step; }
+      if (dist <= step || (dist > 1500 && id !== pid)) { pos[id] = { x: d.x, y: d.y }; delete dest[id]; if (id === pid && me.zone === 'floor') track(); } else { c.x += dx / dist * step; c.y += dy / dist * step; }
       any = true;
     }
     if (any) placePeople();
@@ -1247,12 +1257,12 @@ window.SK_ROOM = (function () {
     else if (ev.type === 'rocket') { fireworks.push({ x: ev.x || 300, top: 150 + Math.floor(Math.random() * 120), t0: now, seed: (ev.seed || 0) % 7, color: FX_COLORS[(ev.seed || 0) % FX_COLORS.length] }); hiss(false); addLog(`🎆 ${by} ${t('fired')}`); addChat({ sys: true, text: `🎆 ${by} ${t('fired')}` }); }
     else if (ev.type === 'sled') {
       const p = people.find(x => x.id === ev.id); if (p) { p.zone = 'floor'; p.x = 1290; p.y = 430; }
-      pos[ev.id] = { x: 1290, y: 430 }; delete dest[ev.id]; sledding[ev.id] = { t0: now }; setFace(ev.id, 'wow', 2400);
+      lastMove[ev.id] = now; pos[ev.id] = { x: 1290, y: 430 }; delete dest[ev.id]; sledding[ev.id] = { t0: now }; setFace(ev.id, 'wow', 2400);
       addLog(`🛷 ${by} ${t('sledded')}`); addChat({ sys: true, text: `🛷 ${by} ${t('sledded')}` }); placePeople();
     }
     else if (ev.type === 'row') {
       const p = people.find(x => x.id === ev.id); if (p) { p.zone = 'floor'; p.x = 820; p.y = 598; }
-      pos[ev.id] = { x: 820, y: 598 }; delete dest[ev.id]; rowing[ev.id] = { t0: now }; setFace(ev.id, 'relax', 6000);
+      lastMove[ev.id] = now; pos[ev.id] = { x: 820, y: 598 }; delete dest[ev.id]; rowing[ev.id] = { t0: now }; setFace(ev.id, 'relax', 6000);
       addLog(`🚣 ${by} ${t('rowed')}`); addChat({ sys: true, text: `🚣 ${by} ${t('rowed')}` }); placePeople();
     }
     else if (ev.type === 'fish') { fishing[ev.id] = now + (ev.dur || 10000); setFace(ev.id, 'fish', ev.dur || 10000); addLog(`🎣 ${by} ${t('fishing')}`); addChat({ sys: true, text: `🎣 ${by} ${t('fishing')}` }); }
@@ -1272,7 +1282,7 @@ window.SK_ROOM = (function () {
     else if (ev.type === 'talk') { if (ev.id !== pid) onTalk(ev); }
     else if (ev.type === 'evening') { if (eveningStartMs()) return; eveningManualAt = ev.at || now; addChat({ sys: true, text: `🧖‍♀️ ${by} ${t('eveningStarted')}` }); addLog(`🧖‍♀️ ${by} ${t('eveningStarted')}`); ding(); eveningTick(); }
     else if (ev.type === 'snowfight') { if (snowfight && !snowfight.done) return; snowfight = { at: ev.at || now, by, tally: {}, done: false }; addLog(`❄️ ${by} ${t('snowfightStarted')}`); addChat({ sys: true, text: `❄️ ${by} ${t('snowfightStarted')}` }); ctx.toast(t('snowfightLive')); ding(); renderGame(); }
-    else if (ev.type === 'move') { const p = people.find(x => x.id === ev.id); if (p) { if (p.zone !== 'floor') { const from = findPos(ev.id); if (from) pos[ev.id] = clampFloor(from.x, from.y); } p.zone = 'floor'; p.x = ev.x; p.y = ev.y; } dest[ev.id] = { x: ev.x, y: ev.y }; if (!pos[ev.id]) pos[ev.id] = { x: ev.x, y: ev.y }; placePeople(); }
+    else if (ev.type === 'move') { lastMove[ev.id] = now; const p = people.find(x => x.id === ev.id); if (p) { if (p.zone !== 'floor') { const from = findPos(ev.id); if (from) pos[ev.id] = clampFloor(from.x, from.y); } p.zone = 'floor'; p.x = ev.x; p.y = ev.y; } dest[ev.id] = { x: ev.x, y: ev.y }; if (!pos[ev.id]) pos[ev.id] = { x: ev.x, y: ev.y }; placePeople(); }
     else if (ev.type === 'mreact') { const m = chat.find(x => x.mid === ev.mid); if (!m) return; const key = ev.id + ':' + ev.emoji; if (m.who[key]) return; m.who[key] = true; m.reacts[ev.emoji] = (m.reacts[ev.emoji] || 0) + 1; renderChat(); if (m.id === pid && ev.id !== pid) { ctx.toast(`${ev.emoji} ${by}`); } }
     else if (ev.type === 'quiz') {
       if (quiz && !quiz.done) return;
@@ -1289,22 +1299,45 @@ window.SK_ROOM = (function () {
     onEvent(ev);
     if (ch) ch.send({ type: 'broadcast', event: 'sk', payload: ev }).catch(() => {});
   }
+  /* Presence updates are coalesced so bursts (hat swaps, crowns, cold stages) never flood the channel. */
+  let trackTimer = null, trackAgain = false;
   function track() {
-    if (ch) ch.track(me).catch(() => {});
-    else { people = [Object.assign({ id: pid }, me)]; placePeople(); }
+    if (!ch) { people = [Object.assign({ id: pid }, me)]; placePeople(); return; }
+    if (trackTimer) { trackAgain = true; return; }
+    ch.track(me).catch(() => {});
+    trackTimer = setTimeout(() => { trackTimer = null; if (trackAgain) { trackAgain = false; track(); } }, 700);
   }
+  function rejoin(id) {
+    if (!raf || roomId !== id || !ctx.client) return;
+    if (channels[id] && channels[id].state !== 'closed') { ch = channels[id]; return; }
+    delete channels[id]; ch = getChannel(ctx.client, id);
+    addLog(`🔌 ${ctx.t('reconnected')}`);
+  }
+  /* Presence snapshots can arrive out of order with "move" events, so a walk that started in the
+     last 15 seconds wins over a snapshot that still says "sitting". My own figure always follows me. */
   function syncPresence() {
-    const next = (metasByRoom[roomId] || []).slice();
+    const nowT = Date.now();
+    const raw = (metasByRoom[roomId] || []).slice();
     const before = new Set(people.map(p => p.id));
-    for (const p of next) if (!before.has(p.id) && p.id !== pid && people.length) { addLog(`🚪 ${p.name} ${ctx.t('entered')}`); addChat({ sys: true, text: `🚪 ${p.name} ${ctx.t('entered')}` }); }
-    const after = new Set(next.map(p => p.id));
-    for (const p of people) if (!after.has(p.id) && p.id !== pid) addLog(`👋 ${p.name} ${ctx.t('leftRoom')}`);
+    for (const p of raw) if (!before.has(p.id) && p.id !== pid && people.length) { addLog(`🚪 ${p.name} ${ctx.t('entered')}`); addChat({ sys: true, text: `🚪 ${p.name} ${ctx.t('entered')}` }); }
+    const after = new Set(raw.map(p => p.id));
+    for (const p of people) if (!after.has(p.id) && p.id !== pid) { addLog(`👋 ${p.name} ${ctx.t('leftRoom')}`); delete lastMove[p.id]; }
+    const next = raw.map(p => {
+      if (p.id === pid) return Object.assign({}, p, me, { id: pid });
+      const inFlight = lastMove[p.id] && nowT - lastMove[p.id] < 15000 && pos[p.id];
+      if (inFlight && p.zone !== 'floor') return Object.assign({}, p, { zone: 'floor', x: pos[p.id].x, y: pos[p.id].y });
+      return p;
+    });
+    let mismatch = false;
     for (const p of next) {
+      if (p.id !== pid && p.v && p.v !== APP_V) mismatch = true;
+      const inFlight = lastMove[p.id] && nowT - lastMove[p.id] < 15000;
       if (p.zone === 'floor' && p.x != null) {
         if (!pos[p.id]) pos[p.id] = { x: p.x, y: p.y };
-        else if (!dest[p.id] && Math.hypot(pos[p.id].x - p.x, pos[p.id].y - p.y) > 3) dest[p.id] = { x: p.x, y: p.y };
-      } else { delete dest[p.id]; delete pos[p.id]; }
+        else if (!dest[p.id] && !inFlight && p.id !== pid && Math.hypot(pos[p.id].x - p.x, pos[p.id].y - p.y) > 3) dest[p.id] = { x: p.x, y: p.y };
+      } else if (!inFlight) { delete dest[p.id]; delete pos[p.id]; }
     }
+    if (mismatch && !warnedVersion) { warnedVersion = true; ctx.toast(ctx.t('versionMismatch')); addLog(`⚠️ ${ctx.t('versionMismatch')}`); }
     people = next.sort((a, b) => (a.since || 0) - (b.since || 0)); placePeople();
     voiceReconcile();
   }
@@ -1318,7 +1351,8 @@ window.SK_ROOM = (function () {
     const name = prof.name || ctx.t('guest');
     let heroDay = null; try { heroDay = localStorage.getItem('saunakaverit.hero'); } catch (e) {}
     hero = heroDay === dayKey();
-    me = { name, seat: SEATS[hash(pid) % SEATS.length].id, zone: 'in', hat: figure.hat, towel: figure.towel, pet: figure.pet || 'none', crown: 0, icecrown: 0, first: !!prof.firstTimer, since: Date.now(), outSince: null, inSince: Date.now(), hero };
+    me = { name, seat: SEATS[hash(pid) % SEATS.length].id, zone: 'in', hat: figure.hat, towel: figure.towel, pet: figure.pet || 'none', crown: 0, icecrown: 0, first: !!prof.firstTimer, since: Date.now(), outSince: null, inSince: Date.now(), hero, v: APP_V };
+    lastMove = {}; warnedVersion = false;
     petPos = {}; fireworks = []; sledding = {}; fishing = {}; fishAt = 0; catchAt = 0;
     counters = {}; imprints = []; warned = {}; snowfight = null; dipAt = 0; angelAt = 0; lastStage = 0; hotWarned = false; tonttuCallAt = 0;
     singers = {}; npc = null; npcStage = -1; stats = {}; ladle = null; throwTimes = []; lastLoylyAt = Date.now(); pcut = false; lastChorus = 0;
@@ -1568,6 +1602,9 @@ window.SK_ROOM = (function () {
     evening = null; hostNpc = null; eveningManualAt = 0; delete pos.host; delete dest.host; renderEvening();
     voiceOn = false; localStream = null; peers = {}; talking = false; speaking = {}; me.voice = false; renderVoice();
     lastTick = 0; raf = requestAnimationFrame(tick);
+    /* Browsers pause animation frames in hidden tabs; this timer keeps walks moving so nobody looks frozen. */
+    if (walkTimer) clearInterval(walkTimer);
+    walkTimer = setInterval(() => { if (!raf) return; const t = performance.now(); if (t - lastTick > 400) { moveTick(Math.min(1200, t - lastTick)); lastTick = t; } }, 500);
     starterTick();
     if (ctx.client) {
       ch = getChannel(ctx.client, roomId);
@@ -1726,7 +1763,7 @@ window.SK_ROOM = (function () {
 
   function leave() {
     if (voiceOn) voiceLeave(true);
-    if (raf) cancelAnimationFrame(raf); raf = null;
+    if (raf) cancelAnimationFrame(raf); raf = null; if (walkTimer) { clearInterval(walkTimer); walkTimer = null; }
     if (ch) { const c = ch; ch = null; c.untrack().catch(() => {}); }
     roomId = null;
   }
