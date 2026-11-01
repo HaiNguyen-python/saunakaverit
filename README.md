@@ -2,6 +2,15 @@
 
 A social sauna app for Finland: fixed Sunday saunas, themed sessions (language sauna, newcomers, silent, avanto, after-the-run), a sauna passport with stamps and badges, and a twelve-point sauna etiquette for first-timers. Finnish first, English toggle.
 
+## Version 0.16 (simpler controls, lasting progression, 2026-11-01)
+
+- **Five big actions** replace the wall of buttons: 💧 Löyly, 💬 Puhu (jumps to the chat), 🚶 Liiku (Lauteille, Terassille, Pukuhuoneeseen, Avantoon, Pulkkamäkeen), ✨ Tee (what makes sense where you stand: vihta and the ladle game in the sauna, snow angel, fishing and rockets on the terrace, a beer in the lounge, plus greeting, singing, your figure and the postcard everywhere) and 🎲 Pelit (Saunavisa, Löylykisa, Lumisota, and Sanavisa in Finnish mode).
+- The person menu is grouped into Hauskaa, Kepposet and Muut, with Sulata or Tarjoa vettä on top only when needed.
+- **Sauna points** live in the database (`sk_add_points`, fixed value per kind, 400 points per day at most). Löyly 1, perfect löyly 3, dip 5, snow angel 2, rocket 1, sled 2, catch 3, cheers 2, quiz win 10, löyly contest 15, snowball fight 15, song 1, tease 1, thaw or water a friend 5, round 3, daily challenge 20, word heard 1.
+- **Levels** by points: Ensikertalainen, Saunoja (50), Lauteiden tuttu (200), Löylynheittäjä (500), Saunamajuri (1000), Saunavanhin (2500).
+- **Titles** by lifetime totals, e.g. Löylymestari (100 löyly), Avantouimari (10 dips), Lumikuningas, Saunavisamestari, Sanaseppä, Saunalaulaja, Kippismestari, Vilvoittelija, Pilkkijä, Viikon sankari, Sulattaja. Your best title's icon shows beside your name on every phone.
+- A progress card shows your points, level bar, titles, the nearest next title, and the weekly and all-time top five with your rank (`leaderboard` view). Points are sent in small batches every few seconds and the toast shows what you gained.
+
 ## Version 0.15 (Finnish practice, 2026-11-01)
 
 - **Suomi-tila** (toggle in the room header, remembered on the phone). When on:

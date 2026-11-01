@@ -33,6 +33,63 @@ window.SK_ROOM = (function () {
   let counters = {}, hero = false, imprints = [], warned = {}, snowfight = null, dipAt = 0, angelAt = 0, lastStage = 0, hotWarned = false, tonttuCallAt = 0;
   let singers = {}, npc = null, npcStage = -1, stats = {}, ladle = null, throwTimes = [], lastKiuasScold = 0, lastKiuasLonely = 0, lastLoylyAt = 0, pcut = false, lastPcut = -1, lastAval = -1, lastPentti = -1, lastChorus = 0;
   let petPos = {}, fireworks = [], sledding = {}, fishing = {}, fishAt = 0, catchAt = 0;
+  /* Progression: sauna points, levels, titles, weekly leaderboard */
+  let prog = { points: 0, totals: {}, week: 0 }, scoreQueue = {}, lastFlush = 0, flushing = false, lb = [], lbAt = 0, menuOpen = null;
+  const POINT_VALUES = { loyly: 1, perfect: 3, dip: 5, angel: 2, rocket: 1, sled: 2, fish: 3, cheers: 2, quiz: 10, vocab: 10, duel: 15, snowfight: 15, song: 1, tease: 1, thaw: 5, water: 5, challenge: 20, round: 3, host: 25, word: 1 };
+  const levelFor = (pts) => { let lv = D.LEVELS[0]; for (const l of D.LEVELS) if (pts >= l.min) lv = l; return lv; };
+  const nextLevel = (pts) => D.LEVELS.find(l => l.min > pts) || null;
+  const titlesFor = (totals) => D.TITLES.filter(x => (totals[x.key] || 0) >= x.n);
+  const bestTitle = (totals) => { const got = titlesFor(totals); return got.length ? got[got.length - 1] : null; };
+  const serverPoints = () => !!(ctx.addPoints && (!ctx.isOnline || ctx.isOnline()));
+  function score(kind, n) {
+    n = n || 1; if (!POINT_VALUES[kind]) return;
+    if (!serverPoints()) {
+      const before = { lv: levelFor(prog.points), titles: titlesFor(prog.totals).length };
+      prog.points += POINT_VALUES[kind] * n; prog.week += POINT_VALUES[kind] * n; prog.totals[kind] = (prog.totals[kind] || 0) + n;
+      try { localStorage.setItem('saunakaverit.prog', JSON.stringify(prog)); } catch (e) {}
+      afterProg(before); return;
+    }
+    scoreQueue[kind] = (scoreQueue[kind] || 0) + n;
+  }
+  async function flushScores() {
+    if (flushing || !serverPoints()) return; const kinds = Object.keys(scoreQueue); if (!kinds.length) return;
+    flushing = true; const batch = scoreQueue; scoreQueue = {};
+    const before = { lv: levelFor(prog.points), titles: titlesFor(prog.totals).length };
+    let gained = 0;
+    for (const k of kinds) { try { const r = await ctx.addPoints(k, batch[k]); if (r) { prog.points = r.points; prog.totals = r.totals || prog.totals; prog.week = r.week; gained += r.gain || 0; } } catch (e) {} }
+    flushing = false;
+    if (ctx.onProg) ctx.onProg(prog);
+    if (gained) ctx.toast(ctx.t('gained').replace('{n}', gained));
+    afterProg(before);
+  }
+  function afterProg(before) {
+    const lv = levelFor(prog.points), tl = titlesFor(prog.totals);
+    if (lv !== before.lv && lv.min > before.lv.min) { ctx.toast(ctx.t('newLevel').replace('{t}', L(lv))); addChat({ sys: true, text: `🏅 ${me.name}: ${L(lv)}` }); ding(); setTimeout(ding, 200); }
+    if (tl.length > before.titles) { const nt = tl[tl.length - 1]; ctx.toast(ctx.t('newTitle').replace('{t}', nt.ic + ' ' + L(nt))); addChat({ sys: true, text: `${nt.ic} ${me.name}: ${L(nt)}` }); }
+    const bt = bestTitle(prog.totals); const ic = bt ? bt.ic : '';
+    if (me.titleIc !== ic) { me.titleIc = ic; track(); }
+    renderProgress();
+  }
+  function renderProgress() {
+    const t = ctx.t, lv = levelFor(prog.points), nx = nextLevel(prog.points);
+    const chip = el.querySelector('#progChip'); if (chip) chip.textContent = `⭐ ${prog.points} ${t('points')} · ${L(lv)}`;
+    const box = el.querySelector('#progCard'); if (!box) return;
+    const pct = nx ? Math.round((prog.points - lv.min) / (nx.min - lv.min) * 100) : 100;
+    const got = titlesFor(prog.totals);
+    const near = D.TITLES.filter(x => (prog.totals[x.key] || 0) < x.n).map(x => ({ x, r: (prog.totals[x.key] || 0) / x.n })).sort((a, b) => b.r - a.r)[0];
+    const myName = me.name;
+    const week = lb.slice().sort((a, b) => b.week - a.week), all = lb.slice().sort((a, b) => b.points - a.points);
+    const myRankW = week.findIndex(r => r.name === myName) + 1;
+    const row = (r, i, key) => `<div class="lbrow ${r.name === myName ? 'me' : ''}"><span>${i + 1}. ${esc(r.name)}${bestTitle(r.totals || {}) ? ' ' + bestTitle(r.totals || {}).ic : ''}</span><b>${r[key]} ${esc(t('points'))}</b></div>`;
+    box.innerHTML = `
+      <div class="row between"><b>⭐ ${prog.points} ${esc(t('points'))}</b><span class="small muted">${esc(t('level'))}: <b>${esc(L(lv))}</b>${nx ? ` · ${nx.min - prog.points} → ${esc(L(nx))}` : ''}</span></div>
+      <div class="lvbar"><div style="width:${pct}%"></div></div>
+      <div class="small" style="margin-top:6px">${got.length ? got.map(x => `<span class="tag kind">${x.ic} ${esc(L(x))}</span>`).join('') : `<span class="muted">${esc(t('titlesLbl'))}: –</span>`}
+        ${near ? `<span class="tag">${esc(t('nearTitle'))}: ${near.x.ic} ${esc(L(near.x))} ${prog.totals[near.x.key] || 0}/${near.x.n}</span>` : ''}</div>
+      ${lb.length ? `<div class="grid2" style="margin-top:8px"><div><div class="small muted">🏆 ${esc(t('weekTop'))}${myRankW ? ` · ${esc(t('yourRank'))} ${myRankW}` : ''}</div>${week.slice(0, 5).map((r, i) => row(r, i, 'week')).join('')}</div><div><div class="small muted">🏛 ${esc(t('allTime'))}</div>${all.slice(0, 5).map((r, i) => row(r, i, 'points')).join('')}</div></div>` : ''}`;
+  }
+  async function refreshLeaderboard() { if (!ctx.leaderboard || (ctx.isOnline && !ctx.isOnline())) return; try { lb = await ctx.leaderboard(); lbAt = Date.now(); renderProgress(); } catch (e) {} }
+  function setProg(p) { if (!raf || !p) return; prog = { points: p.points || 0, totals: p.totals || {}, week: p.week || 0 }; const bt = bestTitle(prog.totals); const ic = bt ? bt.ic : ''; if (me.titleIc !== ic) { me.titleIc = ic; track(); } renderProgress(); refreshLeaderboard(); }
   /* Finnish practice mode */
   let practice = false, showWords = false, pstats = { words: 0, quiz: 0, phrases: 0, answers: 0 }, ainoOpen = null, ainoAt = 0, ainoIdx = 0, myThrows = 0, praised = {};
   try { practice = localStorage.getItem('saunakaverit.practice') === 'on'; pstats = Object.assign(pstats, JSON.parse(localStorage.getItem('saunakaverit.pstats') || '{}')); } catch (e) {}
@@ -460,7 +517,7 @@ window.SK_ROOM = (function () {
     const hat = crowned ? HATS.crown : iced ? HATS.icecrown : (HATS[p.hat] || (p.hat === true ? HATS.felt : ''));
     const stage = coldStage(p), dizzy = isDizzy(p);
     const ring = isMe ? `<ellipse cx="0" cy="10" rx="30" ry="8" fill="none" stroke="#ffd166" stroke-width="2.5" stroke-dasharray="4 3"/>` : '';
-    const label = `<rect x="-30" y="12" width="60" height="15" rx="7" fill="#1f1b17" fill-opacity=".72"/><text x="0" y="23" text-anchor="middle" font-size="10.5" fill="#fff" font-family="Inter,sans-serif">${p.hero ? '⭐ ' : ''}${esc(p.name.slice(0, 10))}</text>`;
+    const label = `<rect x="-30" y="12" width="60" height="15" rx="7" fill="#1f1b17" fill-opacity=".72"/><text x="0" y="23" text-anchor="middle" font-size="10.5" fill="#fff" font-family="Inter,sans-serif">${p.titleIc ? p.titleIc + ' ' : ''}${p.hero ? '⭐ ' : ''}${esc(p.name.slice(0, 10))}</text>`;
     const cold = p.zone === 'cool' || (p.zone === 'floor' && isOutside(pos[p.id] ? pos[p.id].x : (p.x || 0))), hot = temp > 95 && !cold;
     const blush = cold ? .15 : hot ? .6 : .32;
     const mouth = cold ? `<path d="M-4 -60 q4 -3 8 0" stroke="#5a2d1a" stroke-width="1.4" fill="none"/>` : hot ? `<ellipse cx="0" cy="-59" rx="3" ry="2.4" fill="#5a2d1a"/>` : `<path d="M-5 -61 q5 5 10 0" stroke="#5a2d1a" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
@@ -609,6 +666,8 @@ window.SK_ROOM = (function () {
       const ot = el.querySelector('.outTempText'); if (ot) ot.textContent = outTempNow() + '°C';
       if (!nudged && me.zone === 'in' && Date.now() - inSince > 15 * 60000) { nudged = true; ctx.toast(ctx.t('nudge')); addLog(`❄️ ${ctx.t('nudge')}`); }
       renderStrip(); renderMeter(); starterTick(); gameTick(); bodyTick(); eventsTick(); ainoTick();
+      if (Date.now() - lastFlush > 6000 && Object.keys(scoreQueue).length) { lastFlush = Date.now(); flushScores(); }
+      if (ctx.leaderboard && Date.now() - lbAt > 90000) { lbAt = Date.now(); refreshLeaderboard(); }
       if (me.icecrown && me.icecrown < Date.now()) { me.icecrown = 0; track(); }
       if (me.crown && me.crown < Date.now()) { me.crown = 0; track(); }
       const expired = Object.keys(faces).filter(k => faces[k].until <= Date.now()); if (expired.length) { expired.forEach(k => delete faces[k]); placePeople(); }
@@ -650,7 +709,7 @@ window.SK_ROOM = (function () {
       fireworks = live; el.querySelector('.bubbles').insertAdjacentHTML('beforeend', html);
     }
     if (fishAt && now > fishAt) { fishAt = 0; const dur = 8000 + Math.floor(Math.random() * 7000); send({ type: 'fish', dur }); catchAt = now + dur; }
-    if (catchAt && now > catchAt) { catchAt = 0; send({ type: 'catch', item: Math.floor(Math.random() * D.CATCHES.length) }); }
+    if (catchAt && now > catchAt) { catchAt = 0; send({ type: 'catch', item: Math.floor(Math.random() * D.CATCHES.length) }); score('fish'); }
     // flying snowballs, vihtas and beers
     if (projectiles.length) {
       const live = [];
@@ -693,8 +752,8 @@ window.SK_ROOM = (function () {
       const hk = p.id + ':hot:' + (p.inSince || 0);
       if (isDizzy(p) && !warned[hk]) { warned[hk] = true; const line = t('hotWarn').replace('{n}', p.name); addChat({ sys: true, text: `🥵 ${line}` }); placePeople(); }
     }
-    if (dipAt && now > dipAt) { dipAt = 0; send({ type: 'mood', face: 'wow', emoji: '🧊', note: 'dipped', ms: 4000, mid: pid + '-' + now }); bubbles.push({ id: pid, emoji: '💦', at: now, until: now + 2500 }); bump('dip'); }
-    if (angelAt && now > angelAt) { angelAt = 0; send({ type: 'angel', x: me.x, y: me.y }); bump('angel'); }
+    if (dipAt && now > dipAt) { dipAt = 0; send({ type: 'mood', face: 'wow', emoji: '🧊', note: 'dipped', ms: 4000, mid: pid + '-' + now }); bubbles.push({ id: pid, emoji: '💦', at: now, until: now + 2500 }); bump('dip'); score('dip'); }
+    if (angelAt && now > angelAt) { angelAt = 0; send({ type: 'angel', x: me.x, y: me.y }); bump('angel'); score('angel'); }
     imprints = imprints.filter(i => i.until > now);
     const layer = el.querySelector('.imprints'); if (layer) layer.innerHTML = imprints.map(i => `<g transform="translate(${i.x},${i.y - 6})" opacity="${Math.min(1, (i.until - now) / 20000).toFixed(2)}"><ellipse cx="0" cy="0" rx="20" ry="30" fill="#e6eef7" stroke="#b9cde3"/><path d="M-20 -8 Q-58 -2 -60 22 Q-38 14 -20 16 Z M20 -8 Q58 -2 60 22 Q38 14 20 16 Z" fill="#e6eef7" stroke="#b9cde3"/><path d="M-9 30 L-28 54 L28 54 L9 30 Z" fill="#e6eef7" stroke="#b9cde3"/><circle cx="0" cy="-38" r="9" fill="#e6eef7" stroke="#b9cde3"/></g>`).join('');
   }
@@ -703,7 +762,7 @@ window.SK_ROOM = (function () {
     const ch = todayChallenge();
     if (!hero && ch.key === key && counters[key] >= ch.goal) {
       hero = true; try { localStorage.setItem('saunakaverit.hero', dayKey()); } catch (e) {}
-      me.hero = true; track(); ctx.toast(ctx.t('challengeDone')); addChat({ sys: true, text: `⭐ ${me.name}: ${ctx.t('hero')}` }); addLog(`⭐ ${me.name}: ${ctx.t('hero')}`); ding(); setTimeout(ding, 200);
+      me.hero = true; track(); score('challenge'); ctx.toast(ctx.t('challengeDone')); addChat({ sys: true, text: `⭐ ${me.name}: ${ctx.t('hero')}` }); addLog(`⭐ ${me.name}: ${ctx.t('hero')}`); ding(); setTimeout(ding, 200);
     }
   }
   function renderStats() {
@@ -889,7 +948,7 @@ window.SK_ROOM = (function () {
         const rows = Object.values(duel.tally).sort((a, b) => b.n - a.n || a.first - b.first);
         if (rows.length) {
           addLog(`👑 ${rows[0].name} ${ctx.t('winner')} (${rows[0].n} 💧)`); addChat({ sys: true, text: `👑 ${rows[0].name} ${ctx.t('winner')} · ${ctx.t('duel')}` });
-          if (rows[0].id === pid) { me.crown = now + 10 * 60000; track(); ctx.toast(ctx.t('youWon')); ding(); }
+          if (rows[0].id === pid) { me.crown = now + 10 * 60000; track(); ctx.toast(ctx.t('youWon')); ding(); score('duel'); }
         }
       }
       if (duel.done && now - (duel.doneAt || now) > 15000) duel = null;
@@ -901,7 +960,7 @@ window.SK_ROOM = (function () {
         const rows = Object.values(snowfight.tally).sort((a, b) => b.n - a.n || a.first - b.first);
         if (rows.length) {
           addLog(`👑 ${rows[0].name} · ${ctx.t('snowKing')}`); addChat({ sys: true, text: `👑 ${rows[0].name} · ${ctx.t('snowKing')}` });
-          if (rows[0].id === pid) { me.icecrown = now + 10 * 60000; track(); ctx.toast(ctx.t('youWon')); ding(); }
+          if (rows[0].id === pid) { me.icecrown = now + 10 * 60000; track(); ctx.toast(ctx.t('youWon')); ding(); score('snowfight'); }
         }
       }
       if (snowfight.done && now - (snowfight.doneAt || now) > 15000) snowfight = null;
@@ -1008,7 +1067,7 @@ window.SK_ROOM = (function () {
       addLog(`🧠 ${by} ${t('quizStarted')}`); addChat({ sys: true, text: `${ev.kind === 'vocab' ? '🔡' : '🧠'} ${by} ${t('quizStarted')}` }); ding(); renderGame();
       if (ev.kind === 'vocab' && quiz.dir === 0 && practice) speakFi(D.VOCAB[quiz.q][0]);
     }
-    else if (ev.type === 'answer') { if (!quiz || ev.q !== quiz.q) return; if (ev.id === pid) quiz.mine = ev.choice; if (!quiz.answers.some(a => a.id === ev.id)) quiz.answers.push({ id: ev.id, by, ok: !!ev.ok }); if (ev.ok && !quiz.winner) { quiz.winner = by; quiz.done = true; quiz.doneAt = now; addLog(`🏆 ${by} ${t('answered')}`); addChat({ sys: true, text: `🏆 ${by} ${t('answered')} · ${t('quiz')}` }); if (ev.id === pid) bump('quizWin'); } renderGame(); }
+    else if (ev.type === 'answer') { if (!quiz || ev.q !== quiz.q) return; if (ev.id === pid) quiz.mine = ev.choice; if (!quiz.answers.some(a => a.id === ev.id)) quiz.answers.push({ id: ev.id, by, ok: !!ev.ok }); if (ev.ok && !quiz.winner) { quiz.winner = by; quiz.done = true; quiz.doneAt = now; addLog(`🏆 ${by} ${t('answered')}`); addChat({ sys: true, text: `🏆 ${by} ${t('answered')} · ${t('quiz')}` }); if (ev.id === pid) { bump('quizWin'); score(quiz.kind === 'vocab' ? 'vocab' : 'quiz'); } } renderGame(); }
     else if (ev.type === 'duel') { if (duel && !duel.done) return; duel = { at: ev.at || now, by, tally: {}, done: false }; addLog(`💧 ${by} ${t('duelStarted')}`); addChat({ sys: true, text: `💧 ${by} ${t('duelStarted')}` }); ctx.toast(t('duelLive')); ding(); renderGame(); }
   }
   function send(ev) {
@@ -1058,7 +1117,7 @@ window.SK_ROOM = (function () {
         <div><div class="small muted">${esc(t('roomTitle'))}</div><h2 style="margin:0">🧖 ${esc(options.label || t('roomCommon'))}</h2></div>
         <div class="row"><button class="chipbtn ghost" data-act="sound" id="soundBtn" title="${esc(t('sound'))}">${soundOn ? '🔊' : '🔇'}</button><div class="live"><span class="dot"></span> LIVE · <b id="presentCount">1</b> ${esc(t('present'))}</div></div>
       </div>
-      <div class="pill-row" style="margin:0 0 8px"><button class="chipbtn ${practice ? 'active' : ''}" data-act="practice" id="practiceBtn">🇫🇮 ${esc(t('practice'))}</button><button class="chipbtn" data-act="classroom">🏫 ${esc(t('classroom'))}</button></div>
+      <div class="pill-row" style="margin:0 0 8px"><button class="chipbtn" data-act="prog" id="progChip">⭐ 0 ${esc(t('points'))}</button><button class="chipbtn ${practice ? 'active' : ''}" data-act="practice" id="practiceBtn">🇫🇮 ${esc(t('practice'))}</button><button class="chipbtn" data-act="classroom">🏫 ${esc(t('classroom'))}</button></div>
       <div id="practicePanel" style="display:none"></div>
       <div class="roomWrap">${scene(false)}</div>
       <div class="minimap" id="minimap" title="${esc(t('mapHint'))}"><span class="mmArea" style="left:0;width:32%">❄️ ${esc(t('terraceLbl'))}</span><span class="mmArea" style="left:32%;width:40%">🔥 ${esc(t('saunaLbl'))}</span><span class="mmArea" style="left:72%;width:28%">🛋 ${esc(t('loungeLbl'))}</span><div class="mmView" id="mmView"></div><div class="mmDots" id="mmDots"></div></div>
@@ -1082,26 +1141,17 @@ window.SK_ROOM = (function () {
       <div class="card challenge row between" id="challenge"></div>
       <div class="card ladleGame" id="ladleGame" style="display:none"></div>
       <div class="small muted" id="statsCard" style="margin:4px 0 8px"></div>
-      <p class="small muted" style="margin:4px 0 8px">${esc(t('floorHint'))}<br>${esc(t('tapHint'))}<br>${esc(t('mapHint'))}</p>
-      <div class="pill-row" style="margin:8px 0">
-        <button class="btn small" data-act="loyly">💧 ${esc(t('throwLoyly'))}</button>
-        <button class="btn small secondary" data-act="vihta">🌿 ${esc(t('vihta'))}</button>
-        <button class="btn small secondary" data-act="cool" id="coolBtn">❄️ ${esc(t('coolOff'))}</button>
-        <button class="btn small secondary" data-act="lounge">🛋 ${esc(t('goLounge'))}</button>
-        <button class="btn small secondary" data-act="avanto">🧊 ${esc(t('avantoBtn'))}</button>
-        <button class="btn small secondary" data-act="angel">👼 ${esc(t('angelBtn'))}</button>
-        <button class="btn small secondary" data-act="sing">🎵 ${esc(t('sing'))}</button>
-        <button class="btn small secondary" data-act="ladlegame">🥄 ${esc(t('ladleGame'))}</button>
-        <button class="btn small secondary" data-act="rocket">🎆 ${esc(t('rocket'))}</button>
-        <button class="btn small secondary" data-act="sled">🛷 ${esc(t('sled'))}</button>
-        <button class="btn small secondary" data-act="fish">🎣 ${esc(t('fish'))}</button>
-        <button class="btn small secondary" data-act="postcard">📮 ${esc(t('postcard'))}</button>
-        <button class="btn small secondary" data-act="greet">🙏 ${esc(t('greet'))}</button>
-        <button class="btn small secondary" data-act="figure">🎭 ${esc(t('myFigure'))}</button>
-        <button class="btn small lake" data-act="quiz">🧠 ${esc(t('quiz'))}</button>
-        <button class="btn small lake" data-act="duel">💧 ${esc(t('duel'))}</button>
-        <button class="btn small lake" data-act="snowfight">☃️ ${esc(t('snowfight'))}</button>
+      <p class="small muted" style="margin:4px 0 8px">${esc(t('tapHint'))} · ${esc(t('mapHint'))}</p>
+      <span id="coolBtn" hidden></span>
+      <div class="actions">
+        <button class="btn big" data-act="loyly"><span class="ic">💧</span>${esc(t('actLoyly'))}</button>
+        <button class="btn big secondary" data-act="talk"><span class="ic">💬</span>${esc(t('actTalk'))}</button>
+        <button class="btn big secondary" data-menu="move"><span class="ic">🚶</span>${esc(t('actMove'))}</button>
+        <button class="btn big secondary" data-menu="more"><span class="ic">✨</span>${esc(t('actDo'))}</button>
+        <button class="btn big lake" data-menu="games"><span class="ic">🎲</span>${esc(t('actGames'))}</button>
       </div>
+      <div class="menu" id="menuBox" style="display:none"></div>
+      <div class="card progCard" id="progCard"></div>
       <div class="card figureBar" id="figureBar" style="display:none"></div>
       ${nx ? `<div class="card nextCard" data-open="${esc(nx.id)}"><div><div class="small muted">🔥 ${esc(t('nextSauna'))}</div><b>${esc(nx.text)}</b></div><span class="btn small">${esc(nx.cta)} →</span></div>` : ''}
       <div class="grid2">
@@ -1113,7 +1163,26 @@ window.SK_ROOM = (function () {
     el.querySelector('.coolLabel').textContent = t('terraceLbl'); el.querySelector('.loungeLabel').textContent = t('loungeLbl');
     cam = 550; camHold = 0;
     renderChat();
-    function updateCoolBtn(){ el.querySelector('#coolBtn').innerHTML = (me.zone === 'floor' && isOutside(me.x)) ? `🔥 ${esc(t('backIn'))}` : `❄️ ${esc(t('coolOff'))}`; }
+    function updateCoolBtn(){ const b = el.querySelector('#coolBtn'); if (b) b.innerHTML = (me.zone === 'floor' && isOutside(me.x)) ? `🔥 ${esc(t('backIn'))}` : `❄️ ${esc(t('coolOff'))}`; }
+    function sitAt(seatId) {
+      if (coldStage(me) >= 3) { ctx.toast(t('frozenCantMove')); return; }
+      me.seat = seatId; if (me.zone === 'floor' && isOutside(me.x)) { rounds++; inSince = Date.now(); nudged = false; bump('rounds'); score('round'); }
+      me.zone = 'in'; delete me.x; delete me.y; delete dest[pid]; delete pos[pid]; me.outSince = null; me.inSince = Date.now(); lastStage = 0; hotWarned = false; updateCoolBtn(); track();
+    }
+    function renderMenu(kind) {
+      const box = el.querySelector('#menuBox');
+      if (menuOpen === kind) { menuOpen = null; box.style.display = 'none'; return; }
+      menuOpen = kind;
+      const out = me.zone === 'floor' && isOutside(me.x), lounge = me.zone === 'floor' && me.x >= LOUNGE_X0, inSauna = !out && !lounge;
+      let items = [];
+      if (kind === 'move') items = [me.zone !== 'in' && ['sit', '🔥', t('mvBench')], !out && ['cool', '❄️', t('mvTerrace')], !lounge && ['lounge', '🛋', t('mvLounge')], ['avanto', '🧊', t('mvAvanto')], ['sled', '🛷', t('mvSled')]];
+      if (kind === 'more') items = [inSauna && ['vihta', '🌿', t('vihta')], ['greet', '🙏', t('greet')], ['sing', '🎵', t('sing')], inSauna && ['ladlegame', '🥄', t('ladleGame')], out && ['angel', '👼', t('angelBtn')], out && ['fish', '🎣', t('fish')], out && ['rocket', '🎆', t('rocket')], lounge && ['beer', '🍺', t('takeBeer')], ['figure', '🎭', t('myFigure')], ['postcard', '📮', t('postcard')]];
+      if (kind === 'games') items = [['quiz', '🧠', t('quiz')], ['duel', '💧', t('duel')], ['snowfight', '☃️', t('snowfight')], practice && ['vocab', '🔡', t('vocabQuiz')]];
+      items = items.filter(Boolean);
+      box.innerHTML = items.map(i => `<button class="btn small ${kind === 'games' ? 'lake' : 'secondary'}" data-act="${i[0]}">${i[1]} ${esc(i[2])}</button>`).join('');
+      box.style.display = '';
+      el.querySelectorAll('[data-menu]').forEach(b => b.classList.toggle('open', b.dataset.menu === kind));
+    }
     // drag the picture to look around
     (function () {
       const svg = el.querySelector('#roomSvg'); let down = false, sx = 0, startCam = 0, moved = false;
@@ -1126,22 +1195,13 @@ window.SK_ROOM = (function () {
       person = { id, name };
       const bar = el.querySelector('#personBar'); bar.style.display = '';
       const tp = people.find(x => x.id === id);
-      bar.innerHTML = `<div class="row between wrap"><b>${esc(name)} · ${esc(t('personActions'))}</b><button class="chipbtn ghost" data-pact="close">✕</button></div>
-        <div class="pill-row" style="margin-top:6px">
-          ${coldStage(tp) >= 3 ? `<button class="btn small" data-pact="thaw">🔥 ${esc(t('thaw'))}</button>` : ''}
-          ${isDizzy(tp) ? `<button class="btn small" data-pact="water">💧 ${esc(t('water'))}</button>` : ''}
-          <button class="btn small" data-pact="cheers">🍻 ${esc(t('cheers'))}</button>
-          <button class="btn small secondary" data-pact="tickle">🤭 ${esc(t('tickle'))}</button>
-          <button class="btn small secondary" data-pact="hatswap">🎩 ${esc(t('hatswap'))}</button>
-          <button class="btn small secondary" data-pact="hidetowel">🪣 ${esc(t('hidetowel'))}</button>
-          <button class="btn small" data-pact="tease">😜 ${esc(t('tease'))}</button>
-          <button class="btn small" data-pact="hifive">✋ ${esc(t('hifive'))}</button>
-          <button class="btn small secondary" data-pact="wave">👋 ${esc(t('wave'))}</button>
-          <button class="btn small secondary" data-pact="whisk">🌿 ${esc(t('whisk'))}</button>
-          <button class="btn small secondary" data-pact="beer">🍺 ${esc(t('beer'))}</button>
-          <button class="btn small secondary" data-pact="snow">☃️ ${esc(t('snow'))}</button>
-          <button class="btn small secondary" data-pact="ladle">🥄 ${esc(t('ladle'))}</button>
-        </div>`;
+      const tTitle = tp && tp.titleIc ? `${tp.titleIc} ` : '';
+      const care = `${coldStage(tp) >= 3 ? `<button class="btn small" data-pact="thaw">🔥 ${esc(t('thaw'))}</button>` : ''}${isDizzy(tp) ? `<button class="btn small" data-pact="water">💧 ${esc(t('water'))}</button>` : ''}`;
+      bar.innerHTML = `<div class="row between wrap"><b>${tTitle}${esc(name)} · ${esc(t('personActions'))}</b><button class="chipbtn ghost" data-pact="close">✕</button></div>
+        ${care ? `<div class="pill-row" style="margin-top:6px">${care}</div>` : ''}
+        <div class="grp"><span>${esc(t('grpFun'))}</span><button class="btn small" data-pact="cheers">🍻 ${esc(t('cheers'))}</button><button class="btn small" data-pact="hifive">✋ ${esc(t('hifive'))}</button><button class="btn small secondary" data-pact="wave">👋 ${esc(t('wave'))}</button><button class="btn small secondary" data-pact="tease">😜 ${esc(t('tease'))}</button></div>
+        <div class="grp"><span>${esc(t('grpPranks'))}</span><button class="btn small secondary" data-pact="tickle">🤭 ${esc(t('tickle'))}</button><button class="btn small secondary" data-pact="hatswap">🎩 ${esc(t('hatswap'))}</button><button class="btn small secondary" data-pact="hidetowel">🪣 ${esc(t('hidetowel'))}</button><button class="btn small secondary" data-pact="snow">☃️ ${esc(t('snow'))}</button></div>
+        <div class="grp"><span>${esc(t('grpOther'))}</span><button class="btn small secondary" data-pact="whisk">🌿 ${esc(t('whisk'))}</button><button class="btn small secondary" data-pact="beer">🍺 ${esc(t('beer'))}</button><button class="btn small secondary" data-pact="ladle">🥄 ${esc(t('ladle'))}</button></div>`;
     }
     function showFigure() {
       const bar = el.querySelector('#figureBar'); const open = bar.style.display === 'none'; bar.style.display = open ? '' : 'none'; if (!open) return;
@@ -1150,8 +1210,9 @@ window.SK_ROOM = (function () {
         <div class="small muted" style="margin-top:8px">${esc(t('petLabel'))}</div><div class="pill-row" style="margin-top:4px">${Object.keys(D.PETS).map(k => `<button class="chipbtn ${(me.pet || 'none') === k ? 'active' : ''}" data-pet="${k}">${D.PETS[k].e ? D.PETS[k].e + ' ' : ''}${esc(L(D.PETS[k]))}</button>`).join('')}</div>`;
     }
     function doAct(act, b) {
-      if (act === 'loyly') { if (b) { b.disabled = true; b.classList.add('pulse'); setTimeout(() => { b.disabled = false; b.classList.remove('pulse'); }, 1500); } try { navigator.vibrate && navigator.vibrate(30); } catch (e) {} send({ type: 'loyly' }); bump('loyly'); myThrows++; if (practice) speakFi(`${D.NUMBERS[Math.min(12, myThrows)]} löylyä`); }
+      if (act === 'loyly') { if (b) { b.disabled = true; b.classList.add('pulse'); setTimeout(() => { b.disabled = false; b.classList.remove('pulse'); }, 1500); } try { navigator.vibrate && navigator.vibrate(30); } catch (e) {} send({ type: 'loyly' }); bump('loyly'); score('loyly'); myThrows++; if (practice) speakFi(`${D.NUMBERS[Math.min(12, myThrows)]} löylyä`); }
       if (act === 'vihta') send({ type: 'react', emoji: '🌿' });
+      if (act === 'rocket') score('rocket'); if (act === 'sled') score('sled'); if (act === 'sing') score('song');
       if (act === 'greet') send({ type: 'react', emoji: '🙏' });
       if (act === 'emo') send({ type: 'react', emoji: b.dataset.emo });
       if (act === 'figure') showFigure();
@@ -1159,7 +1220,7 @@ window.SK_ROOM = (function () {
       if (act === 'duel') { if (duel && !duel.done) return; send({ type: 'duel', at: Date.now() }); }
       if (act === 'sound') { soundOn = !soundOn; try { localStorage.setItem('saunakaverit.sound', soundOn ? 'on' : 'off'); } catch (e) {} el.querySelector('#soundBtn').textContent = soundOn ? '🔊' : '🔇'; if (soundOn) hiss(false); }
       if (act === 'cool') {
-        if (me.zone === 'floor' && isOutside(me.x)) { me.zone = 'in'; delete me.x; delete me.y; delete dest[pid]; delete pos[pid]; me.outSince = null; me.inSince = Date.now(); lastStage = 0; hotWarned = false; rounds++; inSince = Date.now(); nudged = false; updateCoolBtn(); addLog(`🔥 ${me.name} ${t('cameIn')}`); bump('rounds'); track(); }
+        if (me.zone === 'floor' && isOutside(me.x)) { me.zone = 'in'; delete me.x; delete me.y; delete dest[pid]; delete pos[pid]; me.outSince = null; me.inSince = Date.now(); lastStage = 0; hotWarned = false; rounds++; inSince = Date.now(); nudged = false; updateCoolBtn(); addLog(`🔥 ${me.name} ${t('cameIn')}`); bump('rounds'); score('round'); track(); }
         else { walkTo(300 + Math.random() * 80, 590 + Math.random() * 40); addLog(`❄️ ${me.name} ${t('wentOut')}`); }
       }
       if (act === 'lounge') walkTo(1600 + Math.random() * 120, 620 + Math.random() * 30);
@@ -1172,6 +1233,10 @@ window.SK_ROOM = (function () {
       if (act === 'sled') { if (coldStage(me) >= 3) { ctx.toast(t('frozenCantMove')); return; } me.zone = 'floor'; me.x = 90; me.y = 430; if (!me.outSince) me.outSince = Date.now(); send({ type: 'sled' }); track(); }
       if (act === 'fish') { if (coldStage(me) >= 3) { ctx.toast(t('frozenCantMove')); return; } const d = findPos(pid); walkTo(486, 596); const dist = d ? Math.hypot(486 - d.x, 596 - Math.max(478, d.y)) : 500; fishAt = Date.now() + dist / 230 * 1000 + 300; }
       if (act === 'postcard') makePostcard();
+      if (act === 'sit') { const { taken } = layout(people); const free = SEATS.find(s => !taken[s.id]) || SEATS[0]; sitAt(free.id); }
+      if (act === 'talk') { const inp = el.querySelector('#sayInput'); if (inp) { inp.scrollIntoView({ behavior: 'smooth', block: 'center' }); inp.focus(); } }
+      if (act === 'beer') send({ type: 'mood', face: 'beer', emoji: '🍺', note: 'tookBeer', ms: 15000, mid: pid + '-' + Date.now() });
+      if (act === 'prog') { const c = el.querySelector('#progCard'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'center' }); refreshLeaderboard(); }
       if (act === 'practice') { practice = !practice; savePractice(); ctx.toast(t(practice ? 'practiceOn' : 'practiceOff')); el.querySelector('#practiceBtn').classList.toggle('active', practice); renderPractice(); renderLabels(); if (practice) { ainoAt = Date.now() - 140000; } }
       if (act === 'words') { showWords = !showWords; renderLabels(); renderPractice(); }
       if (act === 'phraseListen') speakFi(D.PHRASES[Math.floor(Date.now() / 86400000) % D.PHRASES.length][0]);
@@ -1199,14 +1264,14 @@ window.SK_ROOM = (function () {
       if (act === 'ladlethrow' && ladle) {
         const phase = ((Date.now() - ladle.start) % 2400) / 2400, q = phase < 0.5 ? phase * 2 : (1 - phase) * 2;
         ladle = null; el.querySelector('#ladleGame').style.display = 'none';
-        if (q > 0.84) { send({ type: 'loyly', perfect: true }); bump('loyly'); }
-        else if (q > 0.5) { send({ type: 'loyly' }); bump('loyly'); addLog(`👌 ${me.name} ${t('goodLoyly')}`); }
+        if (q > 0.84) { send({ type: 'loyly', perfect: true }); bump('loyly'); score('perfect'); }
+        else if (q > 0.5) { send({ type: 'loyly' }); bump('loyly'); score('loyly'); addLog(`👌 ${me.name} ${t('goodLoyly')}`); }
         else { bubbles.push({ id: pid, emoji: '💦', at: Date.now(), until: Date.now() + 2500 }); send({ type: 'mood', face: 'wow', emoji: '💦', note: 'splashLoyly', ms: 2500, mid: pid + '-' + Date.now() }); }
       }
     }
     root.addEventListener('click', e => {
       const seat = e.target.closest('[data-seat]');
-      if (seat) { if (coldStage(me) >= 3) { ctx.toast(t('frozenCantMove')); return; } me.seat = +seat.dataset.seat; if (me.zone === 'floor' && isOutside(me.x)) { rounds++; inSince = Date.now(); nudged = false; bump('rounds'); } me.zone = 'in'; delete me.x; delete me.y; delete dest[pid]; delete pos[pid]; me.outSince = null; me.inSince = Date.now(); lastStage = 0; hotWarned = false; updateCoolBtn(); track(); return; }
+      if (seat) { sitAt(+seat.dataset.seat); return; }
       const pr = e.target.closest('[data-person]');
       if (pr) { if (pr.dataset.person !== pid) showPerson(pr.dataset.person, pr.dataset.pname); return; }
       const pa = e.target.closest('[data-pact]');
@@ -1218,7 +1283,7 @@ window.SK_ROOM = (function () {
         let myHat = me.hat;
         if (k === 'hatswap') { const tp = people.find(x => x.id === person.id); me.hat = (tp && tp.hat) || 'none'; figure.hat = me.hat; saveFigure(); track(); }
         send({ type: 'react', emoji: map[k][0], verb, hat: myHat, target: person.id, targetName: person.name, line: Math.floor(Math.random() * D.TEASES.length), mid: pid + '-' + Date.now() });
-        if (k === 'cheers') bump('cheers'); if (k === 'tease') bump('tease');
+        if (k === 'cheers') { bump('cheers'); score('cheers'); } if (k === 'tease') { bump('tease'); score('tease'); } if (k === 'thaw') score('thaw'); if (k === 'water') score('water');
         return;
       }
       if (suppressClick) return;
@@ -1228,7 +1293,7 @@ window.SK_ROOM = (function () {
         const m = svg.getScreenCTM(); if (!m) return; const q = pt.matrixTransform(m.inverse());
         const wasOut = me.zone === 'floor' && isOutside(me.x);
         walkTo(q.x, q.y);
-        if (wasOut && !isOutside(me.x)) { rounds++; inSince = Date.now(); nudged = false; addLog(`🔥 ${me.name} ${t('cameIn')}`); bump('rounds'); }
+        if (wasOut && !isOutside(me.x)) { rounds++; inSince = Date.now(); nudged = false; addLog(`🔥 ${me.name} ${t('cameIn')}`); bump('rounds'); score('round'); }
         return;
       }
       const mm = e.target.closest('#minimap');
@@ -1238,16 +1303,18 @@ window.SK_ROOM = (function () {
       const tw = e.target.closest('[data-towel]'); if (tw) { me.towel = +tw.dataset.towel; figure.towel = me.towel; saveFigure(); track(); showFigure(); showFigure(); return; }
       const pt2 = e.target.closest('[data-pet]'); if (pt2 && !pt2.classList.contains('pet')) { me.pet = pt2.dataset.pet; figure.pet = me.pet; saveFigure(); delete petPos[pid]; track(); placePeople(); showFigure(); showFigure(); return; }
       const qa = e.target.closest('[data-qa]'); if (qa && quiz && !quiz.done && quiz.mine == null) { const c = +qa.dataset.qa; const ok = c === (quiz.kind === 'vocab' ? quiz.a : D.QUIZ[quiz.q].a); send({ type: 'answer', q: quiz.q, choice: c, ok }); if (ok && quiz.kind === 'vocab') { pstats.quiz++; savePractice(); renderPractice(); speakFi(D.VOCAB[quiz.q][0]); } return; }
-      const wd = e.target.closest('[data-word]'); if (wd) { const w = D.WORDS[+wd.dataset.word]; speakFi(w.fi); ctx.toast(`${w.fi} = ${w.en}`); pstats.words++; savePractice(); renderPractice(); return; }
+      const wd = e.target.closest('[data-word]'); if (wd) { const w = D.WORDS[+wd.dataset.word]; speakFi(w.fi); ctx.toast(`${w.fi} = ${w.en}`); pstats.words++; savePractice(); renderPractice(); score('word'); return; }
       const ph = e.target.closest('[data-phrase]'); if (ph) { send({ type: 'say', text: ph.dataset.phrase, mid: pid + '-' + Date.now() }); return; }
       const md = e.target.closest('[data-mood]'); if (md) { send({ type: 'mood', face: md.dataset.mood, emoji: md.dataset.emo, mid: pid + '-' + Date.now() }); return; }
       if (e.target.closest('#emojiBtn')) { const g = el.querySelector('#emojiGrid'); g.style.display = g.style.display === 'none' ? '' : 'none'; return; }
       const ins = e.target.closest('[data-ins]'); if (ins) { const inp = el.querySelector('#sayInput'); inp.value = (inp.value + ins.dataset.ins).slice(0, 80); inp.focus(); return; }
       const mr = e.target.closest('[data-mr]'); if (mr) { send({ type: 'mreact', mid: mr.dataset.mid, emoji: mr.dataset.mr }); reactBarFor = null; renderChat(); return; }
       const msg = e.target.closest('.msg[data-mid]'); if (msg && !msg.classList.contains('sys')) { reactBarFor = reactBarFor === msg.dataset.mid ? null : msg.dataset.mid; renderChat(); return; }
+      const mb = e.target.closest('[data-menu]'); if (mb) { renderMenu(mb.dataset.menu); return; }
       const b = e.target.closest('[data-act]'); if (!b) return;
       if (b.dataset.act === 'loyly') { if (Date.now() - (root._lastLoyly || 0) < 1500) return; root._lastLoyly = Date.now(); }
       doAct(b.dataset.act, b.tagName === 'BUTTON' ? b : el.querySelector('button[data-act=loyly]'));
+      if (b.closest('#menuBox') && b.dataset.act !== 'figure') { menuOpen = null; el.querySelector('#menuBox').style.display = 'none'; el.querySelectorAll('[data-menu]').forEach(x => x.classList.remove('open')); }
     });
     el.querySelector('#sayForm').addEventListener('submit', e => {
       e.preventDefault(); const inp = el.querySelector('#sayInput'); const text = inp.value.trim(); if (!text) return; inp.value = ''; el.querySelector('#emojiGrid').style.display = 'none'; send({ type: 'say', text, mid: pid + '-' + Date.now() });
@@ -1255,6 +1322,9 @@ window.SK_ROOM = (function () {
 
     people = [Object.assign({ id: pid }, me)]; placePeople(); renderChallenge();
     ainoOpen = null; ainoAt = Date.now() - 120000; myThrows = 0; praised = {}; showWords = false; renderLabels(); renderPractice();
+    const p0 = ctx.prog && ctx.prog(); if (p0) prog = { points: p0.points || 0, totals: p0.totals || {}, week: p0.week || 0 };
+    else { try { prog = Object.assign({ points: 0, totals: {}, week: 0 }, JSON.parse(localStorage.getItem('saunakaverit.prog') || '{}')); } catch (e) {} }
+    scoreQueue = {}; menuOpen = null; lb = []; lbAt = 0; const bt0 = bestTitle(prog.totals); me.titleIc = bt0 ? bt0.ic : ''; renderProgress(); refreshLeaderboard();
     lastTick = 0; raf = requestAnimationFrame(tick);
     starterTick();
     if (ctx.client) {
@@ -1317,5 +1387,5 @@ window.SK_ROOM = (function () {
     if (counts[id] != null) cb(counts[id], (metasByRoom[id] || []).map(m => m.name), metasByRoom[id] || []);
   }
 
-  return { enter, leave, watch, preview, isOpen: () => !!raf, count: (id) => counts[id] || 0, metas: (id) => metasByRoom[id] || [], _state: () => ({ me, pos, dest, people, ch, quiz, practice, ainoOpen }) };
+  return { enter, leave, watch, preview, setProg, isOpen: () => !!raf, count: (id) => counts[id] || 0, metas: (id) => metasByRoom[id] || [], _state: () => ({ me, pos, dest, people, ch, quiz, practice, ainoOpen, prog, lb }) };
 })();

@@ -386,6 +386,19 @@ window.SK_DATA = (function () {
     ['Kenen kanssa olet saunassa?', 'Who are you in the sauna with?', 'Olen saunassa kavereiden kanssa.'],
     ['Milloin käyt saunassa?', 'When do you go to the sauna?', 'Käyn saunassa sunnuntaina.'],
   ];
+  /* Progression: levels by points, titles by lifetime totals. */
+  const LEVELS = [
+    { min:0, fi:'Ensikertalainen', en:'First-timer' }, { min:50, fi:'Saunoja', en:'Sauna-goer' }, { min:200, fi:'Lauteiden tuttu', en:'Bench regular' },
+    { min:500, fi:'Löylynheittäjä', en:'Löyly thrower' }, { min:1000, fi:'Saunamajuri', en:'Sauna major' }, { min:2500, fi:'Saunavanhin', en:'Sauna elder' },
+  ];
+  const TITLES = [
+    { key:'loyly', n:100, ic:'🔥', fi:'Löylymestari', en:'Löyly master' }, { key:'dip', n:10, ic:'🧊', fi:'Avantouimari', en:'Ice swimmer' },
+    { key:'snowfight', n:1, ic:'👑', fi:'Lumikuningas', en:'Snow king' }, { key:'quiz', n:5, ic:'🧠', fi:'Saunavisamestari', en:'Quiz master' },
+    { key:'vocab', n:5, ic:'🔡', fi:'Sanaseppä', en:'Wordsmith' }, { key:'song', n:20, ic:'🎵', fi:'Saunalaulaja', en:'Sauna singer' },
+    { key:'cheers', n:25, ic:'🍻', fi:'Kippismestari', en:'Cheers master' }, { key:'round', n:30, ic:'❄️', fi:'Vilvoittelija', en:'Cooler-offer' },
+    { key:'fish', n:10, ic:'🎣', fi:'Pilkkijä', en:'Ice angler' }, { key:'challenge', n:7, ic:'⭐', fi:'Viikon sankari', en:'Hero of the week' },
+    { key:'duel', n:3, ic:'💧', fi:'Löylykisan voittaja', en:'Löyly champion' }, { key:'thaw', n:5, ic:'🫶', fi:'Sulattaja', en:'Thawer' },
+  ];
   const NUMBERS = ['nolla','yksi','kaksi','kolme','neljä','viisi','kuusi','seitsemän','kahdeksan','yhdeksän','kymmenen','yksitoista','kaksitoista'];
   const HATS = { none:{fi:'Ei hattua', en:'No hat'}, felt:{fi:'Huopahattu', en:'Felt hat'}, tonttu:{fi:'Tonttulakki', en:'Elf hat'}, viking:{fi:'Viikinkikypärä', en:'Viking helmet'}, bucket:{fi:'Ämpäri', en:'Bucket'}, crown:{fi:'Kruunu', en:'Crown'} };
 
@@ -410,6 +423,9 @@ window.SK_DATA = (function () {
     sing:'Laula', sang:'lauloi', chorus:'Kuoro! {n} laulaa yhdessä.', ladleGame:'Kauhakisa', ladleHint:'Napauta, kun merkki on keskellä vihreää.', ladleThrow:'Heitä!', perfectLoyly:'heitti täydellisen löylyn!', goodLoyly:'heitti hyvän löylyn', splashLoyly:'roiskaisi lattialle',
     powerCut:'Sähkökatko! Kuka vei lyhdyn?', powerBack:'Sähköt palasivat.', avalanche:'Lumivyöry katolta!', buried:'sai lumet niskaansa', pentti:'Naapurin Pentti', penttiCame:'Naapurin Pentti kävelee sisään.',
     stats:'Illan tilastot', sLoyly:'löylyä', sDips:'avantoa', sSnow:'lumipalloa', sCheers:'kippistä', sSongs:'laulua', sTeases:'kiusoittelua', kiuasSays:'Kiuas',
+    points:'p', level:'Taso', titlesLbl:'Tittelit', weekTop:'Viikon kärki', allTime:'Kaikkien aikojen', yourRank:'Sijasi', gained:'+{n} p', newTitle:'Uusi titteli: {t}', newLevel:'Uusi taso: {t}',
+    actLoyly:'Löyly', actTalk:'Puhu', actMove:'Liiku', actDo:'Tee', actGames:'Pelit', mvBench:'Lauteille', mvTerrace:'Terassille', mvLounge:'Pukuhuoneeseen', mvAvanto:'Avantoon', mvSled:'Pulkkamäkeen',
+    grpFun:'Hauskaa', grpPranks:'Kepposet', grpOther:'Muut', takeBeer:'Ota olut', nearTitle:'Seuraava titteli',
     practice:'Suomi-tila', practiceOn:'Suomi-tila päällä: sanat, Sanavisa, opettaja Aino ja päivän lause.', practiceOff:'Suomi-tila pois.', wordsBtn:'Sanat', wordsHint:'Napauta sanaa kuullaksesi sen.',
     vocabQuiz:'Sanavisa', vocabQ:'Mikä on suomeksi: {w}?', vocabQ2:'Mitä tarkoittaa: {w}?', aino:'Opettaja Aino', ainoHint:'vihje', ainoModel:'Esimerkkivastaus', ainoPraise:'Hienoa, {n}! Hyvä suomi. 👏',
     phraseDay:'Päivän lause', listen:'Kuuntele', sayIt:'Sano se', practiceStats:'Suomen harjoitus', pWords:'sanaa kuultu', pQuiz:'sanavisaa', pPhrases:'lausetta sanottu', pAnswers:'vastausta Ainolle',
@@ -437,6 +453,9 @@ window.SK_DATA = (function () {
     sing:'Sing', sang:'sang', chorus:'A choir! {n} singing together.', ladleGame:'Ladle game', ladleHint:'Tap when the marker is in the middle of the green.', ladleThrow:'Throw!', perfectLoyly:'threw a perfect löyly!', goodLoyly:'threw a good löyly', splashLoyly:'splashed the floor',
     powerCut:'Power cut! Who took the lantern?', powerBack:'The power is back.', avalanche:'Avalanche off the roof!', buried:'got snow down the neck', pentti:'Neighbour Pentti', penttiCame:'Neighbour Pentti walks in.',
     stats:'Tonight so far', sLoyly:'löyly', sDips:'dips', sSnow:'snowballs', sCheers:'cheers', sSongs:'songs', sTeases:'teases', kiuasSays:'Kiuas',
+    points:'pts', level:'Level', titlesLbl:'Titles', weekTop:'This week', allTime:'All time', yourRank:'Your rank', gained:'+{n} pts', newTitle:'New title: {t}', newLevel:'New level: {t}',
+    actLoyly:'Löyly', actTalk:'Talk', actMove:'Go', actDo:'Do', actGames:'Games', mvBench:'To the benches', mvTerrace:'To the terrace', mvLounge:'To the lounge', mvAvanto:'To the avanto', mvSled:'To the sled hill',
+    grpFun:'Fun', grpPranks:'Pranks', grpOther:'Other', takeBeer:'Take a beer', nearTitle:'Next title',
     practice:'Finnish mode', practiceOn:'Finnish mode on: words, Sanavisa, teacher Aino and the phrase of the day.', practiceOff:'Finnish mode off.', wordsBtn:'Words', wordsHint:'Tap a word to hear it.',
     vocabQuiz:'Word quiz', vocabQ:'What is "{w}" in Finnish?', vocabQ2:'What does "{w}" mean?', aino:'Teacher Aino', ainoHint:'hint', ainoModel:'Model answer', ainoPraise:'Great, {n}! Good Finnish. 👏',
     phraseDay:'Phrase of the day', listen:'Listen', sayIt:'Say it', practiceStats:'Finnish practice', pWords:'words heard', pQuiz:'word quizzes', pPhrases:'phrases said', pAnswers:'answers to Aino',
@@ -444,5 +463,5 @@ window.SK_DATA = (function () {
     petLabel:'Pet', rocket:'Rocket', fired:'fired a rocket', sled:'Sledding', sledded:'sledded down the hill', fish:'Ice fishing', fishing:'is ice fishing', caught:'caught', postcard:'Postcard', postcardText:'Greetings from Saunakaverit', postcardDone:'Postcard ready', postcardFail:'Could not make the picture in this browser.',
   });
 
-  return { SAUNAS, CITIES, THEMES, KINDS, HEATING, LANGS, ETIQUETTE, SEASONS, BADGES, UI, seedSessions, PHRASES, STARTERS, QUIZ, HATS, TEASES, CHALLENGES, KIUAS, PENTTI, PETS, CATCHES, WORDS, VOCAB, AINO, NUMBERS };
+  return { SAUNAS, CITIES, THEMES, KINDS, HEATING, LANGS, ETIQUETTE, SEASONS, BADGES, UI, seedSessions, PHRASES, STARTERS, QUIZ, HATS, TEASES, CHALLENGES, KIUAS, PENTTI, PETS, CATCHES, WORDS, VOCAB, AINO, NUMBERS, LEVELS, TITLES };
 })();

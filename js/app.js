@@ -38,6 +38,8 @@
         S.joins = {}; (r.me.joins || []).forEach(j => S.joins[j.session_id] = j.status);
         S.stamps = (r.me.stamps || []).map(s => ({ saunaId: s.sauna_id, date: s.date }));
         S.hosted = r.me.hosted || 0; S.hostedIds = r.me.hosted_ids || [];
+        S.prog = { points: p.points || 0, totals: p.totals || {}, week: r.me.week || 0 };
+        if (ROOM.isOpen() && ROOM.setProg) ROOM.setProg(S.prog);
       }
       online = true;
     } catch (e) {
@@ -495,6 +497,8 @@
       ROOM.enter($('#view-room'), currentRoom.id, {
         client: API.enabled ? API.client : null, deviceSuffix: API.deviceSuffix || '', t, label: currentRoom.label,
         profile: () => S.profile, toast, lang: () => S.lang, next: currentRoom.id === 'yhteinen' ? nextInfo() : null,
+        prog: () => S.prog || null, addPoints: API.enabled ? API.addPoints : null, leaderboard: API.enabled ? API.leaderboard : null, isOnline: () => online,
+        onProg: (p) => { S.prog = p; save(); },
       });
     } else if (ROOM.isOpen()) { ROOM.leave(); $('#view-room').innerHTML = ''; }
   }

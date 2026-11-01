@@ -64,6 +64,8 @@ window.SK_API = (function () {
   const join = (id) => rpc('sk_join', { p_token: token, p_session_id: id });
   const leave = (id) => rpc('sk_leave', { p_token: token, p_session_id: id });
   const stamp = (saunaId, dateStr) => rpc('sk_stamp', { p_token: token, p_sauna_id: saunaId, p_date: dateStr });
+  const addPoints = (kind, n) => rpc('sk_add_points', { p_token: token, p_kind: kind, p_amount: n || 1 });
+  async function leaderboard() { const { data, error } = await client.from('leaderboard').select('name, points, week, totals').order('week', { ascending: false }).limit(50); if (error) throw error; return data; }
 
   function subscribe(cb) {
     if (!enabled || channel) return;
@@ -73,5 +75,5 @@ window.SK_API = (function () {
       .subscribe();
   }
 
-  return { enabled, deviceSuffix, load, saveProfile, createSession, removeSession, join, leave, stamp, subscribe, get client(){ return client; } };
+  return { enabled, deviceSuffix, load, saveProfile, createSession, removeSession, join, leave, stamp, addPoints, leaderboard, subscribe, get client(){ return client; } };
 })();
