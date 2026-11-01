@@ -2,6 +2,13 @@
 
 A social sauna app for Finland: fixed Sunday saunas, themed sessions (language sauna, newcomers, silent, avanto, after-the-run), a sauna passport with stamps and badges, and a twelve-point sauna etiquette for first-timers. Finnish first, English toggle.
 
+## Version 0.18 (live voice, 2026-11-01)
+
+- **Puhu ääneen**: push-to-talk voice between the people in the room. Tap 🎙 Puhu ääneen in the chat card, allow the microphone, then hold the big button to talk. You are muted whenever you are not holding it.
+- Peer-to-peer WebRTC (Google STUN only, no relay server). The room's realtime channel carries the offers, answers and ICE candidates; in each pair the lower device id makes the offer. Up to six people in voice.
+- The voice panel lists who is in voice with connecting / connected / speaking, and a 🎙 floats above the figure of whoever is talking.
+- If a connection cannot be made (some mobile networks block peer-to-peer), a toast says so and the text and speech-to-text routes still work. Leaving the room or the tab stops the microphone.
+
 ## Version 0.17 (Saunailta and speaking, 2026-11-01)
 
 - **Saunailta**: a guided sauna evening every day at 20:00 Helsinki time, or started on demand from Pelit. Saunaemäntä Helmi walks in and leads five four-minute phases, each with a shared goal: the first löyly (10 löyly together), vihta and a quiet moment (5 whisks), cooling off and the avanto (3 dips), the second round with a quiz (the oldest phone present starts it), and a beer in the lounge (3 cheers). Every goal reached gives everyone 10 points; all five give a 30-point bonus; the most active person becomes Illan sankari (+20). Helmi says goodnight and suggests the postcard. A card counts down to the next evening the rest of the day.

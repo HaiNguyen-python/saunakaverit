@@ -309,6 +309,8 @@ nav.tabs button.fab.active{background:none}
 .grp{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
 .grp > span{font-size:.75rem;color:var(--ink2);min-width:64px}
 .progCard{background:linear-gradient(135deg,#fff8e1,#ffe9b8);border-color:transparent;margin:8px 0}
+.btn.talk{flex:1;padding:14px;font-size:1rem;border-radius:16px;touch-action:none;user-select:none;-webkit-user-select:none}
+.btn.talk.on{background:#e0392f;border-color:#e0392f;animation:pulse 1s infinite}
 #micBtn.active{background:#e0392f;color:#fff;border-color:#e0392f;animation:pulse 1.2s infinite}
 .eveningCard{background:linear-gradient(135deg,#f3e2ff,#e6d2f7);border-color:transparent;margin:8px 0;font-size:.92rem}
 .lvbar{height:8px;border-radius:4px;background:rgba(0,0,0,.08);overflow:hidden;margin-top:6px}

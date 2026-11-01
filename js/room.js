@@ -283,6 +283,7 @@ window.SK_ROOM = (function () {
       if (raf && roomId === id) syncPresence();
     });
     c.on('broadcast', { event: 'sk' }, ({ payload }) => { if (raf && roomId === id) onEvent(payload || {}); });
+    c.on('broadcast', { event: 'rtc' }, ({ payload }) => { if (raf && roomId === id) onRtc(payload || {}); });
     c.subscribe(status => { if (status === 'SUBSCRIBED') { subscribed[id] = true; if (raf && roomId === id) track(); } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') subscribed[id] = false; });
     channels[id] = c;
     return c;
@@ -751,6 +752,7 @@ window.SK_ROOM = (function () {
     el.querySelector('.steam').innerHTML = steam.map(s => `<circle cx="${s.x.toFixed(1)}" cy="${s.y.toFixed(1)}" r="${s.r.toFixed(1)}" fill="#fff" fill-opacity="${(s.life * 0.28).toFixed(3)}"/>`).join('');
     const now = Date.now();
     bubbles = bubbles.filter(b => b.until > now);
+    for (const b of bubbles) if (b.hold) b.at = now - 500;
     el.querySelector('.bubbles').innerHTML = bubbles.map(b => {
       const pos = findPos(b.id); if (!pos) return '';
       const age = (now - b.at) / 1000;
@@ -1132,6 +1134,7 @@ window.SK_ROOM = (function () {
     }
     else if (ev.type === 'angel') { imprints.push({ x: ev.x, y: ev.y, until: now + 150000 }); setFace(ev.id, 'laugh', 3000); bubbles.push({ id: ev.id, emoji: '👼', at: now, until: now + 3000 }); addChat({ sys: true, text: `👼 ${by} ${t('madeAngel')}` }); addLog(`👼 ${by} ${t('madeAngel')}`); }
     else if (ev.type === 'cat') { bubbles.push({ id: 'cat', emoji: '😺', at: now, until: now + 3000 }); addLog(`🐱 ${t('catPurr')}`); if (ev.id === pid) ctx.toast(t('catPurr')); }
+    else if (ev.type === 'talk') { if (ev.id !== pid) onTalk(ev); }
     else if (ev.type === 'evening') { if (eveningStartMs()) return; eveningManualAt = ev.at || now; addChat({ sys: true, text: `🧖‍♀️ ${by} ${t('eveningStarted')}` }); addLog(`🧖‍♀️ ${by} ${t('eveningStarted')}`); ding(); eveningTick(); }
     else if (ev.type === 'snowfight') { if (snowfight && !snowfight.done) return; snowfight = { at: ev.at || now, by, tally: {}, done: false }; addLog(`❄️ ${by} ${t('snowfightStarted')}`); addChat({ sys: true, text: `❄️ ${by} ${t('snowfightStarted')}` }); ctx.toast(t('snowfightLive')); ding(); renderGame(); }
     else if (ev.type === 'move') { const p = people.find(x => x.id === ev.id); if (p) { if (p.zone !== 'floor') { const from = findPos(ev.id); if (from) pos[ev.id] = clampFloor(from.x, from.y); } p.zone = 'floor'; p.x = ev.x; p.y = ev.y; } dest[ev.id] = { x: ev.x, y: ev.y }; if (!pos[ev.id]) pos[ev.id] = { x: ev.x, y: ev.y }; placePeople(); }
@@ -1168,6 +1171,7 @@ window.SK_ROOM = (function () {
       } else { delete dest[p.id]; delete pos[p.id]; }
     }
     people = next.sort((a, b) => (a.since || 0) - (b.since || 0)); placePeople();
+    voiceReconcile();
   }
 
   /* ---------- public ---------- */
@@ -1202,6 +1206,7 @@ window.SK_ROOM = (function () {
       <div class="pstrip" id="peopleStrip"></div>
       <div class="card chat">
         <div class="row between"><h3 style="margin:0">💬 ${esc(t('chat'))}</h3><span class="small muted">${esc(t('reactHint'))}</span></div>
+        <div id="voicePanel" style="margin:6px 0"></div><div id="voiceAudio"></div>
         <div id="chatList" class="chatList"></div>
         <div class="moods"><span class="small muted">${esc(t('mood'))}</span>${MOODS.map(m => `<button class="chipbtn mood" data-mood="${m[1]}" data-emo="${m[0]}">${m[0]}</button>`).join('')}</div>
         <div class="phrases">${D.PHRASES.map(p => `<button class="chipbtn" data-phrase="${esc(p[0])}" title="${esc(p[1])}">${esc(p[0])}${ctx.lang() === 'en' ? ` <small>· ${esc(p[1])}</small>` : ''}</button>`).join('')}</div>
@@ -1312,6 +1317,7 @@ window.SK_ROOM = (function () {
       if (act === 'fish') { if (coldStage(me) >= 3) { ctx.toast(t('frozenCantMove')); return; } const d = findPos(pid); walkTo(486, 596); const dist = d ? Math.hypot(486 - d.x, 596 - Math.max(478, d.y)) : 500; fishAt = Date.now() + dist / 230 * 1000 + 300; }
       if (act === 'postcard') makePostcard();
       if (act === 'evening') { if (eveningStartMs()) return; send({ type: 'evening', at: Date.now() }); }
+      if (act === 'voice') voiceJoin();
       if (act === 'sit') { const { taken } = layout(people); const free = SEATS.find(s => !taken[s.id]) || SEATS[0]; sitAt(free.id); }
       if (act === 'talk') { const inp = el.querySelector('#sayInput'); if (inp) { inp.scrollIntoView({ behavior: 'smooth', block: 'center' }); inp.focus(); } }
       if (act === 'beer') send({ type: 'mood', face: 'beer', emoji: '🍺', note: 'tookBeer', ms: 15000, mid: pid + '-' + Date.now() });
@@ -1337,7 +1343,7 @@ window.SK_ROOM = (function () {
         const name = b; if (!name) return;
         const slug = name.trim().toLowerCase().replace(/[^a-z0-9äöå]+/g, '-').replace(/^-|-$/g, '');
         const link = location.origin + location.pathname + '?room=' + encodeURIComponent(slug);
-        try { navigator.clipboard && navigator.clipboard.writeText(link); } catch (e) {}
+        try { navigator.clipboard && navigator.clipboard.writeText(link).catch(() => {}); } catch (e) {}
         if (navigator.share) navigator.share({ title: 'Saunakaverit', text: `${t('classLabel')} ${name}`, url: link }).catch(() => {});
         ctx.toast(t('classroomLink')); addChat({ sys: true, text: `🏫 ${t('classLabel')} ${name}: ${link}` });
       }
@@ -1412,6 +1418,7 @@ window.SK_ROOM = (function () {
     else { try { prog = Object.assign({ points: 0, totals: {}, week: 0 }, JSON.parse(localStorage.getItem('saunakaverit.prog') || '{}')); } catch (e) {} }
     scoreQueue = {}; menuOpen = null; lb = []; lbAt = 0; const bt0 = bestTitle(prog.totals); me.titleIc = bt0 ? bt0.ic : ''; renderProgress(); refreshLeaderboard();
     evening = null; hostNpc = null; eveningManualAt = 0; delete pos.host; delete dest.host; renderEvening();
+    voiceOn = false; localStream = null; peers = {}; talking = false; speaking = {}; me.voice = false; renderVoice();
     lastTick = 0; raf = requestAnimationFrame(tick);
     starterTick();
     if (ctx.client) {
@@ -1421,6 +1428,107 @@ window.SK_ROOM = (function () {
   }
   function saveFigure(){ try { localStorage.setItem('saunakaverit.figure', JSON.stringify(figure)); } catch (e) {} }
 
+  /* Live voice: push-to-talk between the people in the room. Peer-to-peer WebRTC, the room channel
+     carries offers, answers and ICE candidates. The lower id of each pair makes the offer. */
+  let voiceOn = false, localStream = null, peers = {}, talking = false, speaking = {};
+  const RTC_CFG = { iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }] };
+  const VOICE_MAX = 6;
+  function sendRtc(to, data) { if (ch) ch.send({ type: 'broadcast', event: 'rtc', payload: Object.assign({ to, from: pid }, data) }).catch(() => {}); }
+  async function voiceJoin() {
+    const t = ctx.t;
+    if (voiceOn) return voiceLeave();
+    if (people.filter(p => p.voice && p.id !== pid).length >= VOICE_MAX) { ctx.toast(t('voiceMax')); return; }
+    if (!navigator.mediaDevices || !window.RTCPeerConnection) { ctx.toast(t('voiceDenied')); return; }
+    try { localStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false }); }
+    catch (e) { ctx.toast(t('voiceDenied')); return; }
+    localStream.getAudioTracks().forEach(tr => tr.enabled = false);
+    voiceOn = true; me.voice = true; track();
+    addChat({ sys: true, text: `🎙 ${me.name} ${t('voiceJoined')}` }); addLog(`🎙 ${me.name} ${t('voiceJoined')}`);
+    renderVoice(); voiceReconcile();
+  }
+  function voiceLeave(silent) {
+    const t = ctx.t;
+    setTalk(false);
+    for (const id of Object.keys(peers)) closePeer(id);
+    if (localStream) { localStream.getTracks().forEach(tr => tr.stop()); localStream = null; }
+    if (voiceOn && !silent) { addChat({ sys: true, text: `🔇 ${me.name} ${t('voiceLeft')}` }); }
+    voiceOn = false; me.voice = false; if (!silent) track();
+    renderVoice();
+  }
+  function closePeer(id) { const p = peers[id]; if (!p) return; try { p.pc.close(); } catch (e) {} if (p.audio) p.audio.remove(); delete peers[id]; delete speaking[id]; }
+  function createPeer(id, initiator) {
+    closePeer(id);
+    const pc = new RTCPeerConnection(RTC_CFG); const rec = { pc, audio: null, pending: [], state: 'new' }; peers[id] = rec;
+    if (localStream) localStream.getTracks().forEach(tr => pc.addTrack(tr, localStream));
+    pc.onicecandidate = e => { if (e.candidate) sendRtc(id, { kind: 'ice', cand: e.candidate.toJSON ? e.candidate.toJSON() : e.candidate }); };
+    pc.ontrack = e => {
+      let a = rec.audio;
+      if (!a) { a = document.createElement('audio'); a.autoplay = true; a.setAttribute('playsinline', ''); const box = el.querySelector('#voiceAudio'); if (box) box.appendChild(a); rec.audio = a; }
+      a.srcObject = e.streams[0]; a.play().catch(() => {}); renderVoice();
+    };
+    pc.onconnectionstatechange = () => { rec.state = pc.connectionState; if (pc.connectionState === 'failed') ctx.toast(ctx.t('voiceFail')); renderVoice(); };
+    if (initiator) pc.createOffer().then(o => pc.setLocalDescription(o)).then(() => sendRtc(id, { kind: 'offer', sdp: pc.localDescription })).catch(() => {});
+    return rec;
+  }
+  async function flushPending(id) { const p = peers[id]; if (!p) return; const list = p.pending; p.pending = []; for (const c of list) { try { await p.pc.addIceCandidate(c); } catch (e) {} } }
+  async function onRtc(ev) {
+    if (ev.to !== pid || !voiceOn) return;
+    const from = ev.from; if (!from) return;
+    try {
+      if (ev.kind === 'offer') {
+        if (peers[from] && pid < from) return;
+        const rec = createPeer(from, false);
+        await rec.pc.setRemoteDescription(ev.sdp); const ans = await rec.pc.createAnswer(); await rec.pc.setLocalDescription(ans);
+        sendRtc(from, { kind: 'answer', sdp: rec.pc.localDescription }); flushPending(from);
+      } else if (ev.kind === 'answer') {
+        const p = peers[from]; if (p && !p.pc.currentRemoteDescription) { await p.pc.setRemoteDescription(ev.sdp); flushPending(from); }
+      } else if (ev.kind === 'ice') {
+        const p = peers[from]; if (!p) return;
+        if (p.pc.remoteDescription) { try { await p.pc.addIceCandidate(ev.cand); } catch (e) {} } else p.pending.push(ev.cand);
+      }
+    } catch (e) {}
+  }
+  function voiceReconcile() {
+    if (!voiceOn) return;
+    const inVoice = people.filter(p => p.voice && p.id !== pid);
+    for (const p of inVoice) if (!peers[p.id] && pid < p.id) createPeer(p.id, true);
+    for (const id of Object.keys(peers)) if (!inVoice.some(p => p.id === id)) closePeer(id);
+    renderVoice();
+  }
+  function setTalk(on) {
+    if (!voiceOn && on) return;
+    if (talking === on) return;
+    talking = on; if (localStream) localStream.getAudioTracks().forEach(tr => tr.enabled = on);
+    if (ch) ch.send({ type: 'broadcast', event: 'sk', payload: { type: 'talk', on, id: pid, by: me.name } }).catch(() => {});
+    onTalk({ id: pid, on });
+  }
+  function onTalk(ev) {
+    speaking[ev.id] = !!ev.on; const now = Date.now();
+    bubbles = bubbles.filter(b => !(b.id === ev.id && b.emoji === '🎙'));
+    if (ev.on) bubbles.push({ id: ev.id, emoji: '🎙', at: now, until: now + 60000, hold: true });
+    renderVoice();
+  }
+  function renderVoice() {
+    const box = el.querySelector('#voicePanel'); if (!box) return; const t = ctx.t;
+    const mode = voiceOn ? 'on' : 'off';
+    if (box.dataset.mode !== mode) {
+      box.dataset.mode = mode;
+      if (!voiceOn) { box.innerHTML = `<button class="btn small secondary" data-act="voice">🎙 ${esc(t('voice'))}</button>`; return; }
+      box.innerHTML = `<div class="row wrap"><button class="btn big talk" id="talkBtn">🎙 ${esc(t('voiceHold'))}</button><button class="btn small secondary" data-act="voice">🔇 ${esc(t('voiceStop'))}</button></div>
+        <div class="pstrip" id="voiceRows" style="margin-top:6px"></div>
+        <div class="small muted">${esc(t('voiceHint'))}</div>`;
+      const tb = box.querySelector('#talkBtn');
+      const down = (e) => { e.preventDefault(); try { tb.setPointerCapture(e.pointerId); } catch (x) {} setTalk(true); }; const up = () => setTalk(false);
+      tb.addEventListener('pointerdown', down); tb.addEventListener('pointerup', up); tb.addEventListener('pointercancel', up); tb.addEventListener('lostpointercapture', up);
+      tb.addEventListener('contextmenu', e => e.preventDefault());
+      window.addEventListener('blur', up);
+    }
+    if (!voiceOn) return;
+    const tb = box.querySelector('#talkBtn'); if (tb) tb.classList.toggle('on', talking);
+    const inVoice = people.filter(p => p.voice && p.id !== pid);
+    const rows = inVoice.map(p => { const pr = peers[p.id]; const st = speaking[p.id] ? `🎙 ${t('speaking')}` : (pr && (pr.state === 'connected' || pr.state === 'completed')) ? `✅ ${t('connected')}` : `⏳ ${t('connecting')}`; return `<span class="pchip ${speaking[p.id] ? 'me' : ''}">${esc(p.name)} <small>${st}</small></span>`; }).join('');
+    const rb = box.querySelector('#voiceRows'); if (rb) rb.innerHTML = rows || `<span class="small muted">${esc(t('voiceNone'))}</span>`;
+  }
   /* Speak instead of typing: the phone's own speech recognition fills the chat line and sends it. */
   let rec = null, listening = false;
   function toggleMic() {
@@ -1469,6 +1577,7 @@ window.SK_ROOM = (function () {
   }
 
   function leave() {
+    if (voiceOn) voiceLeave(true);
     if (raf) cancelAnimationFrame(raf); raf = null;
     if (ch) { const c = ch; ch = null; c.untrack().catch(() => {}); }
     roomId = null;
