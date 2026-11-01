@@ -26,7 +26,11 @@ Migrations live in the Supabase project (`saunakaverit_core`, `sk_me_hosted_ids`
 
 - Single-page web app, Finnish-first with EN toggle, 12 real public saunas in Helsinki, Vantaa and Tampere, host form, passport with 9 badges, etiquette, seasonal cards.
 
-## Run
+## Live
+
+**https://hainguyen-python.github.io/saunakaverit/** (GitHub Pages from the `main` branch of github.com/HaiNguyen-python/saunakaverit). Open it on a phone and add it to the home screen. To publish an update: `git add -A`, `git commit`, `git push`; Pages rebuilds in about a minute.
+
+## Run locally
 
 Double-click `Start Saunakaverit.bat` (port 8130), or use the Claude Code launch config `saunakaverit`. Any static host works too (the app is plain HTML, CSS and JS).
 
