@@ -1,0 +1,6 @@
+ios/
+android/
+node_modules/
+www/
+.DS_Store
+Thumbs.db

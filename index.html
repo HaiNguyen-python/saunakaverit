@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#8c5a35">
+<title>Saunakaverit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700&family=Inter:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/app.css?v=0.1.0">
+</head>
+<body>
+<div id="app">
+  <header class="top">
+    <a class="brand" href="#" id="brandHome">
+      <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="2" y="2" width="60" height="60" rx="16" fill="#8c5a35"/>
+        <path d="M14 40 L32 22 L50 40 Z" fill="#f6f1ea"/>
+        <rect x="20" y="40" width="24" height="12" fill="#f6f1ea"/>
+        <rect x="29" y="44" width="6" height="8" fill="#8c5a35"/>
+        <path d="M26 20 c0 -4 4 -4 4 -8 M32 18 c0 -4 4 -4 4 -8 M38 20 c0 -4 4 -4 4 -8" stroke="#f6f1ea" stroke-width="2" fill="none" stroke-linecap="round"/>
+      </svg>
+      <span><b>Saunakaverit</b><small data-i18n="tagline">Yhdessä saunaan</small></span>
+    </a>
+    <button class="chipbtn" id="langBtn" title="Kieli / Language">EN</button>
+    <button class="chipbtn ghost" id="themeBtn" title="Teema">◐</button>
+  </header>
+
+  <!-- KOTI -->
+  <section class="view active" id="view-home"></section>
+  <!-- SAUNAT -->
+  <section class="view" id="view-saunas"></section>
+  <!-- LÖYLYHUONE -->
+  <section class="view" id="view-room"></section>
+  <!-- PASSI -->
+  <section class="view" id="view-passport"></section>
+  <!-- ETIKETTI -->
+  <section class="view" id="view-etiquette"></section>
+  <!-- MINÄ -->
+  <section class="view" id="view-profile"></section>
+</div>
+
+<nav class="tabs">
+  <div class="inner">
+    <button data-view="home" class="active"><span class="ic">🔥</span><span data-i18n="tab.home">Koti</span></button>
+    <button data-view="saunas"><span class="ic">🏡</span><span data-i18n="tab.saunas">Saunat</span></button>
+    <button data-view="room"><span class="ic">🧖</span><span data-i18n="tab.room">Löyly</span></button>
+    <button data-view="host"><span class="ic">➕</span><span data-i18n="tab.host">Isännöi</span></button>
+    <button data-view="passport"><span class="ic">📖</span><span data-i18n="tab.passport">Passi</span></button>
+    <button data-view="etiquette"><span class="ic">🌿</span><span data-i18n="tab.etiquette">Etiketti</span></button>
+    <button data-view="profile"><span class="ic">🙂</span><span data-i18n="tab.profile">Minä</span></button>
+  </div>
+</nav>
+
+<div class="sheet-bg" id="sheetBg"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js?v=0.2.0"></script>
+<script src="js/data.js?v=0.2.0"></script>
+<script src="js/backend.js?v=0.3.0"></script>
+<script src="js/room.js?v=0.3.0"></script>
+<script src="js/app.js?v=0.3.0"></script>
+</body>
+</html>

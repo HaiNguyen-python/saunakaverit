@@ -1,0 +1,171 @@
+/* Saunakaverit - Nordic calm: birch, dark wood, steam, lake. */
+:root{
+  --bg:#f6f1ea;          /* birch */
+  --bg2:#ffffff;
+  --ink:#1f1b17;
+  --ink2:#5d5249;
+  --line:#e6dcd0;
+  --wood:#8c5a35;        /* kiuas wood */
+  --wood2:#b07a4b;
+  --lake:#2b6a8f;
+  --lake2:#dbe9f1;
+  --moss:#3e5a44;
+  --moss2:#e3ebe2;
+  --steam:#f0e7dc;
+  --warn:#b23a3a;
+  --ok:#2f7a4a;
+  --radius:16px;
+  --shadow:0 6px 24px rgba(60,40,20,.08);
+  --font:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --head:"Outfit","Inter",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15120f; --bg2:#1f1a16; --ink:#f1ebe3; --ink2:#b7aa9c; --line:#302822;
+    --wood:#c98a56; --wood2:#a66c3f; --lake:#7fb6d6; --lake2:#1d2f3a; --moss:#9dbda4; --moss2:#1f2b22;
+    --steam:#2a221c; --shadow:0 6px 24px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15120f; --bg2:#1f1a16; --ink:#f1ebe3; --ink2:#b7aa9c; --line:#302822;
+  --wood:#c98a56; --wood2:#a66c3f; --lake:#7fb6d6; --lake2:#1d2f3a; --moss:#9dbda4; --moss2:#1f2b22;
+  --steam:#2a221c; --shadow:0 6px 24px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.45}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--lake)}
+h1,h2,h3{font-family:var(--head);margin:0 0 .4rem;line-height:1.15}
+h1{font-size:1.6rem}h2{font-size:1.25rem}h3{font-size:1.05rem}
+p{margin:.3rem 0}
+.muted{color:var(--ink2)}
+.small{font-size:.85rem}
+
+/* Layout */
+#app{max-width:720px;margin:0 auto;padding:0 16px 96px}
+header.top{position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 85%,transparent);padding:14px 0 10px;display:flex;align-items:center;gap:12px}
+header.top .brand{display:flex;align-items:center;gap:10px;flex:1;text-decoration:none;color:inherit}
+header.top .brand svg{width:38px;height:38px;flex:none}
+header.top .brand b{font-family:var(--head);font-size:1.2rem;display:block;line-height:1}
+header.top .brand small{color:var(--ink2);font-size:.75rem}
+.chipbtn{border:1px solid var(--line);background:var(--bg2);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:.85rem;white-space:nowrap}
+.chipbtn.active{background:var(--wood);color:#fff;border-color:var(--wood)}
+.chipbtn.ghost{background:transparent}
+
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--bg2);border-top:1px solid var(--line);display:flex;justify-content:center;padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
+nav.tabs .inner{display:flex;width:100%;max-width:720px}
+nav.tabs button{flex:1;background:none;border:0;padding:6px 2px;border-radius:12px;cursor:pointer;color:var(--ink2);font-size:.72rem;display:flex;flex-direction:column;align-items:center;gap:2px}
+nav.tabs button span.ic{font-size:1.25rem;line-height:1}
+nav.tabs button.active{color:var(--wood);background:var(--steam)}
+
+.view{display:none;animation:fade .25s ease}
+.view.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* Cards */
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;margin:12px 0;box-shadow:var(--shadow)}
+.card.hero{background:linear-gradient(135deg,var(--wood) 0%,var(--wood2) 60%,#c99467 100%);color:#fff;border:0;position:relative;overflow:hidden}
+.card.hero .steam{position:absolute;inset:0;pointer-events:none;opacity:.25;background:
+  radial-gradient(60px 40px at 20% 30%,#fff 0,transparent 70%),
+  radial-gradient(90px 50px at 70% 20%,#fff 0,transparent 70%),
+  radial-gradient(70px 40px at 85% 70%,#fff 0,transparent 70%)}
+.card.hero h2{font-size:1.5rem}
+.card.hero .muted{color:rgba(255,255,255,.85)}
+.card.hero .btn{background:#fff;color:var(--wood);border-color:#fff}
+.card.season{background:var(--lake2);border-color:transparent}
+.card.season h3{color:var(--lake)}
+.card.moss{background:var(--moss2);border-color:transparent}
+
+.row{display:flex;gap:10px;align-items:center}
+.row.between{justify-content:space-between}
+.row.wrap{flex-wrap:wrap}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:480px){.grid2{grid-template-columns:1fr}}
+
+.btn{border:1px solid var(--wood);background:var(--wood);color:#fff;border-radius:12px;padding:10px 16px;cursor:pointer;font-weight:600}
+.btn.secondary{background:transparent;color:var(--wood)}
+.btn.lake{background:var(--lake);border-color:var(--lake);color:#fff}
+.btn.small{padding:6px 12px;font-size:.85rem;border-radius:10px}
+.btn.full{width:100%}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.danger{background:transparent;color:var(--warn);border-color:var(--warn)}
+
+.tag{display:inline-block;background:var(--steam);border-radius:999px;padding:2px 10px;font-size:.78rem;color:var(--ink2);margin:2px 4px 2px 0}
+.tag.kind{background:var(--moss2);color:var(--moss)}
+.tag.free{background:var(--lake2);color:var(--lake)}
+.tag.full{background:#f3dada;color:var(--warn)}
+
+.session{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;cursor:pointer}
+.session .when{text-align:center;background:var(--steam);border-radius:12px;padding:8px 4px}
+.session .when b{display:block;font-family:var(--head);font-size:1.15rem}
+.session .when span{font-size:.75rem;color:var(--ink2)}
+.session .spots{text-align:right;font-size:.85rem;color:var(--ink2);white-space:nowrap}
+.session .spots b{display:block;color:var(--ink);font-size:1.1rem;font-family:var(--head)}
+.session h3{margin-bottom:2px}
+
+.filters{display:flex;gap:6px;overflow-x:auto;padding:4px 0 8px;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+
+.sauna{display:grid;grid-template-columns:1fr auto;gap:10px}
+.sauna .facts{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.sauna .stamp{width:56px;height:56px;border-radius:50%;border:2px dashed var(--line);display:flex;align-items:center;justify-content:center;font-size:1.5rem;cursor:pointer;background:var(--bg)}
+.sauna .stamp.done{border:2px solid var(--wood);background:var(--steam);transform:rotate(-8deg)}
+
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.badge{background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);padding:12px;text-align:center;opacity:.45}
+.badge.earned{opacity:1;border-color:var(--wood);background:var(--steam)}
+.badge .ic{font-size:1.8rem}
+.badge b{display:block;font-size:.9rem;margin-top:4px}
+.badge small{color:var(--ink2);font-size:.75rem}
+
+.etq{display:grid;grid-template-columns:44px 1fr;gap:12px;align-items:start}
+.etq .ic{font-size:1.7rem;line-height:1.2}
+
+.form label{display:block;font-size:.85rem;color:var(--ink2);margin:10px 0 4px}
+.form input,.form select,.form textarea{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px}
+.form textarea{min-height:70px;resize:vertical}
+.form .checks{display:flex;flex-wrap:wrap;gap:6px}
+.form .checks label{margin:0;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:5px 10px;cursor:pointer;color:var(--ink)}
+.form .checks input{width:auto}
+.form .checks label.on{background:var(--moss2);border-color:var(--moss)}
+.range{display:flex;align-items:center;gap:10px}
+.range input{flex:1}
+.range output{font-family:var(--head);font-size:1.3rem;min-width:2ch}
+
+/* Sheet / modal */
+.sheet-bg{position:fixed;inset:0;background:rgba(20,12,6,.45);z-index:20;display:none;align-items:flex-end;justify-content:center}
+.sheet-bg.open{display:flex}
+.sheet{background:var(--bg2);width:100%;max-width:720px;max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;padding:14px 18px calc(24px + env(safe-area-inset-bottom));animation:up .25s ease}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+.sheet .handle{width:44px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 12px}
+.attendees{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.att{background:var(--steam);border-radius:999px;padding:4px 10px;font-size:.85rem}
+.att.me{background:var(--moss2);color:var(--moss);font-weight:600}
+.att.host::before{content:"\2605  ";color:var(--wood)}
+.att.wait{opacity:.6;border:1px dashed var(--line);background:transparent}
+
+.toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:.9rem;z-index:30;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+.empty{text-align:center;color:var(--ink2);padding:24px 10px}
+.empty .ic{font-size:2.2rem}
+hr.soft{border:0;border-top:1px solid var(--line);margin:12px 0}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.92rem}
+.kv span:first-child{color:var(--ink2)}
+.stat{display:flex;gap:10px}
+.stat div{flex:1;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+.stat b{font-family:var(--head);font-size:1.4rem;display:block}
+.stat small{color:var(--ink2)}
+.pill-row{display:flex;gap:6px;flex-wrap:wrap}
+
+/* Löylyhuone */
+.roomWrap{border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);background:#2a170c;line-height:0}
+.roomScene{width:100%;height:auto;display:block;user-select:none;-webkit-user-select:none}
+.live{display:inline-flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:.85rem;white-space:nowrap}
+.live .dot{width:9px;height:9px;border-radius:50%;background:#e0392f;box-shadow:0 0 0 0 rgba(224,57,47,.6);animation:pulse 1.6s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(224,57,47,.55)}70%{box-shadow:0 0 0 8px rgba(224,57,47,0)}100%{box-shadow:0 0 0 0 rgba(224,57,47,0)}}
+.logline{font-size:.85rem;padding:3px 0;border-bottom:1px dashed var(--line)}
+.logline:last-child{border-bottom:0}
+.roomCard{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;background:linear-gradient(135deg,#2a170c,#5c3b22);color:#fff;border:0}
+.roomCard .muted{color:rgba(255,255,255,.8)}
+.roomCard .btn{background:#ffd166;border-color:#ffd166;color:#3a2415}
+nav.tabs button{font-size:.68rem}
