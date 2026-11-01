@@ -323,6 +323,7 @@ window.SK_DATA = (function () {
     myFigure:'Oma hahmo', hatLabel:'Hattu', towelLabel:'Pyyhe', secondsLeft:'s jäljellä', youWon:'Sinä voitit! Kruunu on sinun.',
     waved:'vilkutti', whisked2:'vihtoi', offered:'tarjosi oluen', snowed:'heitti lumipallon', chatEmpty:'Ei vielä puhetta. Hiljaisuus on ok, mutta kysyäkin saa.',
     mood:'Fiilis', reactHint:'Napauta viestiä reagoidaksesi',
+    moose:'Hirvi kävelee ikkunan ohi!', aurora:'Revontulet! Katsokaa ikkunasta.',
   });
   Object.assign(UI.en, {
     chat:'Bench talk', phrases:'Quick phrases', starterBy:'Saunakaverit asks', games:'Games', quiz:'Sauna quiz', duel:'Löyly contest 30 s',
@@ -332,6 +333,7 @@ window.SK_DATA = (function () {
     myFigure:'My figure', hatLabel:'Hat', towelLabel:'Towel', secondsLeft:'s left', youWon:'You won! The crown is yours.',
     waved:'waved at', whisked2:'whisked', offered:'offered a beer to', snowed:'threw a snowball at', chatEmpty:'No talk yet. Silence is fine, but asking is allowed.',
     mood:'Mood', reactHint:'Tap a message to react',
+    moose:'A moose is walking past the window!', aurora:'Northern lights! Look out of the window.',
   });
 
   return { SAUNAS, CITIES, THEMES, KINDS, HEATING, LANGS, ETIQUETTE, SEASONS, BADGES, UI, seedSessions, PHRASES, STARTERS, QUIZ, HATS };

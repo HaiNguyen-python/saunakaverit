@@ -22,7 +22,7 @@ window.SK_ROOM = (function () {
   let enteredAt = 0, rounds = 1, nudged = false, inSince = 0, throws = [], tonttuUntil = 0, lastTonttu = 0, soundOn = true, lastStarter = -1, quiz = null, duel = null, person = null;
   const channels = {}, subscribed = {}, counts = {}, metasByRoom = {}, watchers = {};
   let figure = { hat: 'none', towel: -1 };
-  let faces = {}, reactBarFor = null;
+  let faces = {}, reactBarFor = null, projectiles = [], lastMoose = -1, lastAurora = -1, shockUntil = 0;
   const MOODS = [['😂','laugh'],['😍','love'],['😎','cool'],['😮‍💨','relax'],['😴','sleepy'],['🥵','hot'],['🥶','cold'],['🤔','think'],['😮','wow'],['🍺','beer']];
   const EMOJIS = ['😀','😂','😍','😎','😅','🤗','😮','🙏','👍','👏','❤️','🔥','💧','🌿','❄️','🧊','🍺','☕','🧖','🏊','🌲','🌙','⭐','🎉'];
   const MREACTS = ['❤️','🔥','😂','👍','🥶'];
@@ -105,6 +105,10 @@ window.SK_ROOM = (function () {
     <radialGradient id="${u}vignette" cx=".5" cy=".55" r=".75"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".45"/></radialGradient>
     <radialGradient id="${u}fire" cx=".5" cy="1" r="1"><stop offset="0" stop-color="#fff1a8"/><stop offset=".45" stop-color="#ff8a1f"/><stop offset="1" stop-color="#9c1d08"/></radialGradient>
     <radialGradient id="${u}moon" cx=".5" cy=".5" r=".5"><stop offset=".5" stop-color="#fff5d6" stop-opacity=".9"/><stop offset="1" stop-color="#fff5d6" stop-opacity="0"/></radialGradient>
+    <linearGradient id="${u}aurora" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3dff9a" stop-opacity="0"/><stop offset=".3" stop-color="#3dff9a"/><stop offset=".6" stop-color="#7ad3ff"/><stop offset=".85" stop-color="#c67bff"/><stop offset="1" stop-color="#c67bff" stop-opacity="0"/></linearGradient>
+    <clipPath id="${u}winclip"><rect x="590" y="93" width="150" height="100" rx="4"/></clipPath>
+    <clipPath id="${u}doorclip"><rect x="26" y="124" width="88" height="332"/></clipPath>
+    ${mini ? '' : `<filter id="${u}blur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.5"/></filter>`}
   </defs>
   <rect width="800" height="480" fill="url(#${u}wall)"/>
   <g stroke="#2a170c" stroke-opacity=".5">${planks.join('')}</g>
@@ -118,18 +122,32 @@ window.SK_ROOM = (function () {
   <g transform="translate(500,110)">
     <path d="M-14 -30 L14 -30 L10 -6 L-10 -6 Z" fill="#3b2a1c" stroke="#1d110a"/>
     <rect x="-9" y="-6" width="18" height="26" rx="3" fill="#ffd98a" stroke="#3b2a1c" stroke-width="2"/>
-    <rect x="-5" y="-2" width="10" height="18" rx="2" fill="#fff3c4"/>
+    <rect x="-5" y="-2" width="10" height="18" rx="2" fill="#fff3c4" class="flicker"/>
     <rect x="-11" y="20" width="22" height="5" rx="2" fill="#3b2a1c"/>
     <path d="M0 -30 L0 -40 L-40 -40" stroke="#1d110a" stroke-width="4" fill="none"/>
   </g>
   <!-- window -->
   <rect x="585" y="88" width="160" height="110" rx="6" fill="url(#${u}night)" stroke="#2b170a" stroke-width="10"/>
-  <g>${stars.join('')}</g>
-  <circle cx="700" cy="118" r="24" fill="url(#${u}moon)"/><circle cx="700" cy="118" r="12" fill="#fff6d8"/>
-  <path d="M595 168 Q620 160 645 168 T695 168 T740 168 L740 192 L595 192 Z" fill="#dfe9f4"/>
-  <path d="M595 168 Q620 162 645 168 T695 168 T740 168 L740 176 L595 176 Z" fill="#fff" fill-opacity=".5"/>
-  <path d="M598 158 L622 126 L646 158 Z M650 160 L672 134 L694 160 Z M698 160 L716 140 L734 160 Z" fill="#102640"/>
-  <path d="M598 158 L622 126 L646 158 Z M650 160 L672 134 L694 160 Z M698 160 L716 140 L734 160 Z" fill="#fff" fill-opacity=".12"/>
+  <g clip-path="url(#${u}winclip)">
+    <g class="aurora" style="opacity:.22">
+      <path d="M580 120 Q620 95 660 118 T740 110" stroke="url(#${u}aurora)" stroke-width="16" fill="none" stroke-linecap="round" class="band b1"/>
+      <path d="M585 135 Q630 112 670 132 T750 122" stroke="url(#${u}aurora)" stroke-width="12" fill="none" stroke-linecap="round" class="band b2"/>
+    </g>
+    <g>${stars.join('')}</g>
+    <circle cx="700" cy="118" r="24" fill="url(#${u}moon)"/><circle cx="700" cy="118" r="12" fill="#fff6d8"/>
+    <g class="snowfall">${[...Array(10)].map((_, i) => `<circle cx="${595 + (i * 41) % 145}" cy="${90 + (i * 37) % 100}" r="${1 + (i % 2)}" fill="#fff" opacity=".8"/>`).join('')}</g>
+    <path d="M595 168 Q620 160 645 168 T695 168 T740 168 L740 192 L595 192 Z" fill="#dfe9f4"/>
+    <path d="M595 168 Q620 162 645 168 T695 168 T740 168 L740 176 L595 176 Z" fill="#fff" fill-opacity=".5"/>
+    <path d="M598 158 L622 126 L646 158 Z M650 160 L672 134 L694 160 Z M698 160 L716 140 L734 160 Z" fill="#102640"/>
+    <path d="M598 158 L622 126 L646 158 Z M650 160 L672 134 L694 160 Z M698 160 L716 140 L734 160 Z" fill="#fff" fill-opacity=".12"/>
+    <g class="moose" transform="translate(-100,0)" style="opacity:0">
+      <g transform="scale(.55)" fill="#0b1a2e">
+        <ellipse cx="0" cy="0" rx="26" ry="13"/><rect x="-22" y="6" width="5" height="20"/><rect x="-10" y="6" width="5" height="22"/><rect x="6" y="6" width="5" height="22"/><rect x="18" y="6" width="5" height="20"/>
+        <path d="M20 -6 L34 -18 L44 -14 L40 -2 Z"/><path d="M30 -16 L26 -30 M34 -18 L38 -32 M30 -16 L22 -26 M34 -18 L44 -26" stroke="#0b1a2e" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <path d="M-26 -4 q-6 2 -4 8" stroke="#0b1a2e" stroke-width="3" fill="none"/>
+      </g>
+    </g>
+  </g>
   <line x1="665" y1="88" x2="665" y2="198" stroke="#2b170a" stroke-width="6"/>
   <rect x="585" y="88" width="160" height="110" rx="6" fill="none" stroke="#3b2a1c" stroke-width="3"/>
   <!-- the door to the cold -->
@@ -137,7 +155,9 @@ window.SK_ROOM = (function () {
     <rect x="22" y="120" width="96" height="340" rx="4" fill="url(#${u}cold)" stroke="#1d110a" stroke-width="8"/>
     <rect x="26" y="124" width="88" height="332" fill="#9fd0ff" fill-opacity=".08"/>
     <path d="M26 456 L114 456 L114 420 Q70 405 26 420 Z" fill="#e6eef7"/>
-    <g>${flakes.join('')}</g>
+    <ellipse cx="70" cy="452" rx="30" ry="7" fill="#1b4a7a" stroke="#cfe6ff" stroke-width="2"/>
+    <ellipse cx="70" cy="452" rx="22" ry="4" fill="#2d6aa3"/>
+    <g clip-path="url(#${u}doorclip)"><g class="snowfall slow">${flakes.join('')}</g><g class="snowfall" transform="translate(0,-160)">${flakes.join('')}</g></g>
     <text x="70" y="140" text-anchor="middle" font-size="11" fill="#bfe0ff" font-family="Inter,sans-serif" class="coolLabel">Vilvoittelu</text>
   </g>
   <!-- vihta -->
@@ -155,13 +175,15 @@ window.SK_ROOM = (function () {
     <text x="0" y="10" text-anchor="middle" font-size="18" font-weight="700" fill="#8c5a35" font-family="Outfit,Inter,sans-serif" class="tempText">80°</text>
     <text x="0" y="28" text-anchor="middle" font-size="9" fill="#8c5a35" font-family="Inter,sans-serif">löyly</text>
   </g>
-  <g class="tonttu" style="opacity:0;transition:opacity .6s" transform="translate(130,330)">
+  <g transform="translate(130,400)"><g class="tonttu" style="opacity:0;transition:opacity .6s">
     <ellipse cx="0" cy="40" rx="16" ry="20" fill="#9b2d2d"/>
+    <ellipse cx="-8" cy="58" rx="6" ry="3" fill="#2b1d12"/><ellipse cx="8" cy="58" rx="6" ry="3" fill="#2b1d12"/>
     <circle cx="0" cy="12" r="12" fill="#f1c9a5"/>
     <path d="M-14 8 L0 -26 L14 8 Z" fill="#d32f2f"/><circle cx="0" cy="-26" r="4" fill="#fff"/>
     <path d="M-10 18 Q0 34 10 18 Z" fill="#eee"/>
     <circle cx="-4" cy="10" r="1.6" fill="#2b1d12"/><circle cx="4" cy="10" r="1.6" fill="#2b1d12"/>
-  </g>
+    <path d="M14 30 q8 -10 6 -22" stroke="#f1c9a5" stroke-width="4" fill="none" stroke-linecap="round" class="tonttuArm"/>
+  </g></g>
   <!-- kiuas -->
   <g class="hot" data-act="loyly" style="cursor:pointer">
     <rect x="200" y="110" width="18" height="190" fill="url(#${u}steel)"/>
@@ -172,6 +194,7 @@ window.SK_ROOM = (function () {
     ${stones.join('')}
     <ellipse cx="196" cy="320" rx="9" ry="6" fill="#ff8a3c" fill-opacity=".55"/><ellipse cx="226" cy="318" rx="7" ry="5" fill="#ff6a1a" fill-opacity=".45"/>
     <rect x="172" y="410" width="74" height="26" rx="4" fill="url(#${u}fire)"/>
+    <g class="flames"><path d="M186 436 q-4 -10 4 -16 q0 8 6 10 q2 -8 8 -12 q-2 10 6 14 q4 -6 2 -12 q8 8 2 16 Z" fill="#ffd166" fill-opacity=".9" class="flame"/><path d="M196 436 q-2 -8 4 -12 q1 6 5 8 q3 -6 5 -9 q0 9 3 13 Z" fill="#fff3b0" class="flame f2"/></g>
     <rect x="172" y="410" width="74" height="26" rx="4" fill="none" stroke="#1a1a1a" stroke-width="3"/>
     <path d="M100 430 L108 470 L144 470 L152 430 Z" fill="#b57c4a" stroke="#5b3a1f" stroke-width="2"/>
     <path d="M104 440 L148 440" stroke="#7a4e28" stroke-width="2"/>
@@ -184,9 +207,10 @@ window.SK_ROOM = (function () {
   <rect x="315" y="372" width="485" height="68" fill="url(#${u}face)"/><rect x="315" y="372" width="485" height="6" fill="#000" fill-opacity=".2"/>${slats(315, 364, 485, 14)}
   <rect x="300" y="440" width="500" height="40" fill="url(#${u}face)"/><rect x="300" y="440" width="500" height="6" fill="#000" fill-opacity=".2"/>${slats(300, 432, 500, 14)}
   <rect width="800" height="480" fill="url(#${u}vignette)" pointer-events="none"/>
+  <rect width="800" height="480" fill="#ff6a00" class="heatTint" style="opacity:0" pointer-events="none"/>
   <g class="seatHits"></g>
   <g class="people"></g>
-  <g class="steam"></g>
+  <g class="steam" ${mini ? '' : `filter="url(#${u}blur)"`}></g>
   <g class="bubbles"></g>
 </svg>`;
   }
@@ -233,9 +257,8 @@ window.SK_ROOM = (function () {
       <path d="M-21 -44 Q-24 -24 -23 -8 L23 -8 Q24 -24 21 -44 Q0 -53 -21 -44 Z" fill="${tow}" stroke="${towDark}" stroke-opacity=".7"/>
       <path d="M-21 -44 L6 -36 L7 -10" stroke="#000" stroke-opacity=".12" stroke-width="1.5" fill="none"/>
       <path d="M-23 -8 L23 -8 L24 -2 Q0 4 -24 -2 Z" fill="${towDark}"/>
-      <path d="M-20 -42 Q-30 -30 -24 -12" stroke="${skin}" stroke-width="7.5" fill="none" stroke-linecap="round"/>
-      <path d="M20 -42 Q30 -30 24 -12" stroke="${skin}" stroke-width="7.5" fill="none" stroke-linecap="round"/>
-      <circle cx="-23" cy="-10" r="4.5" fill="${skin}"/><circle cx="23" cy="-10" r="4.5" fill="${skin}"/>
+      <path d="M-20 -42 Q-30 -30 -24 -12" stroke="${skin}" stroke-width="7.5" fill="none" stroke-linecap="round"/><circle cx="-23" cy="-10" r="4.5" fill="${skin}"/>
+      ${armSvg((faces[p.id] && faces[p.id].until > Date.now()) ? faces[p.id].face : '', skin)}
       <rect x="-4.5" y="-58" width="9" height="12" fill="${skinD}"/>
       <circle cx="-16" cy="-67" r="3.5" fill="${skin}"/><circle cx="16" cy="-67" r="3.5" fill="${skin}"/>
       <circle cx="0" cy="-68" r="16.5" fill="${skin}"/>
@@ -249,8 +272,16 @@ window.SK_ROOM = (function () {
       ${label}
     </g>`;
   }
+  function armSvg(pose, skin) {
+    if (pose === 'wave') return `<g class="wavehand"><path d="M20 -42 Q34 -56 28 -78" stroke="${skin}" stroke-width="7.5" fill="none" stroke-linecap="round"/><circle cx="28" cy="-80" r="5" fill="${skin}"/></g>`;
+    if (pose === 'vihta') return `<g class="swing"><path d="M20 -42 Q36 -50 34 -70" stroke="${skin}" stroke-width="7.5" fill="none" stroke-linecap="round"/><circle cx="34" cy="-72" r="4.5" fill="${skin}"/><path d="M34 -72 L40 -92" stroke="#6b4a2b" stroke-width="3"/><ellipse cx="36" cy="-100" rx="7" ry="11" fill="#5fa04a" transform="rotate(-20 36 -100)"/><ellipse cx="46" cy="-98" rx="7" ry="11" fill="#74b35a" transform="rotate(15 46 -98)"/></g>`;
+    if (pose === 'snowhit') return `<path d="M20 -42 Q30 -30 24 -12" stroke="${skin}" stroke-width="7.5" fill="none" stroke-linecap="round"/><circle cx="23" cy="-10" r="4.5" fill="${skin}"/><circle cx="4" cy="-84" r="7" fill="#fff" fill-opacity=".9"/><circle cx="-6" cy="-80" r="4" fill="#fff" fill-opacity=".8"/><circle cx="12" cy="-78" r="3" fill="#fff" fill-opacity=".8"/>`;
+    return `<path d="M20 -42 Q30 -30 24 -12" stroke="${skin}" stroke-width="7.5" fill="none" stroke-linecap="round"/><circle cx="23" cy="-10" r="4.5" fill="${skin}"/>`;
+  }
   function faceSvg(face, o) {
-    const eyes = `<ellipse cx="-6" cy="-69" rx="2.7" ry="3.4" fill="#2b1d12"/><ellipse cx="6" cy="-69" rx="2.7" ry="3.4" fill="#2b1d12"/><circle cx="-5" cy="-70.5" r="1" fill="#fff"/><circle cx="7" cy="-70.5" r="1" fill="#fff"/>`;
+    const eyes = `<g class="blink" style="animation-delay:-${(Math.random() * 4).toFixed(1)}s"><ellipse cx="-6" cy="-69" rx="2.7" ry="3.4" fill="#2b1d12"/><ellipse cx="6" cy="-69" rx="2.7" ry="3.4" fill="#2b1d12"/><circle cx="-5" cy="-70.5" r="1" fill="#fff"/><circle cx="7" cy="-70.5" r="1" fill="#fff"/></g>`;
+    if (face === 'snowhit') face = 'cold';
+    if (face === 'wave' || face === 'vihta') face = 'laugh';
     const brows = `<path d="M-9.5 -75 q3.5 -2.5 7 0 M2.5 -75 q3.5 -2.5 7 0" stroke="${o.hairC}" stroke-width="1.4" fill="none" stroke-linecap="round"/>`;
     const sweat = `<path d="M15 -74 q3 5 0 8 q-3 -3 0 -8" fill="#9fd3f5"/><path d="M-17 -60 q2.5 4 0 7 q-2.5 -3 0 -7" fill="#9fd3f5"/>`;
     const smile = `<path d="M-5 -61 q5 5 10 0" stroke="#5a2d1a" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
@@ -313,7 +344,7 @@ window.SK_ROOM = (function () {
   }
   function tick(ts) {
     const dt = Math.min(50, ts - (lastTick || ts)); lastTick = ts;
-    if (ts - lastAmbient > 420) { spawnSteam(1, false); lastAmbient = ts; }
+    if (ts - lastAmbient > 420) { spawnSteam(1, false); lastAmbient = ts; windowTick(); }
     if (ts - lastTemp > 1000) {
       temp = Math.max(70, temp - (temp > 95 ? 0.12 : 0.05)); lastTemp = ts; el.querySelector('.tempText').textContent = Math.round(temp) + '°';
       const mins = Math.floor((Date.now() - enteredAt) / 60000);
@@ -335,9 +366,35 @@ window.SK_ROOM = (function () {
       const w = Math.min(260, 14 + b.text.length * 6.2);
       return `<g transform="translate(${Math.min(790 - w, Math.max(10, pos.x - w / 2))},${pos.y - 118})"><rect width="${w}" height="24" rx="12" fill="#fff" fill-opacity=".95"/><text x="${w / 2}" y="16" text-anchor="middle" font-size="11" fill="#1f1b17" font-family="Inter,sans-serif">${esc(b.text)}</text></g>`;
     }).join('');
+    // flying snowballs, vihtas and beers
+    if (projectiles.length) {
+      const live = [];
+      let html = '';
+      for (const pr of projectiles) {
+        const k = Math.min(1, (now - pr.t0) / pr.dur);
+        const x = pr.x0 + (pr.x1 - pr.x0) * k, y = pr.y0 + (pr.y1 - pr.y0) * k - Math.sin(k * Math.PI) * 90;
+        html += `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-size="22" text-anchor="middle" transform="rotate(${(k * 360).toFixed(0)} ${x.toFixed(1)} ${y.toFixed(1)})">${pr.emoji}</text>`;
+        if (k >= 1) { if (pr.after) pr.after(); } else live.push(pr);
+      }
+      projectiles = live;
+      el.querySelector('.bubbles').insertAdjacentHTML('beforeend', html);
+    }
     const glow = el.querySelector('.kiuasGlow'); if (glow) glow.setAttribute('ry', (30 + (temp - 70) * 0.6).toFixed(1));
-    const tonttu = el.querySelector('.tonttu'); if (tonttu) tonttu.style.opacity = now < tonttuUntil ? 1 : 0;
+    const tint = el.querySelector('.heatTint'); if (tint) tint.style.opacity = Math.max(0, (temp - 92) / 160).toFixed(3);
+    const tonttu = el.querySelector('.tonttu'); if (tonttu) { const show = now < tonttuUntil; tonttu.style.opacity = show ? 1 : 0; tonttu.classList.toggle('walk', show); }
     raf = requestAnimationFrame(tick);
+  }
+  /* Things seen through the window, on a shared clock so every phone sees them together. */
+  function windowTick() {
+    const now = Date.now();
+    const mc = Math.floor(now / 420000), mp = now % 420000, mooseOn = mp < 14000;
+    const moose = el.querySelector('.moose');
+    if (moose) { moose.style.opacity = mooseOn ? 1 : 0; if (mooseOn) moose.setAttribute('transform', `translate(${(760 - (mp / 14000) * 220).toFixed(0)},150)`); }
+    if (mooseOn && lastMoose !== mc) { lastMoose = mc; addChat({ sys: true, text: `🫎 ${ctx.t('moose')}` }); addLog(`🫎 ${ctx.t('moose')}`); }
+    const ac = Math.floor((now + 150000) / 300000), ap = (now + 150000) % 300000, auroraOn = ap < 40000;
+    const aurora = el.querySelector('.aurora');
+    if (aurora) aurora.style.opacity = auroraOn ? (0.5 + 0.4 * Math.sin(ap / 2500)).toFixed(2) : .22;
+    if (auroraOn && lastAurora !== ac) { lastAurora = ac; addChat({ sys: true, text: `🌌 ${ctx.t('aurora')}` }); addLog(`🌌 ${ctx.t('aurora')}`); }
   }
   function findPos(id) {
     const { seated, cooling } = layout(people);
@@ -432,18 +489,31 @@ window.SK_ROOM = (function () {
     const by = ev.by || '?', t = ctx.t, now = Date.now();
     if (ev.type === 'loyly') {
       temp = Math.min(110, temp + 4); spawnSteam(26, true); hiss(false); throws.push(now); masters[by] = (masters[by] || 0) + 1;
+      el.querySelectorAll('.people .bob').forEach(g => { g.classList.remove('shock'); void g.getBBox(); g.classList.add('shock'); });
       if (duel && !duel.done) { const r = duel.tally[ev.id] || (duel.tally[ev.id] = { id: ev.id, name: by, n: 0, first: now }); r.n++; renderGame(); }
       renderMasters(); renderMeter(); addLog(`💧 ${by} ${t('threw')}`); bubbles.push({ id: ev.id, emoji: '💧', at: now, until: now + 3000 });
       el.querySelector('.tempText').textContent = Math.round(temp) + '°'; const l = el.querySelector('.ladle'); if (l) { l.classList.remove('pour'); void l.getBBox(); l.classList.add('pour'); }
     }
     else if (ev.type === 'react') {
       if (ev.target) {
-        bubbles.push({ id: ev.target, emoji: ev.emoji, at: now, until: now + 3500 });
         const line = `${ev.emoji} ${by} ${t(ev.verb || 'waved')} ${ev.targetName || ''}`; addLog(line); addChat({ sys: true, text: line });
+        if (ev.verb === 'snowed' || ev.verb === 'whisked2' || ev.verb === 'offered') {
+          const from = findPos(ev.id), to = findPos(ev.target);
+          const after = ev.verb === 'snowed' ? () => setFace(ev.target, 'snowhit', 5000) : ev.verb === 'whisked2' ? () => setFace(ev.target, 'relax', 6000) : () => setFace(ev.target, 'beer', 9000);
+          if (from && to) projectiles.push({ x0: from.x, y0: from.y - 70, x1: to.x, y1: to.y - 80, t0: now, dur: 700, emoji: ev.verb === 'snowed' ? '❄️' : ev.verb === 'whisked2' ? '🌿' : '🍺', after });
+          else { after(); }
+          if (ev.verb === 'snowed') setFace(ev.id, 'laugh', 3000);
+          if (ev.verb === 'whisked2') setFace(ev.id, 'vihta', 3000);
+        } else {
+          bubbles.push({ id: ev.target, emoji: ev.emoji, at: now, until: now + 3500 });
+          setFace(ev.id, 'wave', 2500);
+        }
         if (ev.target === pid) { ctx.toast(`${ev.emoji} ${by}`); ding(); }
       } else {
         bubbles.push({ id: ev.id, emoji: ev.emoji, at: now, until: now + 3500 });
-        if (ev.emoji === '🙏') addLog(`🙏 ${by}: ${t('greet')}!`); else if (ev.emoji === '🌿') addLog(`🌿 ${by} ${t('whisked')}`); else addLog(`${ev.emoji} ${by}`);
+        if (ev.emoji === '🙏') { addLog(`🙏 ${by}: ${t('greet')}!`); setFace(ev.id, 'relax', 2500); }
+        else if (ev.emoji === '🌿') { addLog(`🌿 ${by} ${t('whisked')}`); setFace(ev.id, 'vihta', 3000); }
+        else addLog(`${ev.emoji} ${by}`);
       }
     }
     else if (ev.type === 'say') { const text = String(ev.text || '').slice(0, 80); bubbles = bubbles.filter(b => !(b.id === ev.id && b.text)); bubbles.push({ id: ev.id, text, at: now, until: now + 7000 }); addLog(`💬 ${by}: ${text}`); addChat({ id: ev.id, by, text, mid: ev.mid }); if (ev.id !== pid) ding(); }
@@ -479,7 +549,8 @@ window.SK_ROOM = (function () {
     const prof = ctx.profile();
     const name = prof.name || ctx.t('guest');
     me = { name, seat: SEATS[hash(pid) % SEATS.length].id, zone: 'in', hat: figure.hat, towel: figure.towel, crown: 0, first: !!prof.firstTimer, since: Date.now() };
-    people = []; steam = []; bubbles = []; log = []; chat = []; masters = {}; temp = 80; throws = []; tonttuUntil = 0; lastStarter = -1; quiz = null; duel = null; person = null; faces = {}; reactBarFor = null;
+    people = []; steam = []; bubbles = []; log = []; chat = []; masters = {}; temp = 80; throws = []; tonttuUntil = 0; lastStarter = -1; quiz = null; duel = null; person = null; faces = {}; reactBarFor = null; projectiles = [];
+    lastMoose = Math.floor(Date.now() / 420000); lastAurora = Math.floor((Date.now() + 150000) / 300000);
     enteredAt = Date.now(); inSince = enteredAt; rounds = 1; nudged = false;
     const t = ctx.t, nx = ctx.next;
     el.innerHTML = `<div class="roomRoot">

@@ -2,6 +2,13 @@
 
 A social sauna app for Finland: fixed Sunday saunas, themed sessions (language sauna, newcomers, silent, avanto, after-the-run), a sauna passport with stamps and badges, and a twelve-point sauna etiquette for first-timers. Finnish first, English toggle.
 
+## Version 0.9 (alive, 2026-11-01)
+
+- Living scene: flickering fire and lantern, softly blurred steam, snow falling outside the door and window, northern lights that sway in the window and put on a show every five minutes, a moose that walks past the window every seven minutes (same moment on every phone, announced in the chat), an avanto by the door, and a warm tint when it gets really hot.
+- Living figures: they blink, recoil when löyly hits, raise an arm to wave, swing a vihta, and get a snow-covered head when hit.
+- Snowballs, vihtas and beers fly in an arc from the thrower to the target, then land: a cold snowy face, a relaxed whisked face, or a beer in hand.
+- The saunatonttu now strolls towards the door and waves when it appears.
+
 ## Version 0.8 (chat first, 2026-11-01)
 
 - The chat card now sits directly under the sauna scene, above the action buttons.

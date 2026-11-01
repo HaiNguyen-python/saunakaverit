@@ -265,4 +265,29 @@ nav.tabs button.fab.active{background:none}
 .emojiGrid button{border:0;background:var(--bg);border-radius:8px;font-size:1.3rem;padding:4px;cursor:pointer}
 .emojiGrid button:hover{background:var(--steam)}
 @media (max-width:520px){.chatList{max-height:170px}}
+
+/* Scene life */
+.roomScene .flicker{animation:flicker 2.1s ease-in-out infinite}
+@keyframes flicker{0%,100%{opacity:1}45%{opacity:.75}60%{opacity:.95}80%{opacity:.7}}
+.roomScene .flame{transform-box:fill-box;transform-origin:50% 100%;animation:flame .5s ease-in-out infinite alternate}
+.roomScene .flame.f2{animation-duration:.37s;animation-delay:-.2s}
+@keyframes flame{from{transform:scaleY(1) scaleX(1)}to{transform:scaleY(1.25) scaleX(.9)}}
+.roomScene .snowfall{animation:snowfall 9s linear infinite}
+.roomScene .snowfall.slow{animation-duration:13s}
+@keyframes snowfall{from{transform:translateY(0)}to{transform:translateY(160px)}}
+.roomScene .aurora .band{transform-box:fill-box;transform-origin:center;animation:aurora 7s ease-in-out infinite alternate}
+.roomScene .aurora .b2{animation-duration:9s;animation-direction:alternate-reverse}
+@keyframes aurora{from{transform:translateY(0) scaleY(1)}to{transform:translateY(-6px) scaleY(1.25)}}
+.roomScene .tonttu{transform-box:fill-box;transform-origin:50% 100%}
+.roomScene .tonttu.walk{animation:tonttuwalk 12s ease-in-out}
+@keyframes tonttuwalk{0%{transform:translateX(0)}35%{transform:translateX(-60px) rotate(-3deg)}50%{transform:translateX(-62px)}85%{transform:translateX(-4px) rotate(3deg)}100%{transform:translateX(0)}}
+.roomScene .tonttuArm{transform-box:fill-box;transform-origin:0% 100%;animation:wavearm .6s ease-in-out infinite alternate}
+@keyframes wavearm{from{transform:rotate(0)}to{transform:rotate(-30deg)}}
+.roomScene .blink{transform-box:fill-box;transform-origin:center;animation:blink 4.5s ease-in-out infinite}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+.roomScene .bob.shock{animation:shock .9s ease-out}
+@keyframes shock{0%{transform:rotate(0)}25%{transform:translateY(-4px) rotate(-7deg)}60%{transform:translateY(0) rotate(3deg)}100%{transform:rotate(0)}}
+.roomScene .swing{transform-box:fill-box;transform-origin:0% 100%;animation:swing .5s ease-in-out infinite alternate}
+@keyframes swing{from{transform:rotate(-15deg)}to{transform:rotate(25deg)}}
+.roomScene .wavehand{transform-box:fill-box;transform-origin:0% 100%;animation:wavearm .4s ease-in-out infinite alternate}
 .roomCard .btn.full{width:100%;margin-top:10px}
