@@ -64,7 +64,7 @@ nav.tabs button.active{color:var(--wood);background:var(--steam)}
 
 /* Cards */
 .card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;margin:12px 0;box-shadow:var(--shadow)}
-.card.hero{background:linear-gradient(135deg,var(--wood) 0%,var(--wood2) 60%,#c99467 100%);color:#fff;border:0;position:relative;overflow:hidden}
+.card.hero{background:linear-gradient(135deg,#8a4f2a 0%,#b5753f 55%,#d99a63 100%);color:#fff;border:0;position:relative;overflow:hidden}
 .card.hero .steam{position:absolute;inset:0;pointer-events:none;opacity:.25;background:
   radial-gradient(60px 40px at 20% 30%,#fff 0,transparent 70%),
   radial-gradient(90px 50px at 70% 20%,#fff 0,transparent 70%),
@@ -165,7 +165,8 @@ hr.soft{border:0;border-top:1px solid var(--line);margin:12px 0}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(224,57,47,.55)}70%{box-shadow:0 0 0 8px rgba(224,57,47,0)}100%{box-shadow:0 0 0 0 rgba(224,57,47,0)}}
 .logline{font-size:.85rem;padding:3px 0;border-bottom:1px dashed var(--line)}
 .logline:last-child{border-bottom:0}
-.roomCard{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;background:linear-gradient(135deg,#2a170c,#5c3b22);color:#fff;border:0}
+.roomCard{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;background:linear-gradient(135deg,#2b170a,#6b3f1f 60%,#8f5c33);color:#fff;border:0}
+.roomWrap{background:#2b170a}
 .roomCard .muted{color:rgba(255,255,255,.8)}
 .roomCard .btn{background:#ffd166;border-color:#ffd166;color:#3a2415}
 .roomCard{padding:12px 16px}

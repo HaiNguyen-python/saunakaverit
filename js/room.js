@@ -82,68 +82,104 @@ window.SK_ROOM = (function () {
     const stones = [];
     for (let i = 0; i < 14; i++) { const x = 160 + (i % 5) * 20 + (Math.floor(i / 5) % 2) * 10, y = 296 + Math.floor(i / 5) * 10; stones.push(`<ellipse cx="${x}" cy="${y}" rx="11" ry="8" fill="#55524f" stroke="#2e2c2a"/>`); }
     const flakes = []; for (let i = 0; i < 14; i++) flakes.push(`<circle cx="${30 + (i * 37) % 80}" cy="${150 + (i * 53) % 260}" r="${1.5 + (i % 3)}" fill="#fff" opacity=".7"/>`);
-    const slats = (x, y, w, h) => { let s = ''; for (let i = 0; i < w; i += 24) s += `<rect x="${x + i}" y="${y}" width="22" height="${h}" rx="3" fill="url(#bench)" stroke="#5b3a1f"/>`; return s; };
+    const slats = (x, y, w, h) => { let s = ''; for (let i = 0; i < w; i += 24) s += `<rect x="${x + i}" y="${y}" width="22" height="${h}" rx="3" fill="url(#${u}bench)" stroke="#8a5a2b" stroke-opacity=".8"/><rect x="${x + i + 2}" y="${y + 1.5}" width="18" height="2" rx="1" fill="#fff" fill-opacity=".35"/>`; return s; };
     const u = mini ? 'p' : 'r';
+    const grain = []; for (let x = 0; x < 800; x += 97) grain.push(`<line x1="${x}" y1="60" x2="${x + 3}" y2="480"/>`);
+    const stars = []; for (let i = 0; i < 12; i++) stars.push(`<circle cx="${600 + (i * 53) % 130}" cy="${98 + (i * 29) % 40}" r="${0.8 + (i % 3) * 0.5}" fill="#fff" opacity="${0.5 + (i % 2) * 0.4}"/>`);
     return `
 <svg viewBox="0 0 800 480" class="roomScene" xmlns="http://www.w3.org/2000/svg" ${mini ? '' : 'id="roomSvg"'}>
   <defs>
-    <linearGradient id="${u}wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a2415"/><stop offset="1" stop-color="#5c3b22"/></linearGradient>
-    <linearGradient id="bench" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9a66b"/><stop offset="1" stop-color="#a66f3f"/></linearGradient>
-    <linearGradient id="face" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8c5a35"/><stop offset="1" stop-color="#5a3519"/></linearGradient>
-    <linearGradient id="night" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d1a2e"/><stop offset="1" stop-color="#1f3b5a"/></linearGradient>
-    <radialGradient id="glow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffb347" stop-opacity=".95"/><stop offset="1" stop-color="#ff6a00" stop-opacity="0"/></radialGradient>
-    <radialGradient id="lamp" cx=".5" cy="0" r=".9"><stop offset="0" stop-color="#ffd9a0" stop-opacity=".35"/><stop offset="1" stop-color="#ffd9a0" stop-opacity="0"/></radialGradient>
-    <radialGradient id="fire" cx=".5" cy="1" r="1"><stop offset="0" stop-color="#ffd166"/><stop offset=".5" stop-color="#ff7a1a"/><stop offset="1" stop-color="#b3200a"/></radialGradient>
+    <linearGradient id="${u}wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a2c16"/><stop offset=".45" stop-color="#7a4a26"/><stop offset="1" stop-color="#8f5c33"/></linearGradient>
+    <linearGradient id="${u}bench" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f0cf9a"/><stop offset="1" stop-color="#cf9a60"/></linearGradient>
+    <linearGradient id="${u}face" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a86d3c"/><stop offset="1" stop-color="#6b3f1f"/></linearGradient>
+    <linearGradient id="${u}night" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a1830"/><stop offset="1" stop-color="#27507c"/></linearGradient>
+    <linearGradient id="${u}cold" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0d2140"/><stop offset="1" stop-color="#2d5a8a"/></linearGradient>
+    <linearGradient id="${u}steel" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2f2f2f"/><stop offset=".5" stop-color="#5a5a5a"/><stop offset="1" stop-color="#2a2a2a"/></linearGradient>
+    <radialGradient id="${u}glow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffc466" stop-opacity="1"/><stop offset=".6" stop-color="#ff7a1a" stop-opacity=".45"/><stop offset="1" stop-color="#ff5a00" stop-opacity="0"/></radialGradient>
+    <radialGradient id="${u}lamp" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffe2a8" stop-opacity=".55"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient>
+    <radialGradient id="${u}kiuaslight" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ff9a3c" stop-opacity=".28"/><stop offset="1" stop-color="#ff9a3c" stop-opacity="0"/></radialGradient>
+    <radialGradient id="${u}vignette" cx=".5" cy=".55" r=".75"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".45"/></radialGradient>
+    <radialGradient id="${u}fire" cx=".5" cy="1" r="1"><stop offset="0" stop-color="#fff1a8"/><stop offset=".45" stop-color="#ff8a1f"/><stop offset="1" stop-color="#9c1d08"/></radialGradient>
+    <radialGradient id="${u}moon" cx=".5" cy=".5" r=".5"><stop offset=".5" stop-color="#fff5d6" stop-opacity=".9"/><stop offset="1" stop-color="#fff5d6" stop-opacity="0"/></radialGradient>
   </defs>
   <rect width="800" height="480" fill="url(#${u}wall)"/>
-  <g stroke="#2a170c" stroke-opacity=".55">${planks.join('')}</g>
-  <rect width="800" height="60" fill="#241308"/>
-  <ellipse cx="420" cy="60" rx="380" ry="200" fill="url(#lamp)"/>
-  <rect x="585" y="88" width="160" height="110" rx="6" fill="url(#night)" stroke="#1d110a" stroke-width="10"/>
-  <circle cx="700" cy="118" r="13" fill="#f6ecc9"/>
-  <path d="M595 165 Q620 158 645 165 T695 165 T740 165 L740 192 L595 192 Z" fill="#17304a"/>
-  <path d="M595 150 L620 128 L645 150 Z M650 150 L672 132 L694 150 Z" fill="#0b1626"/>
-  <line x1="665" y1="88" x2="665" y2="198" stroke="#1d110a" stroke-width="6"/>
-  <g class="hot" data-act="cool" style="cursor:pointer">
-    <rect x="22" y="120" width="96" height="340" rx="4" fill="url(#night)" stroke="#1d110a" stroke-width="8"/>
-    <g>${flakes.join('')}</g>
-    <text x="70" y="140" text-anchor="middle" font-size="11" fill="#9fc3e6" font-family="Inter,sans-serif" class="coolLabel">Vilvoittelu</text>
+  <g stroke="#2a170c" stroke-opacity=".5">${planks.join('')}</g>
+  <g stroke="#ffd9a8" stroke-opacity=".07" transform="translate(0,1)">${planks.join('')}</g>
+  <g stroke="#2a170c" stroke-opacity=".18">${grain.join('')}</g>
+  <rect width="800" height="60" fill="#2b170a"/>
+  <rect y="58" width="800" height="4" fill="#1d0f06"/>
+  <!-- kiuas light on the wall and the lantern -->
+  <ellipse cx="215" cy="330" rx="260" ry="200" fill="url(#${u}kiuaslight)"/>
+  <ellipse cx="500" cy="150" rx="230" ry="150" fill="url(#${u}lamp)"/>
+  <g transform="translate(500,110)">
+    <path d="M-14 -30 L14 -30 L10 -6 L-10 -6 Z" fill="#3b2a1c" stroke="#1d110a"/>
+    <rect x="-9" y="-6" width="18" height="26" rx="3" fill="#ffd98a" stroke="#3b2a1c" stroke-width="2"/>
+    <rect x="-5" y="-2" width="10" height="18" rx="2" fill="#fff3c4"/>
+    <rect x="-11" y="20" width="22" height="5" rx="2" fill="#3b2a1c"/>
+    <path d="M0 -30 L0 -40 L-40 -40" stroke="#1d110a" stroke-width="4" fill="none"/>
   </g>
+  <!-- window -->
+  <rect x="585" y="88" width="160" height="110" rx="6" fill="url(#${u}night)" stroke="#2b170a" stroke-width="10"/>
+  <g>${stars.join('')}</g>
+  <circle cx="700" cy="118" r="24" fill="url(#${u}moon)"/><circle cx="700" cy="118" r="12" fill="#fff6d8"/>
+  <path d="M595 168 Q620 160 645 168 T695 168 T740 168 L740 192 L595 192 Z" fill="#dfe9f4"/>
+  <path d="M595 168 Q620 162 645 168 T695 168 T740 168 L740 176 L595 176 Z" fill="#fff" fill-opacity=".5"/>
+  <path d="M598 158 L622 126 L646 158 Z M650 160 L672 134 L694 160 Z M698 160 L716 140 L734 160 Z" fill="#102640"/>
+  <path d="M598 158 L622 126 L646 158 Z M650 160 L672 134 L694 160 Z M698 160 L716 140 L734 160 Z" fill="#fff" fill-opacity=".12"/>
+  <line x1="665" y1="88" x2="665" y2="198" stroke="#2b170a" stroke-width="6"/>
+  <rect x="585" y="88" width="160" height="110" rx="6" fill="none" stroke="#3b2a1c" stroke-width="3"/>
+  <!-- the door to the cold -->
+  <g class="hot" data-act="cool" style="cursor:pointer">
+    <rect x="22" y="120" width="96" height="340" rx="4" fill="url(#${u}cold)" stroke="#1d110a" stroke-width="8"/>
+    <rect x="26" y="124" width="88" height="332" fill="#9fd0ff" fill-opacity=".08"/>
+    <path d="M26 456 L114 456 L114 420 Q70 405 26 420 Z" fill="#e6eef7"/>
+    <g>${flakes.join('')}</g>
+    <text x="70" y="140" text-anchor="middle" font-size="11" fill="#bfe0ff" font-family="Inter,sans-serif" class="coolLabel">Vilvoittelu</text>
+  </g>
+  <!-- vihta -->
   <g transform="translate(300,120)" class="hot" data-act="vihta" style="cursor:pointer">
     <circle cx="0" cy="-4" r="3" fill="#222"/>
     <path d="M0 0 L0 40" stroke="#6b4a2b" stroke-width="4"/>
-    <ellipse cx="-12" cy="52" rx="14" ry="24" fill="#4f7a3c" transform="rotate(-15 -12 52)"/>
-    <ellipse cx="12" cy="52" rx="14" ry="24" fill="#5f8c45" transform="rotate(15 12 52)"/>
-    <ellipse cx="0" cy="58" rx="13" ry="26" fill="#6a9a4c"/>
+    <ellipse cx="-12" cy="52" rx="14" ry="24" fill="#4e8a3d" transform="rotate(-15 -12 52)"/>
+    <ellipse cx="12" cy="52" rx="14" ry="24" fill="#5fa04a" transform="rotate(15 12 52)"/>
+    <ellipse cx="0" cy="58" rx="13" ry="26" fill="#74b35a"/>
+    <ellipse cx="-3" cy="52" rx="6" ry="14" fill="#a3d68a" fill-opacity=".5"/>
   </g>
+  <!-- thermometer -->
   <g transform="translate(400,100)">
-    <rect x="-26" y="-18" width="52" height="54" rx="8" fill="#f1e6d2" stroke="#8c5a35" stroke-width="3"/>
+    <rect x="-26" y="-18" width="52" height="54" rx="8" fill="#f6ecd8" stroke="#8c5a35" stroke-width="3"/>
     <text x="0" y="10" text-anchor="middle" font-size="18" font-weight="700" fill="#8c5a35" font-family="Outfit,Inter,sans-serif" class="tempText">80°</text>
     <text x="0" y="28" text-anchor="middle" font-size="9" fill="#8c5a35" font-family="Inter,sans-serif">löyly</text>
   </g>
   <g class="tonttu" style="opacity:0;transition:opacity .6s" transform="translate(130,330)">
     <ellipse cx="0" cy="40" rx="16" ry="20" fill="#9b2d2d"/>
     <circle cx="0" cy="12" r="12" fill="#f1c9a5"/>
-    <path d="M-14 8 L0 -26 L14 8 Z" fill="#c62828"/><circle cx="0" cy="-26" r="4" fill="#fff"/>
+    <path d="M-14 8 L0 -26 L14 8 Z" fill="#d32f2f"/><circle cx="0" cy="-26" r="4" fill="#fff"/>
     <path d="M-10 18 Q0 34 10 18 Z" fill="#eee"/>
     <circle cx="-4" cy="10" r="1.6" fill="#2b1d12"/><circle cx="4" cy="10" r="1.6" fill="#2b1d12"/>
   </g>
+  <!-- kiuas -->
   <g class="hot" data-act="loyly" style="cursor:pointer">
-    <rect x="200" y="110" width="18" height="190" fill="#2c2c2c"/>
-    <rect x="150" y="290" width="118" height="170" rx="8" fill="#3b3b3b" stroke="#1f1f1f" stroke-width="3"/>
-    <rect x="150" y="285" width="118" height="12" rx="4" fill="#2a2a2a"/>
-    <ellipse cx="209" cy="300" rx="80" ry="34" fill="url(#glow)" class="kiuasGlow"/>
+    <rect x="200" y="110" width="18" height="190" fill="url(#${u}steel)"/>
+    <rect x="150" y="290" width="118" height="170" rx="8" fill="url(#${u}steel)" stroke="#1a1a1a" stroke-width="3"/>
+    <rect x="156" y="296" width="106" height="158" rx="6" fill="none" stroke="#777" stroke-opacity=".35"/>
+    <rect x="150" y="285" width="118" height="12" rx="4" fill="#232323"/>
+    <ellipse cx="209" cy="300" rx="90" ry="40" fill="url(#${u}glow)" class="kiuasGlow"/>
     ${stones.join('')}
-    <rect x="172" y="410" width="74" height="26" rx="4" fill="url(#fire)"/>
-    <rect x="172" y="410" width="74" height="26" rx="4" fill="none" stroke="#1f1f1f" stroke-width="3"/>
-    <path d="M100 430 L108 470 L144 470 L152 430 Z" fill="#9c6a3e" stroke="#5b3a1f" stroke-width="2"/>
-    <ellipse cx="126" cy="430" rx="26" ry="7" fill="#6fa8c9" stroke="#5b3a1f" stroke-width="2"/>
-    <g class="ladle"><path d="M140 428 L178 392" stroke="#c9a06a" stroke-width="5" stroke-linecap="round"/><ellipse cx="180" cy="390" rx="8" ry="5" fill="#c9a06a" stroke="#5b3a1f"/></g>
+    <ellipse cx="196" cy="320" rx="9" ry="6" fill="#ff8a3c" fill-opacity=".55"/><ellipse cx="226" cy="318" rx="7" ry="5" fill="#ff6a1a" fill-opacity=".45"/>
+    <rect x="172" y="410" width="74" height="26" rx="4" fill="url(#${u}fire)"/>
+    <rect x="172" y="410" width="74" height="26" rx="4" fill="none" stroke="#1a1a1a" stroke-width="3"/>
+    <path d="M100 430 L108 470 L144 470 L152 430 Z" fill="#b57c4a" stroke="#5b3a1f" stroke-width="2"/>
+    <path d="M104 440 L148 440" stroke="#7a4e28" stroke-width="2"/>
+    <ellipse cx="126" cy="430" rx="26" ry="7" fill="#7cc0e8" stroke="#5b3a1f" stroke-width="2"/>
+    <g class="ladle"><path d="M140 428 L178 392" stroke="#d9b07a" stroke-width="5" stroke-linecap="round"/><ellipse cx="180" cy="390" rx="8" ry="5" fill="#d9b07a" stroke="#5b3a1f"/></g>
     ${mini ? '' : '<text x="209" y="476" text-anchor="middle" font-size="11" fill="#ffd166" font-family="Inter,sans-serif" class="kiuasHint">💧</text>'}
   </g>
-  <rect x="330" y="308" width="470" height="64" fill="url(#face)"/>${slats(330, 300, 470, 14)}
-  <rect x="315" y="372" width="485" height="68" fill="url(#face)"/>${slats(315, 364, 485, 14)}
-  <rect x="300" y="440" width="500" height="40" fill="url(#face)"/>${slats(300, 432, 500, 14)}
+  <!-- lauteet: pale aspen tops, warm fronts -->
+  <rect x="330" y="308" width="470" height="64" fill="url(#${u}face)"/><rect x="330" y="308" width="470" height="6" fill="#000" fill-opacity=".2"/>${slats(330, 300, 470, 14)}
+  <rect x="315" y="372" width="485" height="68" fill="url(#${u}face)"/><rect x="315" y="372" width="485" height="6" fill="#000" fill-opacity=".2"/>${slats(315, 364, 485, 14)}
+  <rect x="300" y="440" width="500" height="40" fill="url(#${u}face)"/><rect x="300" y="440" width="500" height="6" fill="#000" fill-opacity=".2"/>${slats(300, 432, 500, 14)}
+  <rect width="800" height="480" fill="url(#${u}vignette)" pointer-events="none"/>
   <g class="seatHits"></g>
   <g class="people"></g>
   <g class="steam"></g>
@@ -159,28 +195,63 @@ window.SK_ROOM = (function () {
     bucket: `<path d="M-14 -72 L-16 -96 L16 -96 L14 -72 Z" fill="#6fa8c9" stroke="#2b5d7a"/><rect x="-18" y="-99" width="36" height="5" rx="2" fill="#2b5d7a"/>`,
     crown: `<path d="M-14 -76 L-14 -92 L-7 -84 L0 -98 L7 -84 L14 -92 L14 -76 Z" fill="#ffd166" stroke="#b8860b"/>`,
   };
+  const HAIR_COLORS = ['#2b1d12','#4a2c17','#8a5a2b','#d9b36a','#b23a2a','#1a1a1a','#6b6b6b','#e8d3a0'];
+  const SKIN_SHADE = ['#d9a884','#c48f66','#a86f45','#8c5533','#6e3d22','#dbb897'];
+  function hairFor(p, color) {
+    const style = hash(p.name + 'h') % 6;
+    const c = color;
+    switch (style) {
+      case 0: return `<path d="M-17 -70 Q-15 -90 0 -88 Q15 -90 17 -70 Q11 -79 0 -78 Q-11 -79 -17 -70 Z" fill="${c}"/>`;                                         // short
+      case 1: return `<path d="M-17 -70 Q-15 -90 0 -88 Q15 -90 17 -70 Q11 -79 0 -78 Q-11 -79 -17 -70 Z" fill="${c}"/><circle cx="2" cy="-90" r="6.5" fill="${c}"/>`; // bun
+      case 2: return `<path d="M-17 -68 Q-17 -92 0 -88 Q17 -92 17 -68 L19 -46 L12 -48 L12 -64 Q0 -76 -12 -64 L-12 -48 L-19 -46 Z" fill="${c}"/>`;             // long
+      case 3: return `<g fill="${c}"><circle cx="-12" cy="-80" r="7"/><circle cx="0" cy="-86" r="8"/><circle cx="12" cy="-80" r="7"/><circle cx="-16" cy="-70" r="5"/><circle cx="16" cy="-70" r="5"/><circle cx="-6" cy="-84" r="6"/><circle cx="6" cy="-84" r="6"/></g>`; // curly
+      case 4: return `<path d="M-17 -72 Q-10 -90 4 -90 Q17 -88 17 -72 Q14 -82 4 -82 Q-6 -80 -17 -72 Z" fill="${c}"/>`;                                         // side swept
+      default: return `<ellipse cx="-5" cy="-78" rx="5" ry="3" fill="#fff" fill-opacity=".25"/>`;                                                               // bald shine
+    }
+  }
   function avatar(p, x, y, s, isMe) {
-    const tow = (p.towel >= 0 && TOWELS[p.towel]) || TOWELS[hash(p.name) % TOWELS.length], skin = SKINS[hash(p.name + 'k') % SKINS.length];
+    const ti = (p.towel >= 0 && p.towel < TOWELS.length) ? p.towel : hash(p.name) % TOWELS.length;
+    const tow = TOWELS[ti], towDark = shade(tow, -22);
+    const si = hash(p.name + 'k') % SKINS.length, skin = SKINS[si], skinD = SKIN_SHADE[si];
+    const hairC = HAIR_COLORS[hash(p.name + 'c') % HAIR_COLORS.length];
     const crowned = p.crown && p.crown > Date.now();
     const hat = crowned ? HATS.crown : (HATS[p.hat] || (p.hat === true ? HATS.felt : ''));
-    const ring = isMe ? `<ellipse cx="0" cy="2" rx="26" ry="7" fill="none" stroke="#ffd166" stroke-width="2.5" stroke-dasharray="4 3"/>` : '';
-    const label = `<rect x="-30" y="6" width="60" height="15" rx="7" fill="#1f1b17" fill-opacity=".75"/><text x="0" y="17" text-anchor="middle" font-size="10.5" fill="#fff" font-family="Inter,sans-serif">${esc(p.name.slice(0, 10))}</text>`;
-    const cold = p.zone === 'cool';
+    const ring = isMe ? `<ellipse cx="0" cy="10" rx="30" ry="8" fill="none" stroke="#ffd166" stroke-width="2.5" stroke-dasharray="4 3"/>` : '';
+    const label = `<rect x="-30" y="12" width="60" height="15" rx="7" fill="#1f1b17" fill-opacity=".72"/><text x="0" y="23" text-anchor="middle" font-size="10.5" fill="#fff" font-family="Inter,sans-serif">${esc(p.name.slice(0, 10))}</text>`;
+    const cold = p.zone === 'cool', hot = temp > 95 && !cold;
+    const blush = cold ? .15 : hot ? .6 : .32;
+    const mouth = cold ? `<path d="M-4 -60 q4 -3 8 0" stroke="#5a2d1a" stroke-width="1.4" fill="none"/>` : hot ? `<ellipse cx="0" cy="-59" rx="3" ry="2.4" fill="#5a2d1a"/>` : `<path d="M-5 -61 q5 5 10 0" stroke="#5a2d1a" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
     return `<g class="av" data-person="${esc(p.id)}" data-pname="${esc(p.name)}" transform="translate(${x},${y}) scale(${s})" style="cursor:${isMe?'default':'pointer'}">
       ${ring}
       <g class="${cold ? 'shiver' : 'bob'}" style="animation-delay:-${(hash(p.id || p.name) % 30) / 10}s">
-      <path d="M-18 -8 L-20 -48 Q0 -56 20 -48 L18 -8 Q0 2 -18 -8 Z" fill="${tow}" stroke="#5b3a1f" stroke-opacity=".5"/>
-      <rect x="-22" y="-14" width="44" height="12" rx="6" fill="${tow}" stroke="#5b3a1f" stroke-opacity=".4"/>
-      <circle cx="-9" cy="-4" r="4" fill="${skin}"/><circle cx="9" cy="-4" r="4" fill="${skin}"/>
-      <circle cx="0" cy="-66" r="15" fill="${skin}" stroke="#5b3a1f" stroke-opacity=".3"/>
-      <circle cx="-5" cy="-68" r="1.6" fill="#2b1d12"/><circle cx="5" cy="-68" r="1.6" fill="#2b1d12"/>
-      <path d="M-5 -60 Q0 -57 5 -60" stroke="#2b1d12" stroke-width="1.3" fill="none"/>
-      ${temp > 95 && !cold ? '<path d="M14 -70 q3 4 0 7 q-3 -3 0 -7" fill="#9fd3f5"/>' : ''}
+      <path d="M-17 -12 L-17 6 L-10 6 L-10 -8 Z M10 -8 L10 6 L17 6 L17 -12 Z" fill="${skin}"/>
+      <ellipse cx="-13.5" cy="7.5" rx="6" ry="3" fill="${skinD}"/><ellipse cx="13.5" cy="7.5" rx="6" ry="3" fill="${skinD}"/>
+      <path d="M-21 -44 Q-24 -24 -23 -8 L23 -8 Q24 -24 21 -44 Q0 -53 -21 -44 Z" fill="${tow}" stroke="${towDark}" stroke-opacity=".7"/>
+      <path d="M-21 -44 L6 -36 L7 -10" stroke="#000" stroke-opacity=".12" stroke-width="1.5" fill="none"/>
+      <path d="M-23 -8 L23 -8 L24 -2 Q0 4 -24 -2 Z" fill="${towDark}"/>
+      <path d="M-20 -42 Q-30 -30 -24 -12" stroke="${skin}" stroke-width="7.5" fill="none" stroke-linecap="round"/>
+      <path d="M20 -42 Q30 -30 24 -12" stroke="${skin}" stroke-width="7.5" fill="none" stroke-linecap="round"/>
+      <circle cx="-23" cy="-10" r="4.5" fill="${skin}"/><circle cx="23" cy="-10" r="4.5" fill="${skin}"/>
+      <rect x="-4.5" y="-58" width="9" height="12" fill="${skinD}"/>
+      <circle cx="-16" cy="-67" r="3.5" fill="${skin}"/><circle cx="16" cy="-67" r="3.5" fill="${skin}"/>
+      <circle cx="0" cy="-68" r="16.5" fill="${skin}"/>
+      <path d="M-16.5 -68 A16.5 16.5 0 0 0 16.5 -68 A16.5 16.5 0 0 1 -16.5 -68 Z" fill="${skinD}" fill-opacity=".18"/>
+      ${hairFor(p, hairC)}
+      <circle cx="-9" cy="-62" r="3.6" fill="#e2645a" fill-opacity="${blush}"/><circle cx="9" cy="-62" r="3.6" fill="#e2645a" fill-opacity="${blush}"/>
+      <ellipse cx="-6" cy="-69" rx="2.7" ry="3.4" fill="#2b1d12"/><ellipse cx="6" cy="-69" rx="2.7" ry="3.4" fill="#2b1d12"/>
+      <circle cx="-5" cy="-70.5" r="1" fill="#fff"/><circle cx="7" cy="-70.5" r="1" fill="#fff"/>
+      <path d="M-9.5 -75 q3.5 -2.5 7 0 M2.5 -75 q3.5 -2.5 7 0" stroke="${hairC}" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+      ${mouth}
+      ${hot ? '<path d="M15 -74 q3 5 0 8 q-3 -3 0 -8" fill="#9fd3f5"/><path d="M-17 -60 q2.5 4 0 7 q-2.5 -3 0 -7" fill="#9fd3f5"/>' : ''}
       ${hat}
       </g>
-      ${p.first ? `<text x="18" y="-74" font-size="12">🙋</text>` : ''}
+      ${p.first ? `<text x="19" y="-80" font-size="12">🙋</text>` : ''}
       ${label}
     </g>`;
+  }
+  function shade(hex, pct) {
+    const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255, f = (v) => Math.max(0, Math.min(255, Math.round(v + (pct / 100) * (pct < 0 ? v : 255 - v))));
+    return '#' + [f(r), f(g), f(b)].map(v => v.toString(16).padStart(2, '0')).join('');
   }
 
   function layout(list) {
