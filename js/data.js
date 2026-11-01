@@ -399,6 +399,23 @@ window.SK_DATA = (function () {
     { key:'fish', n:10, ic:'🎣', fi:'Pilkkijä', en:'Ice angler' }, { key:'challenge', n:7, ic:'⭐', fi:'Viikon sankari', en:'Hero of the week' },
     { key:'duel', n:3, ic:'💧', fi:'Löylykisan voittaja', en:'Löyly champion' }, { key:'thaw', n:5, ic:'🫶', fi:'Sulattaja', en:'Thawer' },
   ];
+  /* Saunailta: the guided evening, five phases of four minutes. */
+  const EVENING = {
+    host: { fi:'Saunaemäntä Helmi', en:'Sauna hostess Helmi' },
+    phases: [
+      { fi:'Tervetuloa ja ensimmäinen löyly', en:'Welcome and the first löyly', goal:{ kind:'loyly', n:10 }, goalFi:'10 löylyä yhdessä', goalEn:'10 löyly together',
+        line:['Tervetuloa Saunailtaan! Istukaa lauteille, minä heitän ensimmäisen. Heittäkää te loput.', 'Welcome to the sauna evening! Sit down, I will throw the first one. You throw the rest.'] },
+      { fi:'Vihta ja hiljainen hetki', en:'The vihta and a quiet moment', goal:{ kind:'vihta', n:5 }, goalFi:'5 vihtaa', goalEn:'5 whisks',
+        line:['Nyt vihta. Hakatkaa selkää kevyesti ja olkaa hetki hiljaa. Löyly puhuu.', 'Now the vihta. Whisk your back lightly and be quiet a moment. The löyly speaks.'] },
+      { fi:'Vilvoittelu ja avanto', en:'Cooling off and the avanto', goal:{ kind:'dip', n:3 }, goalFi:'3 avantokäyntiä', goalEn:'3 avanto dips',
+        line:['Ulos! Terassille, ja rohkeimmat avantoon. Minä katson perästä.', 'Out you go! To the terrace, and the brave ones into the avanto. I will watch from behind.'] },
+      { fi:'Toinen kierros ja Saunavisa', en:'Second round and the quiz', goal:{ kind:'quiz', n:1 }, goalFi:'Saunavisa ratkaistu', goalEn:'quiz solved',
+        line:['Takaisin lauteille. Toinen kierros, ja samalla pieni visa. Kuka tietää?', 'Back to the benches. Second round, and a little quiz. Who knows?'] },
+      { fi:'Olut ja illan postikortti', en:'A beer and the evening postcard', goal:{ kind:'cheers', n:3 }, goalFi:'3 kippistä', goalEn:'3 cheers',
+        line:['Pukuhuoneeseen! Kippis koko porukalle, ja sitten postikortti muistoksi.', 'To the lounge! Cheers to the whole crowd, and then a postcard to remember it by.'] },
+    ],
+    end: ['Kiitos illasta, saunakaverit. Hyvät löylyt ja hyvää yötä!', 'Thank you for the evening, sauna friends. Hyvät löylyt and good night!'],
+  };
   const NUMBERS = ['nolla','yksi','kaksi','kolme','neljä','viisi','kuusi','seitsemän','kahdeksan','yhdeksän','kymmenen','yksitoista','kaksitoista'];
   const HATS = { none:{fi:'Ei hattua', en:'No hat'}, felt:{fi:'Huopahattu', en:'Felt hat'}, tonttu:{fi:'Tonttulakki', en:'Elf hat'}, viking:{fi:'Viikinkikypärä', en:'Viking helmet'}, bucket:{fi:'Ämpäri', en:'Bucket'}, crown:{fi:'Kruunu', en:'Crown'} };
 
@@ -423,6 +440,9 @@ window.SK_DATA = (function () {
     sing:'Laula', sang:'lauloi', chorus:'Kuoro! {n} laulaa yhdessä.', ladleGame:'Kauhakisa', ladleHint:'Napauta, kun merkki on keskellä vihreää.', ladleThrow:'Heitä!', perfectLoyly:'heitti täydellisen löylyn!', goodLoyly:'heitti hyvän löylyn', splashLoyly:'roiskaisi lattialle',
     powerCut:'Sähkökatko! Kuka vei lyhdyn?', powerBack:'Sähköt palasivat.', avalanche:'Lumivyöry katolta!', buried:'sai lumet niskaansa', pentti:'Naapurin Pentti', penttiCame:'Naapurin Pentti kävelee sisään.',
     stats:'Illan tilastot', sLoyly:'löylyä', sDips:'avantoa', sSnow:'lumipalloa', sCheers:'kippistä', sSongs:'laulua', sTeases:'kiusoittelua', kiuasSays:'Kiuas',
+    micHint:'Puhu viesti (suomeksi)', micListening:'Kuuntelen… puhu nyt', micNo:'Puheentunnistus ei toimi tässä selaimessa. Kokeile Chromea tai Safaria.', micDenied:'Mikrofonin käyttö estettiin.',
+    evening:'Saunailta', eveningAt:'Saunailta tänään klo 20.00', eveningIn:'alkaa {t} päästä', eveningNow:'Saunailta käynnissä', phase:'Vaihe', goal:'Tavoite', goalDone:'Tavoite saavutettu', eveningStart:'Aloita Saunailta nyt',
+    eveningStarted:'aloitti Saunaillan', eveningHero:'Illan sankari', eveningFull:'Kaikki viisi tavoitetta! Koko porukka sai bonuksen.', eveningOver:'Saunailta päättyi', minutes:'min', hours:'h',
     points:'p', level:'Taso', titlesLbl:'Tittelit', weekTop:'Viikon kärki', allTime:'Kaikkien aikojen', yourRank:'Sijasi', gained:'+{n} p', newTitle:'Uusi titteli: {t}', newLevel:'Uusi taso: {t}',
     actLoyly:'Löyly', actTalk:'Puhu', actMove:'Liiku', actDo:'Tee', actGames:'Pelit', mvBench:'Lauteille', mvTerrace:'Terassille', mvLounge:'Pukuhuoneeseen', mvAvanto:'Avantoon', mvSled:'Pulkkamäkeen',
     grpFun:'Hauskaa', grpPranks:'Kepposet', grpOther:'Muut', takeBeer:'Ota olut', nearTitle:'Seuraava titteli',
@@ -453,6 +473,9 @@ window.SK_DATA = (function () {
     sing:'Sing', sang:'sang', chorus:'A choir! {n} singing together.', ladleGame:'Ladle game', ladleHint:'Tap when the marker is in the middle of the green.', ladleThrow:'Throw!', perfectLoyly:'threw a perfect löyly!', goodLoyly:'threw a good löyly', splashLoyly:'splashed the floor',
     powerCut:'Power cut! Who took the lantern?', powerBack:'The power is back.', avalanche:'Avalanche off the roof!', buried:'got snow down the neck', pentti:'Neighbour Pentti', penttiCame:'Neighbour Pentti walks in.',
     stats:'Tonight so far', sLoyly:'löyly', sDips:'dips', sSnow:'snowballs', sCheers:'cheers', sSongs:'songs', sTeases:'teases', kiuasSays:'Kiuas',
+    micHint:'Speak a message', micListening:'Listening… speak now', micNo:'Speech recognition is not available in this browser. Try Chrome or Safari.', micDenied:'Microphone access was blocked.',
+    evening:'Sauna evening', eveningAt:'Sauna evening today at 20:00', eveningIn:'starts in {t}', eveningNow:'Sauna evening in progress', phase:'Phase', goal:'Goal', goalDone:'Goal reached', eveningStart:'Start a sauna evening now',
+    eveningStarted:'started a sauna evening', eveningHero:'Hero of the evening', eveningFull:'All five goals! The whole crowd got a bonus.', eveningOver:'The sauna evening is over', minutes:'min', hours:'h',
     points:'pts', level:'Level', titlesLbl:'Titles', weekTop:'This week', allTime:'All time', yourRank:'Your rank', gained:'+{n} pts', newTitle:'New title: {t}', newLevel:'New level: {t}',
     actLoyly:'Löyly', actTalk:'Talk', actMove:'Go', actDo:'Do', actGames:'Games', mvBench:'To the benches', mvTerrace:'To the terrace', mvLounge:'To the lounge', mvAvanto:'To the avanto', mvSled:'To the sled hill',
     grpFun:'Fun', grpPranks:'Pranks', grpOther:'Other', takeBeer:'Take a beer', nearTitle:'Next title',
@@ -463,5 +486,5 @@ window.SK_DATA = (function () {
     petLabel:'Pet', rocket:'Rocket', fired:'fired a rocket', sled:'Sledding', sledded:'sledded down the hill', fish:'Ice fishing', fishing:'is ice fishing', caught:'caught', postcard:'Postcard', postcardText:'Greetings from Saunakaverit', postcardDone:'Postcard ready', postcardFail:'Could not make the picture in this browser.',
   });
 
-  return { SAUNAS, CITIES, THEMES, KINDS, HEATING, LANGS, ETIQUETTE, SEASONS, BADGES, UI, seedSessions, PHRASES, STARTERS, QUIZ, HATS, TEASES, CHALLENGES, KIUAS, PENTTI, PETS, CATCHES, WORDS, VOCAB, AINO, NUMBERS, LEVELS, TITLES };
+  return { SAUNAS, CITIES, THEMES, KINDS, HEATING, LANGS, ETIQUETTE, SEASONS, BADGES, UI, seedSessions, PHRASES, STARTERS, QUIZ, HATS, TEASES, CHALLENGES, KIUAS, PENTTI, PETS, CATCHES, WORDS, VOCAB, AINO, NUMBERS, LEVELS, TITLES, EVENING };
 })();

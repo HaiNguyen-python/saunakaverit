@@ -2,6 +2,11 @@
 
 A social sauna app for Finland: fixed Sunday saunas, themed sessions (language sauna, newcomers, silent, avanto, after-the-run), a sauna passport with stamps and badges, and a twelve-point sauna etiquette for first-timers. Finnish first, English toggle.
 
+## Version 0.17 (Saunailta and speaking, 2026-11-01)
+
+- **Saunailta**: a guided sauna evening every day at 20:00 Helsinki time, or started on demand from Pelit. Saunaemäntä Helmi walks in and leads five four-minute phases, each with a shared goal: the first löyly (10 löyly together), vihta and a quiet moment (5 whisks), cooling off and the avanto (3 dips), the second round with a quiz (the oldest phone present starts it), and a beer in the lounge (3 cheers). Every goal reached gives everyone 10 points; all five give a 30-point bonus; the most active person becomes Illan sankari (+20). Helmi says goodnight and suggests the postcard. A card counts down to the next evening the rest of the day.
+- **Speak instead of typing**: a 🎤 button on the chat uses the phone's speech recognition (Finnish, or English when the app is in English and Finnish mode is off). The recognised sentence is sent as a chat message, so Aino, bubbles and the practice tally all work with spoken Finnish.
+
 ## Version 0.16 (simpler controls, lasting progression, 2026-11-01)
 
 - **Five big actions** replace the wall of buttons: 💧 Löyly, 💬 Puhu (jumps to the chat), 🚶 Liiku (Lauteille, Terassille, Pukuhuoneeseen, Avantoon, Pulkkamäkeen), ✨ Tee (what makes sense where you stand: vihta and the ladle game in the sauna, snow angel, fishing and rockets on the terrace, a beer in the lounge, plus greeting, singing, your figure and the postcard everywhere) and 🎲 Pelit (Saunavisa, Löylykisa, Lumisota, and Sanavisa in Finnish mode).

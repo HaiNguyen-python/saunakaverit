@@ -309,6 +309,8 @@ nav.tabs button.fab.active{background:none}
 .grp{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
 .grp > span{font-size:.75rem;color:var(--ink2);min-width:64px}
 .progCard{background:linear-gradient(135deg,#fff8e1,#ffe9b8);border-color:transparent;margin:8px 0}
+#micBtn.active{background:#e0392f;color:#fff;border-color:#e0392f;animation:pulse 1.2s infinite}
+.eveningCard{background:linear-gradient(135deg,#f3e2ff,#e6d2f7);border-color:transparent;margin:8px 0;font-size:.92rem}
 .lvbar{height:8px;border-radius:4px;background:rgba(0,0,0,.08);overflow:hidden;margin-top:6px}
 .lvbar div{height:100%;background:linear-gradient(90deg,var(--wood),#e0a040);transition:width .4s}
 .lbrow{display:flex;justify-content:space-between;font-size:.85rem;padding:2px 0;border-bottom:1px dashed rgba(0,0,0,.08)}

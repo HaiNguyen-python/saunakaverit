@@ -33,9 +33,83 @@ window.SK_ROOM = (function () {
   let counters = {}, hero = false, imprints = [], warned = {}, snowfight = null, dipAt = 0, angelAt = 0, lastStage = 0, hotWarned = false, tonttuCallAt = 0;
   let singers = {}, npc = null, npcStage = -1, stats = {}, ladle = null, throwTimes = [], lastKiuasScold = 0, lastKiuasLonely = 0, lastLoylyAt = 0, pcut = false, lastPcut = -1, lastAval = -1, lastPentti = -1, lastChorus = 0;
   let petPos = {}, fireworks = [], sledding = {}, fishing = {}, fishAt = 0, catchAt = 0;
+  /* Saunailta: the guided evening. Scheduled 20:00 Helsinki time, or started on demand. */
+  let evening = null, hostNpc = null, eveningManualAt = 0, lastEveningDay = -1;
+  const EV_PHASE = 240000, EV_LEN = 5 * EV_PHASE;
+  const HOST_POS = [[760, 565], [900, 560], [420, 600], [1000, 560], [1560, 640]];
+  function helsinkiSeconds() { const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Helsinki' })); return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds(); }
+  function eveningStartMs() {
+    const now = Date.now();
+    if (eveningManualAt && now - eveningManualAt < EV_LEN) return eveningManualAt;
+    const hs = helsinkiSeconds(), since = hs - 20 * 3600;
+    if (since >= 0 && since * 1000 < EV_LEN) return now - since * 1000;
+    return 0;
+  }
+  const isLeader = () => people.every(p => p.id >= pid);
+  function hostSay(text) {
+    const now = Date.now(); bubbles = bubbles.filter(b => !(b.id === 'host' && b.text)); bubbles.push({ id: 'host', text: text.slice(0, 70), at: now, until: now + 8000 });
+    addChat({ sys: true, by: `🧖‍♀️ ${L(D.EVENING.host)}`, text }); addLog(`🧖‍♀️ ${text}`); speak(text);
+  }
+  function eveningTick() {
+    const now = Date.now(), t = ctx.t, start = eveningStartMs();
+    if (!start) { if (evening) { eveningEnd(); } renderEvening(); return; }
+    if (!evening || evening.start !== start) {
+      evening = { start, phase: -1, counts: {}, done: [], per: {}, ended: false, quizSent: false };
+      hostNpc = { id: 'host', name: L(D.EVENING.host), zone: 'floor', x: 760, y: 565, hat: 'felt', towel: 5, pet: 'none', since: now, first: false };
+      pos.host = { x: 640, y: 560 }; dest.host = { x: 760, y: 565 };
+    }
+    const ph = Math.min(4, Math.floor((now - start) / EV_PHASE));
+    if (ph !== evening.phase) {
+      evening.phase = ph; const P = D.EVENING.phases[ph];
+      hostSay(LP(P.line)); dest.host = { x: HOST_POS[ph][0], y: HOST_POS[ph][1] };
+      if (ph === 0) { temp = Math.min(109, temp + 4); spawnSteam(26, true); hiss(false); }
+      if (ph === 3 && isLeader() && !evening.quizSent) { evening.quizSent = true; setTimeout(() => { if (raf && (!quiz || quiz.done)) send({ type: 'quiz', q: Math.floor(Math.random() * D.QUIZ.length), at: Date.now() }); }, 3000); }
+      renderEvening();
+    }
+    if (now - start >= EV_LEN && !evening.ended) eveningEnd();
+  }
+  function eveningCount(kind, byId) {
+    if (!evening || evening.ended) return;
+    const P = D.EVENING.phases[evening.phase]; if (!P || P.goal.kind !== kind) return;
+    evening.counts[kind] = (evening.counts[kind] || 0) + 1; if (byId) evening.per[byId] = (evening.per[byId] || 0) + 1;
+    if (evening.counts[kind] >= P.goal.n && !evening.done.includes(evening.phase)) {
+      evening.done.push(evening.phase); const t = ctx.t;
+      addChat({ sys: true, text: `✅ ${t('goalDone')}: ${ctx.lang() === 'en' ? P.goalEn : P.goalFi}` }); addLog(`✅ ${t('goalDone')}`); ding(); setTimeout(ding, 180); score('evening'); spawnSteam(30, true);
+    }
+    renderEvening();
+  }
+  function eveningEnd() {
+    if (!evening) return; const t = ctx.t;
+    if (!evening.ended) {
+      evening.ended = true;
+      const rows = Object.entries(evening.per).map(([id, n]) => ({ id, n, name: (people.find(p => p.id === id) || {}).name || '?' })).sort((a, b) => b.n - a.n);
+      hostSay(LP(D.EVENING.end));
+      if (rows.length) { addChat({ sys: true, text: `🏅 ${t('eveningHero')}: ${rows[0].name} (${rows[0].n})` }); if (rows[0].id === pid) { score('eveninghero'); ctx.toast(`🏅 ${t('eveningHero')}!`); } }
+      if (evening.done.length === 5) { addChat({ sys: true, text: `🌟 ${t('eveningFull')}` }); score('eveningfull'); }
+      addChat({ sys: true, text: `📮 ${t('postcard')} → ✨ ${t('actDo')}` });
+    }
+    setTimeout(() => { if (evening && evening.ended) { evening = null; hostNpc = null; delete pos.host; delete dest.host; placePeople(); renderEvening(); } }, 30000);
+  }
+  function renderEvening() {
+    const box = el.querySelector('#eveningCard'); if (!box) return; const t = ctx.t;
+    if (evening && !evening.ended) {
+      const P = D.EVENING.phases[evening.phase], n = Math.min(P.goal.n, evening.counts[P.goal.kind] || 0), left = Math.max(0, Math.ceil((evening.start + (evening.phase + 1) * EV_PHASE - Date.now()) / 60000));
+      box.style.display = '';
+      box.innerHTML = `<div class="small muted">🧖‍♀️ ${esc(t('eveningNow'))} · ${esc(t('phase'))} ${evening.phase + 1}/5 · ${left} ${esc(t('minutes'))}</div><b>${esc(L(P))}</b>
+        <div class="small">${esc(t('goal'))}: ${esc(ctx.lang() === 'en' ? P.goalEn : P.goalFi)} · <b>${n}/${P.goal.n}</b> ${evening.done.includes(evening.phase) ? '✅' : ''}</div>
+        <div class="lvbar"><div style="width:${Math.round(n / P.goal.n * 100)}%"></div></div>
+        <div class="small muted" style="margin-top:4px">${D.EVENING.phases.map((p, i) => evening.done.includes(i) ? '✅' : i < evening.phase ? '⬜' : i === evening.phase ? '🔥' : '·').join(' ')}</div>`;
+    } else if (evening && evening.ended) {
+      box.style.display = ''; box.innerHTML = `<b>🧖‍♀️ ${esc(t('eveningOver'))}</b> · ${evening.done.length}/5 ✅`;
+    } else {
+      const hs = helsinkiSeconds(); let secs = 20 * 3600 - hs; if (secs < 0) secs += 86400;
+      const h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60);
+      box.style.display = ''; box.innerHTML = `<span>🧖‍♀️ <b>${esc(t('eveningAt'))}</b> · ${esc(t('eveningIn').replace('{t}', h ? `${h} ${t('hours')} ${m} ${t('minutes')}` : `${m} ${t('minutes')}`))}</span>`;
+    }
+  }
   /* Progression: sauna points, levels, titles, weekly leaderboard */
   let prog = { points: 0, totals: {}, week: 0 }, scoreQueue = {}, lastFlush = 0, flushing = false, lb = [], lbAt = 0, menuOpen = null;
-  const POINT_VALUES = { loyly: 1, perfect: 3, dip: 5, angel: 2, rocket: 1, sled: 2, fish: 3, cheers: 2, quiz: 10, vocab: 10, duel: 15, snowfight: 15, song: 1, tease: 1, thaw: 5, water: 5, challenge: 20, round: 3, host: 25, word: 1 };
+  const POINT_VALUES = { loyly: 1, perfect: 3, dip: 5, angel: 2, rocket: 1, sled: 2, fish: 3, cheers: 2, quiz: 10, vocab: 10, duel: 15, snowfight: 15, song: 1, tease: 1, thaw: 5, water: 5, challenge: 20, round: 3, host: 25, word: 1, evening: 10, eveningfull: 30, eveninghero: 20 };
   const levelFor = (pts) => { let lv = D.LEVELS[0]; for (const l of D.LEVELS) if (pts >= l.min) lv = l; return lv; };
   const nextLevel = (pts) => D.LEVELS.find(l => l.min > pts) || null;
   const titlesFor = (totals) => D.TITLES.filter(x => (totals[x.key] || 0) >= x.n);
@@ -618,7 +692,7 @@ window.SK_ROOM = (function () {
     return `<text class="pet bob" data-pet="${esc(p.id)}" x="${c.x.toFixed(1)}" y="${c.y.toFixed(1)}" font-size="${(26 * s).toFixed(0)}" text-anchor="middle" style="animation-delay:-${(hash(p.id) % 20) / 10}s">${pet.e}</text>`;
   }
   function petTick(dt) {
-    const all = npc ? people.concat([npc]) : people;
+    const all = people.concat([npc, hostNpc].filter(Boolean));
     for (const p of all) {
       if (!p.pet || !D.PETS[p.pet] || !D.PETS[p.pet].e) continue;
       const c = findPos(p.id); if (!c) continue;
@@ -632,7 +706,7 @@ window.SK_ROOM = (function () {
   }
 
   function placePeople() {
-    const { taken, seated, cooling, floor } = layout(npc ? people.concat([npc]) : people);
+    const { taken, seated, cooling, floor } = layout(people.concat([npc, hostNpc].filter(Boolean)));
     let html = seated.map(({ p, seat }) => petSvg(p, seat.x, seat.y, seat.scale, false) + avatar(p, seat.x, seat.y, seat.scale, p.id === pid)).join('');
     floor.slice().sort((a, b) => floorPos(a).y - floorPos(b).y).forEach(p => { const c = floorPos(p); const moving = !!dest[p.id]; const left = moving && dest[p.id].x < c.x; html += petSvg(p, c.x, c.y, floorScale(c.y), left) + avatar(p, c.x, c.y, floorScale(c.y), p.id === pid, moving, left, !!sledding[p.id]); });
     el.querySelector('.people').innerHTML = html;
@@ -665,7 +739,7 @@ window.SK_ROOM = (function () {
       const meta = el.querySelector('#roomMeta'); if (meta) meta.innerHTML = `<span>⏱ ${mins} ${esc(ctx.t('min'))} ${esc(ctx.t('inRoomFor'))}</span><span>🔁 ${rounds}. ${esc(ctx.t('rounds'))}</span><span>🌡 ${Math.round(temp)}°C</span><span>🌨 ${esc(ctx.t('outTemp'))} ${outTempNow()}°C</span>`;
       const ot = el.querySelector('.outTempText'); if (ot) ot.textContent = outTempNow() + '°C';
       if (!nudged && me.zone === 'in' && Date.now() - inSince > 15 * 60000) { nudged = true; ctx.toast(ctx.t('nudge')); addLog(`❄️ ${ctx.t('nudge')}`); }
-      renderStrip(); renderMeter(); starterTick(); gameTick(); bodyTick(); eventsTick(); ainoTick();
+      renderStrip(); renderMeter(); starterTick(); gameTick(); bodyTick(); eventsTick(); ainoTick(); eveningTick();
       if (Date.now() - lastFlush > 6000 && Object.keys(scoreQueue).length) { lastFlush = Date.now(); flushScores(); }
       if (ctx.leaderboard && Date.now() - lbAt > 90000) { lbAt = Date.now(); refreshLeaderboard(); }
       if (me.icecrown && me.icecrown < Date.now()) { me.icecrown = 0; track(); }
@@ -848,6 +922,7 @@ window.SK_ROOM = (function () {
     if (id === 'kiuas') return { x: 849, y: 300 };
     if (id === 'thermo') return { x: 1040, y: 150 };
     if (id === 'npc') return (npc && pos.npc) ? clampFloor(pos.npc.x, pos.npc.y) : null;
+    if (id === 'host') return (hostNpc && pos.host) ? clampFloor(pos.host.x, pos.host.y) : null;
     const { seated, cooling, floor } = layout(people);
     const s = seated.find(e => e.p.id === id); if (s) return { x: s.seat.x, y: s.seat.y };
     const f = floor.find(e => e.id === id); if (f) return floorPos(f);
@@ -977,7 +1052,7 @@ window.SK_ROOM = (function () {
       if (ev.perfect) { addChat({ sys: true, text: `🎯 ${by} ${t('perfectLoyly')}` }); kiuasSay('perfect'); }
       else if (throwTimes.length >= 3 && now - lastKiuasScold > 30000) { lastKiuasScold = now; kiuasSay('scold'); }
       if (temp >= 110) { temp = 100; kiuasSay('burst'); bubbles.push({ id: 'thermo', emoji: '💥', at: now, until: now + 3000 }); }
-      renderStats();
+      renderStats(); eveningCount('loyly', ev.id);
       el.querySelectorAll('.people .bob').forEach(g => { g.classList.remove('shock'); void g.getBBox(); g.classList.add('shock'); });
       if (duel && !duel.done) { const r = duel.tally[ev.id] || (duel.tally[ev.id] = { id: ev.id, name: by, n: 0, first: now }); r.n++; renderGame(); }
       renderMasters(); renderMeter(); addLog(`💧 ${by} ${t('threw')}`); bubbles.push({ id: ev.id, emoji: '💧', at: now, until: now + 3000 });
@@ -1027,16 +1102,16 @@ window.SK_ROOM = (function () {
           setFace(ev.id, 'wave', 2500);
         }
         if (ev.target === pid) { ctx.toast(`${ev.emoji} ${by}`); ding(); }
-        if (ev.verb === 'snowed') stats.snow = (stats.snow || 0) + 1; if (ev.verb === 'cheered') stats.cheers = (stats.cheers || 0) + 1; if (ev.verb === 'teased') stats.teases = (stats.teases || 0) + 1; renderStats();
+        if (ev.verb === 'snowed') stats.snow = (stats.snow || 0) + 1; if (ev.verb === 'cheered') { stats.cheers = (stats.cheers || 0) + 1; eveningCount('cheers', ev.id); } if (ev.verb === 'teased') stats.teases = (stats.teases || 0) + 1; renderStats();
       } else {
         bubbles.push({ id: ev.id, emoji: ev.emoji, at: now, until: now + 3500 });
         if (ev.emoji === '🙏') { addLog(`🙏 ${by}: ${t('greet')}!`); setFace(ev.id, 'relax', 2500); }
-        else if (ev.emoji === '🌿') { addLog(`🌿 ${by} ${t('whisked')}`); setFace(ev.id, 'vihta', 3000); }
+        else if (ev.emoji === '🌿') { addLog(`🌿 ${by} ${t('whisked')}`); setFace(ev.id, 'vihta', 3000); eveningCount('vihta', ev.id); }
         else addLog(`${ev.emoji} ${by}`);
       }
     }
     else if (ev.type === 'say') { const text = String(ev.text || '').slice(0, 80); bubbles = bubbles.filter(b => !(b.id === ev.id && b.text)); bubbles.push({ id: ev.id, text, at: now, until: now + 7000 }); addLog(`💬 ${by}: ${text}`); addChat({ id: ev.id, by, text, mid: ev.mid }); if (ev.id !== pid) ding(); ainoHears(ev); }
-    else if (ev.type === 'mood') { const face = String(ev.face || ''); setFace(ev.id, face, ev.ms || 9000); if (ev.note === 'dipped') { stats.dips = (stats.dips || 0) + 1; renderStats(); } bubbles = bubbles.filter(b => !(b.id === ev.id && b.emoji)); bubbles.push({ id: ev.id, emoji: ev.emoji, at: now, until: now + 3500 }); if (ev.note) { addLog(`${ev.emoji} ${by} ${t(ev.note)}`); addChat({ sys: true, text: `${ev.emoji} ${by} ${t(ev.note)}` }); } else addChat({ id: ev.id, by, text: ev.emoji, big: true, mid: ev.mid }); if (ev.id !== pid) ding(); }
+    else if (ev.type === 'mood') { const face = String(ev.face || ''); setFace(ev.id, face, ev.ms || 9000); if (ev.note === 'dipped') { stats.dips = (stats.dips || 0) + 1; renderStats(); eveningCount('dip', ev.id); } bubbles = bubbles.filter(b => !(b.id === ev.id && b.emoji)); bubbles.push({ id: ev.id, emoji: ev.emoji, at: now, until: now + 3500 }); if (ev.note) { addLog(`${ev.emoji} ${by} ${t(ev.note)}`); addChat({ sys: true, text: `${ev.emoji} ${by} ${t(ev.note)}` }); } else addChat({ id: ev.id, by, text: ev.emoji, big: true, mid: ev.mid }); if (ev.id !== pid) ding(); }
     else if (ev.type === 'rocket') { fireworks.push({ x: ev.x || 300, top: 150 + Math.floor(Math.random() * 120), t0: now, seed: (ev.seed || 0) % 7, color: FX_COLORS[(ev.seed || 0) % FX_COLORS.length] }); hiss(false); addLog(`🎆 ${by} ${t('fired')}`); addChat({ sys: true, text: `🎆 ${by} ${t('fired')}` }); }
     else if (ev.type === 'sled') {
       const p = people.find(x => x.id === ev.id); if (p) { p.zone = 'floor'; p.x = 90; p.y = 430; }
@@ -1057,6 +1132,7 @@ window.SK_ROOM = (function () {
     }
     else if (ev.type === 'angel') { imprints.push({ x: ev.x, y: ev.y, until: now + 150000 }); setFace(ev.id, 'laugh', 3000); bubbles.push({ id: ev.id, emoji: '👼', at: now, until: now + 3000 }); addChat({ sys: true, text: `👼 ${by} ${t('madeAngel')}` }); addLog(`👼 ${by} ${t('madeAngel')}`); }
     else if (ev.type === 'cat') { bubbles.push({ id: 'cat', emoji: '😺', at: now, until: now + 3000 }); addLog(`🐱 ${t('catPurr')}`); if (ev.id === pid) ctx.toast(t('catPurr')); }
+    else if (ev.type === 'evening') { if (eveningStartMs()) return; eveningManualAt = ev.at || now; addChat({ sys: true, text: `🧖‍♀️ ${by} ${t('eveningStarted')}` }); addLog(`🧖‍♀️ ${by} ${t('eveningStarted')}`); ding(); eveningTick(); }
     else if (ev.type === 'snowfight') { if (snowfight && !snowfight.done) return; snowfight = { at: ev.at || now, by, tally: {}, done: false }; addLog(`❄️ ${by} ${t('snowfightStarted')}`); addChat({ sys: true, text: `❄️ ${by} ${t('snowfightStarted')}` }); ctx.toast(t('snowfightLive')); ding(); renderGame(); }
     else if (ev.type === 'move') { const p = people.find(x => x.id === ev.id); if (p) { if (p.zone !== 'floor') { const from = findPos(ev.id); if (from) pos[ev.id] = clampFloor(from.x, from.y); } p.zone = 'floor'; p.x = ev.x; p.y = ev.y; } dest[ev.id] = { x: ev.x, y: ev.y }; if (!pos[ev.id]) pos[ev.id] = { x: ev.x, y: ev.y }; placePeople(); }
     else if (ev.type === 'mreact') { const m = chat.find(x => x.mid === ev.mid); if (!m) return; const key = ev.id + ':' + ev.emoji; if (m.who[key]) return; m.who[key] = true; m.reacts[ev.emoji] = (m.reacts[ev.emoji] || 0) + 1; renderChat(); if (m.id === pid && ev.id !== pid) { ctx.toast(`${ev.emoji} ${by}`); } }
@@ -1067,7 +1143,7 @@ window.SK_ROOM = (function () {
       addLog(`🧠 ${by} ${t('quizStarted')}`); addChat({ sys: true, text: `${ev.kind === 'vocab' ? '🔡' : '🧠'} ${by} ${t('quizStarted')}` }); ding(); renderGame();
       if (ev.kind === 'vocab' && quiz.dir === 0 && practice) speakFi(D.VOCAB[quiz.q][0]);
     }
-    else if (ev.type === 'answer') { if (!quiz || ev.q !== quiz.q) return; if (ev.id === pid) quiz.mine = ev.choice; if (!quiz.answers.some(a => a.id === ev.id)) quiz.answers.push({ id: ev.id, by, ok: !!ev.ok }); if (ev.ok && !quiz.winner) { quiz.winner = by; quiz.done = true; quiz.doneAt = now; addLog(`🏆 ${by} ${t('answered')}`); addChat({ sys: true, text: `🏆 ${by} ${t('answered')} · ${t('quiz')}` }); if (ev.id === pid) { bump('quizWin'); score(quiz.kind === 'vocab' ? 'vocab' : 'quiz'); } } renderGame(); }
+    else if (ev.type === 'answer') { if (!quiz || ev.q !== quiz.q) return; if (ev.id === pid) quiz.mine = ev.choice; if (!quiz.answers.some(a => a.id === ev.id)) quiz.answers.push({ id: ev.id, by, ok: !!ev.ok }); if (ev.ok && !quiz.winner) { quiz.winner = by; quiz.done = true; quiz.doneAt = now; addLog(`🏆 ${by} ${t('answered')}`); addChat({ sys: true, text: `🏆 ${by} ${t('answered')} · ${t('quiz')}` }); if (ev.id === pid) { bump('quizWin'); score(quiz.kind === 'vocab' ? 'vocab' : 'quiz'); } eveningCount('quiz', ev.id); } renderGame(); }
     else if (ev.type === 'duel') { if (duel && !duel.done) return; duel = { at: ev.at || now, by, tally: {}, done: false }; addLog(`💧 ${by} ${t('duelStarted')}`); addChat({ sys: true, text: `💧 ${by} ${t('duelStarted')}` }); ctx.toast(t('duelLive')); ding(); renderGame(); }
   }
   function send(ev) {
@@ -1131,6 +1207,7 @@ window.SK_ROOM = (function () {
         <div class="phrases">${D.PHRASES.map(p => `<button class="chipbtn" data-phrase="${esc(p[0])}" title="${esc(p[1])}">${esc(p[0])}${ctx.lang() === 'en' ? ` <small>· ${esc(p[1])}</small>` : ''}</button>`).join('')}</div>
         <form class="row" id="sayForm" style="margin-top:8px">
           <button type="button" class="chipbtn" id="emojiBtn" title="Emoji">😊</button>
+          <button type="button" class="chipbtn" id="micBtn" title="${esc(t('micHint'))}">🎤</button>
           <input id="sayInput" maxlength="80" placeholder="${esc(t('sayPh'))}" style="flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:9px 14px">
           <button class="btn small" type="submit">${esc(t('send'))}</button>
         </form>
@@ -1138,6 +1215,7 @@ window.SK_ROOM = (function () {
       </div>
       <div class="card personBar" id="personBar" style="display:none"></div>
       <div class="card gameBox" id="gameBox" style="display:none"></div>
+      <div class="card eveningCard" id="eveningCard"></div>
       <div class="card challenge row between" id="challenge"></div>
       <div class="card ladleGame" id="ladleGame" style="display:none"></div>
       <div class="small muted" id="statsCard" style="margin:4px 0 8px"></div>
@@ -1177,7 +1255,7 @@ window.SK_ROOM = (function () {
       let items = [];
       if (kind === 'move') items = [me.zone !== 'in' && ['sit', '🔥', t('mvBench')], !out && ['cool', '❄️', t('mvTerrace')], !lounge && ['lounge', '🛋', t('mvLounge')], ['avanto', '🧊', t('mvAvanto')], ['sled', '🛷', t('mvSled')]];
       if (kind === 'more') items = [inSauna && ['vihta', '🌿', t('vihta')], ['greet', '🙏', t('greet')], ['sing', '🎵', t('sing')], inSauna && ['ladlegame', '🥄', t('ladleGame')], out && ['angel', '👼', t('angelBtn')], out && ['fish', '🎣', t('fish')], out && ['rocket', '🎆', t('rocket')], lounge && ['beer', '🍺', t('takeBeer')], ['figure', '🎭', t('myFigure')], ['postcard', '📮', t('postcard')]];
-      if (kind === 'games') items = [['quiz', '🧠', t('quiz')], ['duel', '💧', t('duel')], ['snowfight', '☃️', t('snowfight')], practice && ['vocab', '🔡', t('vocabQuiz')]];
+      if (kind === 'games') items = [!eveningStartMs() && ['evening', '🧖‍♀️', t('eveningStart')], ['quiz', '🧠', t('quiz')], ['duel', '💧', t('duel')], ['snowfight', '☃️', t('snowfight')], practice && ['vocab', '🔡', t('vocabQuiz')]];
       items = items.filter(Boolean);
       box.innerHTML = items.map(i => `<button class="btn small ${kind === 'games' ? 'lake' : 'secondary'}" data-act="${i[0]}">${i[1]} ${esc(i[2])}</button>`).join('');
       box.style.display = '';
@@ -1233,6 +1311,7 @@ window.SK_ROOM = (function () {
       if (act === 'sled') { if (coldStage(me) >= 3) { ctx.toast(t('frozenCantMove')); return; } me.zone = 'floor'; me.x = 90; me.y = 430; if (!me.outSince) me.outSince = Date.now(); send({ type: 'sled' }); track(); }
       if (act === 'fish') { if (coldStage(me) >= 3) { ctx.toast(t('frozenCantMove')); return; } const d = findPos(pid); walkTo(486, 596); const dist = d ? Math.hypot(486 - d.x, 596 - Math.max(478, d.y)) : 500; fishAt = Date.now() + dist / 230 * 1000 + 300; }
       if (act === 'postcard') makePostcard();
+      if (act === 'evening') { if (eveningStartMs()) return; send({ type: 'evening', at: Date.now() }); }
       if (act === 'sit') { const { taken } = layout(people); const free = SEATS.find(s => !taken[s.id]) || SEATS[0]; sitAt(free.id); }
       if (act === 'talk') { const inp = el.querySelector('#sayInput'); if (inp) { inp.scrollIntoView({ behavior: 'smooth', block: 'center' }); inp.focus(); } }
       if (act === 'beer') send({ type: 'mood', face: 'beer', emoji: '🍺', note: 'tookBeer', ms: 15000, mid: pid + '-' + Date.now() });
@@ -1249,7 +1328,13 @@ window.SK_ROOM = (function () {
         send({ type: 'quiz', kind: 'vocab', q, dir, opts, a: opts.indexOf(q), at: Date.now() });
       }
       if (act === 'classroom') {
-        const name = prompt(t('classroomAsk')); if (!name) return;
+        const bar = el.querySelector('#personBar'); bar.style.display = '';
+        bar.innerHTML = `<form class="row" id="classForm"><input id="classInput" maxlength="30" placeholder="${esc(t('classroomAsk'))}" style="flex:1;min-width:0;border:1px solid var(--line);background:var(--bg2);border-radius:999px;padding:9px 14px"><button class="btn small" type="submit">🏫 ${esc(t('classroom'))}</button><button class="chipbtn ghost" type="button" data-pact="close">✕</button></form>`;
+        bar.querySelector('#classForm').addEventListener('submit', ev2 => { ev2.preventDefault(); const v = bar.querySelector('#classInput').value.trim(); bar.style.display = 'none'; if (v) doAct('classroomgo', v); });
+        bar.querySelector('#classInput').focus();
+      }
+      if (act === 'classroomgo') {
+        const name = b; if (!name) return;
         const slug = name.trim().toLowerCase().replace(/[^a-z0-9äöå]+/g, '-').replace(/^-|-$/g, '');
         const link = location.origin + location.pathname + '?room=' + encodeURIComponent(slug);
         try { navigator.clipboard && navigator.clipboard.writeText(link); } catch (e) {}
@@ -1307,6 +1392,7 @@ window.SK_ROOM = (function () {
       const ph = e.target.closest('[data-phrase]'); if (ph) { send({ type: 'say', text: ph.dataset.phrase, mid: pid + '-' + Date.now() }); return; }
       const md = e.target.closest('[data-mood]'); if (md) { send({ type: 'mood', face: md.dataset.mood, emoji: md.dataset.emo, mid: pid + '-' + Date.now() }); return; }
       if (e.target.closest('#emojiBtn')) { const g = el.querySelector('#emojiGrid'); g.style.display = g.style.display === 'none' ? '' : 'none'; return; }
+      if (e.target.closest('#micBtn')) { toggleMic(); return; }
       const ins = e.target.closest('[data-ins]'); if (ins) { const inp = el.querySelector('#sayInput'); inp.value = (inp.value + ins.dataset.ins).slice(0, 80); inp.focus(); return; }
       const mr = e.target.closest('[data-mr]'); if (mr) { send({ type: 'mreact', mid: mr.dataset.mid, emoji: mr.dataset.mr }); reactBarFor = null; renderChat(); return; }
       const msg = e.target.closest('.msg[data-mid]'); if (msg && !msg.classList.contains('sys')) { reactBarFor = reactBarFor === msg.dataset.mid ? null : msg.dataset.mid; renderChat(); return; }
@@ -1325,6 +1411,7 @@ window.SK_ROOM = (function () {
     const p0 = ctx.prog && ctx.prog(); if (p0) prog = { points: p0.points || 0, totals: p0.totals || {}, week: p0.week || 0 };
     else { try { prog = Object.assign({ points: 0, totals: {}, week: 0 }, JSON.parse(localStorage.getItem('saunakaverit.prog') || '{}')); } catch (e) {} }
     scoreQueue = {}; menuOpen = null; lb = []; lbAt = 0; const bt0 = bestTitle(prog.totals); me.titleIc = bt0 ? bt0.ic : ''; renderProgress(); refreshLeaderboard();
+    evening = null; hostNpc = null; eveningManualAt = 0; delete pos.host; delete dest.host; renderEvening();
     lastTick = 0; raf = requestAnimationFrame(tick);
     starterTick();
     if (ctx.client) {
@@ -1333,6 +1420,24 @@ window.SK_ROOM = (function () {
     }
   }
   function saveFigure(){ try { localStorage.setItem('saunakaverit.figure', JSON.stringify(figure)); } catch (e) {} }
+
+  /* Speak instead of typing: the phone's own speech recognition fills the chat line and sends it. */
+  let rec = null, listening = false;
+  function toggleMic() {
+    const t = ctx.t, btn = el.querySelector('#micBtn'), inp = el.querySelector('#sayInput');
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { ctx.toast(t('micNo')); return; }
+    if (listening && rec) { try { rec.stop(); } catch (e) {} return; }
+    try {
+      rec = new SR(); rec.lang = (practice || ctx.lang() !== 'en') ? 'fi-FI' : 'en-US'; rec.interimResults = true; rec.maxAlternatives = 1; rec.continuous = false;
+      let finalText = '';
+      rec.onstart = () => { listening = true; btn.classList.add('active'); inp.placeholder = t('micListening'); };
+      rec.onresult = (ev) => { let s = ''; for (let i = ev.resultIndex; i < ev.results.length; i++) { s += ev.results[i][0].transcript; if (ev.results[i].isFinal) finalText = s; } inp.value = (finalText || s).slice(0, 80); };
+      rec.onerror = (ev) => { if (ev.error === 'not-allowed') ctx.toast(t('micDenied')); else if (ev.error !== 'aborted' && ev.error !== 'no-speech') ctx.toast(t('micNo')); };
+      rec.onend = () => { listening = false; btn.classList.remove('active'); inp.placeholder = t('sayPh'); const text = (finalText || inp.value).trim(); if (text) { inp.value = ''; send({ type: 'say', text: text.slice(0, 80), mid: pid + '-' + Date.now() }); if (practice) { pstats.phrases++; savePractice(); renderPractice(); } } };
+      rec.start();
+    } catch (e) { ctx.toast(t('micNo')); }
+  }
 
   /* A postcard: the scene as a picture with a greeting, shared or downloaded. */
   function makePostcard() {
