@@ -338,7 +338,8 @@ window.SK_DATA = (function () {
     mood:'Fiilis', reactHint:'Napauta viestiä reagoidaksesi',
     moose:'Hirvi kävelee ikkunan ohi!', aurora:'Revontulet! Katsokaa ikkunasta.',
     cheers:'Kippis', tease:'Kiusaa', hifive:'Yläfemma', ladle:'Anna kauha', tookBeer:'otti oluen pöydältä', cheered:'kilisti', teased:'kiusoitteli', hifived:'antoi yläfemman', gaveLadle:'antoi kauhan',
-    floorHint:'Napauta lattiaa kävelläksesi · olutpöytä = 🍺 · kaveri = kippis, kiusaa, yläfemma', walked:'käveli lattialle',
+    floorHint:'Napauta lattiaa tai lunta kävelläksesi · olutpöytä = 🍺 · kaveri = kippis, kiusaa, yläfemma', walked:'käveli lattialle',
+    terraceLbl:'Terassi', saunaLbl:'Sauna', loungeLbl:'Pukuhuone', goLounge:'Pukuhuoneeseen', mapHint:'Vedä kuvaa katsellaksesi ympärillesi. Kartta näyttää, missä kaikki ovat.',
   });
   Object.assign(UI.en, {
     chat:'Bench talk', phrases:'Quick phrases', starterBy:'Saunakaverit asks', games:'Games', quiz:'Sauna quiz', duel:'Löyly contest 30 s',
@@ -350,7 +351,8 @@ window.SK_DATA = (function () {
     mood:'Mood', reactHint:'Tap a message to react',
     moose:'A moose is walking past the window!', aurora:'Northern lights! Look out of the window.',
     cheers:'Cheers', tease:'Tease', hifive:'High five', ladle:'Hand the ladle', tookBeer:'took a beer from the table', cheered:'clinked with', teased:'teased', hifived:'high-fived', gaveLadle:'handed the ladle to',
-    floorHint:'Tap the floor to walk · beer table = 🍺 · a person = cheers, tease, high five', walked:'walked onto the floor',
+    floorHint:'Tap the floor or the snow to walk · beer table = 🍺 · a person = cheers, tease, high five', walked:'walked onto the floor',
+    terraceLbl:'Terrace', saunaLbl:'Sauna', loungeLbl:'Lounge', goLounge:'To the lounge', mapHint:'Drag the picture to look around. The map shows where everyone is.',
   });
 
   return { SAUNAS, CITIES, THEMES, KINDS, HEATING, LANGS, ETIQUETTE, SEASONS, BADGES, UI, seedSessions, PHRASES, STARTERS, QUIZ, HATS, TEASES };

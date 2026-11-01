@@ -290,6 +290,12 @@ nav.tabs button.fab.active{background:none}
 .roomScene .swing{transform-box:fill-box;transform-origin:0% 100%;animation:swing .5s ease-in-out infinite alternate}
 @keyframes swing{from{transform:rotate(-15deg)}to{transform:rotate(25deg)}}
 .roomScene .wavehand{transform-box:fill-box;transform-origin:0% 100%;animation:wavearm .4s ease-in-out infinite alternate}
+.roomScene{touch-action:pan-y;cursor:grab}
+.minimap{position:relative;height:30px;margin:6px 0 2px;border-radius:8px;background:linear-gradient(90deg,#1d3b5e 0 32%,#6b3f1f 32% 72%,#c49a66 72%);overflow:hidden;cursor:pointer;user-select:none}
+.minimap .mmArea{position:absolute;top:0;height:100%;display:flex;align-items:center;justify-content:center;font-size:.68rem;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.6);pointer-events:none}
+.minimap .mmView{position:absolute;top:0;height:100%;border:2px solid #ffd166;border-radius:6px;box-sizing:border-box;pointer-events:none;transition:left .1s linear}
+.minimap .mmDots i{position:absolute;bottom:3px;width:9px;height:9px;border-radius:50%;border:1.5px solid #1f1b17;transform:translateX(-50%)}
+.minimap .mmDots i.me{width:12px;height:12px;border-color:#ffd166;bottom:2px}
 .roomScene .walk{animation:walk .35s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:50% 100%}
 @keyframes walk{from{transform:translateY(0) rotate(-2deg)}to{transform:translateY(-4px) rotate(2deg)}}
 .roomScene .clink{animation:clink .5s ease-in-out 3;transform-box:fill-box;transform-origin:50% 100%}

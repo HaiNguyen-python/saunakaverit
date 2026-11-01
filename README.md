@@ -2,6 +2,13 @@
 
 A social sauna app for Finland: fixed Sunday saunas, themed sessions (language sauna, newcomers, silent, avanto, after-the-run), a sauna passport with stamps and badges, and a twelve-point sauna etiquette for first-timers. Finnish first, English toggle.
 
+## Version 0.11 (the whole yard, 2026-11-01)
+
+- The world is now 2000 units wide, two and a half screens: a snowy **terassi** on the left with a frozen lake, the avanto with a ladder, a bonfire, a log bench, a snowman in a bucket hat, pine trees, the moon and the northern lights; the **sauna** in the middle; a **pukuhuone** lounge on the right with birch panelling, a sofa, a rug, towels on hooks, a floor lamp, board games, the beer table and a fridge marked KYLMÄ.
+- Tap anywhere on the floor or the snow to walk there. Cooling off now means walking out to the terrace, where figures shiver and get blue lips; "Takaisin lauteille" sits you down again. A new button walks you to the lounge.
+- The camera follows your figure. Drag the picture to look around (it snaps back after a few seconds), or tap the mini-map under the scene, which also shows everyone as coloured dots.
+- The moose now walks along the lake shore and the aurora show plays over the whole terrace sky.
+
 ## Version 0.10 (room to move, 2026-11-01)
 
 - The scene is taller (800×600): the benches moved up and a wooden floor opens in front of them, with a drain and a beer table.

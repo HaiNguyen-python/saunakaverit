@@ -11,12 +11,16 @@ window.SK_ROOM = (function () {
   const clock = (ms) => { const d = new Date(ms); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 
   const TIERS = [
-    { y: 420, scale: 1.12, x0: 338, n: 7, dx: 72 },
-    { y: 360, scale: 1.0,  x0: 352, n: 7, dx: 68 },
-    { y: 300, scale: 0.9,  x0: 366, n: 7, dx: 64 },
+    { y: 420, scale: 1.12, x0: 978, n: 7, dx: 72 },
+    { y: 360, scale: 1.0,  x0: 992, n: 7, dx: 68 },
+    { y: 300, scale: 0.9,  x0: 1006, n: 7, dx: 64 },
   ];
-  const FLOOR = { x0: 140, x1: 790, y0: 478, y1: 592 };
-  const floorScale = (y) => 1.18 + (y - FLOOR.y0) / (FLOOR.y1 - FLOOR.y0) * 0.32;
+  /* The world: terrace 0..640, sauna 640..1440, lounge 1440..2000. The camera shows 900 of it. */
+  const WORLD_W = 2000, VIEW_W = 900, SAUNA_X0 = 640, LOUNGE_X0 = 1440;
+  const isOutside = (x) => x < SAUNA_X0;
+  function clampFloor(x, y) { x = Math.max(30, Math.min(WORLD_W - 30, x)); const y0 = isOutside(x) ? 430 : 478; return { x, y: Math.max(y0, Math.min(670, y)) }; }
+  const floorScale = (y) => 1.0 + (y - 430) / 240 * 0.5;
+  let cam = 550, camHold = 0, suppressClick = false;
   const SEATS = [];
   TIERS.forEach((tr, ti) => { for (let i = 0; i < tr.n; i++) SEATS.push({ id: ti * 10 + i, tier: ti, x: tr.x0 + i * tr.dx, y: tr.y, scale: tr.scale }); });
 
@@ -85,105 +89,139 @@ window.SK_ROOM = (function () {
 
   /* ---------- scene ---------- */
   function scene(mini) {
-    const planks = []; for (let y = 60; y < 460; y += 26) planks.push(`<line x1="0" y1="${y}" x2="800" y2="${y}"/>`);
-    const boards = []; for (let y = 482; y < 600; y += 22) boards.push(`<line x1="0" y1="${y}" x2="800" y2="${y}"/>`);
-    const stones = [];
-    for (let i = 0; i < 14; i++) { const x = 160 + (i % 5) * 20 + (Math.floor(i / 5) % 2) * 10, y = 296 + Math.floor(i / 5) * 10; stones.push(`<ellipse cx="${x}" cy="${y}" rx="11" ry="8" fill="#55524f" stroke="#2e2c2a"/>`); }
-    const flakes = []; for (let i = 0; i < 16; i++) flakes.push(`<circle cx="${30 + (i * 37) % 80}" cy="${130 + (i * 53) % 400}" r="${1.5 + (i % 3)}" fill="#fff" opacity=".7"/>`);
-    const slats = (x, y, w, h) => { let s = ''; for (let i = 0; i < w; i += 24) s += `<rect x="${x + i}" y="${y}" width="22" height="${h}" rx="3" fill="url(#${u}bench)" stroke="#8a5a2b" stroke-opacity=".8"/><rect x="${x + i + 2}" y="${y + 1.5}" width="18" height="2" rx="1" fill="#fff" fill-opacity=".35"/>`; return s; };
     const u = mini ? 'p' : 'r';
-    const grain = []; for (let x = 0; x < 800; x += 97) grain.push(`<line x1="${x}" y1="60" x2="${x + 3}" y2="460"/>`);
-    const stars = []; for (let i = 0; i < 12; i++) stars.push(`<circle cx="${600 + (i * 53) % 130}" cy="${98 + (i * 29) % 40}" r="${0.8 + (i % 3) * 0.5}" fill="#fff" opacity="${0.5 + (i % 2) * 0.4}"/>`);
+    const planks = []; for (let y = 60; y < 460; y += 26) planks.push(`<line x1="640" y1="${y}" x2="1440" y2="${y}"/>`);
+    const boards = []; for (let y = 482; y < 700; y += 22) boards.push(`<line x1="640" y1="${y}" x2="2000" y2="${y}"/>`);
+    const grain = []; for (let x = 640; x < 1440; x += 97) grain.push(`<line x1="${x}" y1="60" x2="${x + 3}" y2="460"/>`);
+    const panels = []; for (let x = 1440; x < 2000; x += 44) panels.push(`<line x1="${x}" y1="60" x2="${x}" y2="460"/>`);
+    const stones = [];
+    for (let i = 0; i < 14; i++) { const x = 800 + (i % 5) * 20 + (Math.floor(i / 5) % 2) * 10, y = 296 + Math.floor(i / 5) * 10; stones.push(`<ellipse cx="${x}" cy="${y}" rx="11" ry="8" fill="#55524f" stroke="#2e2c2a"/>`); }
+    const flakes = (x0, w, y0, h, n) => { let s = ''; for (let i = 0; i < n; i++) s += `<circle cx="${x0 + (i * 37) % w}" cy="${y0 + (i * 53) % h}" r="${1.2 + (i % 3) * 0.6}" fill="#fff" opacity=".75"/>`; return s; };
+    const stars = []; for (let i = 0; i < 40; i++) stars.push(`<circle cx="${(i * 97) % 640}" cy="${20 + (i * 61) % 340}" r="${0.7 + (i % 3) * 0.5}" fill="#fff" opacity="${0.45 + (i % 2) * 0.4}"/>`);
+    const wstars = []; for (let i = 0; i < 12; i++) wstars.push(`<circle cx="${1240 + (i * 53) % 130}" cy="${98 + (i * 29) % 40}" r="${0.8 + (i % 3) * 0.5}" fill="#fff" opacity="${0.5 + (i % 2) * 0.4}"/>`);
+    const slats = (x, y, w, h) => { let s = ''; for (let i = 0; i < w; i += 24) s += `<rect x="${x + i}" y="${y}" width="22" height="${h}" rx="3" fill="url(#${u}bench)" stroke="#8a5a2b" stroke-opacity=".8"/><rect x="${x + i + 2}" y="${y + 1.5}" width="18" height="2" rx="1" fill="#fff" fill-opacity=".35"/>`; return s; };
+    const tree = (x, y, s) => `<g transform="translate(${x},${y}) scale(${s})"><path d="M0 -90 L-26 -40 L-14 -40 L-34 0 L34 0 L14 -40 L26 -40 Z" fill="#0b1a2e"/><path d="M0 -90 L-12 -66 L12 -66 Z M-8 -44 L8 -44 L0 -58 Z" fill="#dfe9f4" fill-opacity=".55"/><rect x="-5" y="0" width="10" height="12" fill="#1a1008"/></g>`;
+    const towel = (x, c) => `<path d="M${x} 150 L${x} 230 Q${x + 10} 236 ${x + 20} 230 L${x + 20} 150 Z" fill="${c}" stroke="#5b3a1f" stroke-opacity=".4"/>`;
     return `
-<svg viewBox="0 0 800 600" class="roomScene" xmlns="http://www.w3.org/2000/svg" ${mini ? '' : 'id="roomSvg"'}>
+<svg viewBox="${mini ? '640 0 800 700' : '550 0 900 700'}" class="roomScene" xmlns="http://www.w3.org/2000/svg" ${mini ? '' : 'id="roomSvg"'}>
   <defs>
     <linearGradient id="${u}wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a2c16"/><stop offset=".45" stop-color="#7a4a26"/><stop offset="1" stop-color="#8f5c33"/></linearGradient>
     <linearGradient id="${u}bench" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f0cf9a"/><stop offset="1" stop-color="#cf9a60"/></linearGradient>
     <linearGradient id="${u}face" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a86d3c"/><stop offset="1" stop-color="#6b3f1f"/></linearGradient>
     <linearGradient id="${u}night" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a1830"/><stop offset="1" stop-color="#27507c"/></linearGradient>
+    <linearGradient id="${u}sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#050c1c"/><stop offset=".6" stop-color="#132a4a"/><stop offset="1" stop-color="#2d5a8a"/></linearGradient>
+    <linearGradient id="${u}snow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4f8fd"/><stop offset="1" stop-color="#c9d9ea"/></linearGradient>
+    <linearGradient id="${u}ice" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b8d8f0"/><stop offset="1" stop-color="#6fa3cc"/></linearGradient>
     <linearGradient id="${u}cold" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0d2140"/><stop offset="1" stop-color="#2d5a8a"/></linearGradient>
     <linearGradient id="${u}steel" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2f2f2f"/><stop offset=".5" stop-color="#5a5a5a"/><stop offset="1" stop-color="#2a2a2a"/></linearGradient>
+    <linearGradient id="${u}floor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6b3f1f"/><stop offset="1" stop-color="#3d2210"/></linearGradient>
+    <linearGradient id="${u}lwall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e3c598"/><stop offset="1" stop-color="#c49a66"/></linearGradient>
+    <linearGradient id="${u}lfloor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a5a2b"/><stop offset="1" stop-color="#5a3519"/></linearGradient>
     <radialGradient id="${u}glow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffc466" stop-opacity="1"/><stop offset=".6" stop-color="#ff7a1a" stop-opacity=".45"/><stop offset="1" stop-color="#ff5a00" stop-opacity="0"/></radialGradient>
     <radialGradient id="${u}lamp" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffe2a8" stop-opacity=".55"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient>
     <radialGradient id="${u}kiuaslight" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ff9a3c" stop-opacity=".28"/><stop offset="1" stop-color="#ff9a3c" stop-opacity="0"/></radialGradient>
     <radialGradient id="${u}vignette" cx=".5" cy=".55" r=".75"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".45"/></radialGradient>
     <radialGradient id="${u}fire" cx=".5" cy="1" r="1"><stop offset="0" stop-color="#fff1a8"/><stop offset=".45" stop-color="#ff8a1f"/><stop offset="1" stop-color="#9c1d08"/></radialGradient>
     <radialGradient id="${u}moon" cx=".5" cy=".5" r=".5"><stop offset=".5" stop-color="#fff5d6" stop-opacity=".9"/><stop offset="1" stop-color="#fff5d6" stop-opacity="0"/></radialGradient>
+    <radialGradient id="${u}fireglow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffb347" stop-opacity=".55"/><stop offset="1" stop-color="#ff7a1a" stop-opacity="0"/></radialGradient>
     <linearGradient id="${u}aurora" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3dff9a" stop-opacity="0"/><stop offset=".3" stop-color="#3dff9a"/><stop offset=".6" stop-color="#7ad3ff"/><stop offset=".85" stop-color="#c67bff"/><stop offset="1" stop-color="#c67bff" stop-opacity="0"/></linearGradient>
-    <clipPath id="${u}winclip"><rect x="590" y="93" width="150" height="100" rx="4"/></clipPath>
-    <clipPath id="${u}doorclip"><rect x="26" y="124" width="88" height="432"/></clipPath>
-    <linearGradient id="${u}floor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6b3f1f"/><stop offset="1" stop-color="#3d2210"/></linearGradient>
+    <clipPath id="${u}winclip"><rect x="1230" y="93" width="150" height="100" rx="4"/></clipPath>
+    <clipPath id="${u}doorclip"><rect x="666" y="124" width="88" height="432"/></clipPath>
+    <clipPath id="${u}terraceclip"><rect x="0" y="0" width="640" height="700"/></clipPath>
     ${mini ? '' : `<filter id="${u}blur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.5"/></filter>`}
   </defs>
-  <rect width="800" height="600" fill="url(#${u}wall)"/>
+
+  <!-- ===== TERASSI (outside, 0..640) ===== -->
+  <rect x="0" y="0" width="640" height="700" fill="url(#${u}sky)"/>
+  <g clip-path="url(#${u}terraceclip)">
+    <g class="aurora" style="opacity:.3">
+      <path d="M-40 150 Q120 90 260 140 T560 120 T720 150" stroke="url(#${u}aurora)" stroke-width="34" fill="none" stroke-linecap="round" class="band b1"/>
+      <path d="M-20 200 Q140 150 300 190 T620 170" stroke="url(#${u}aurora)" stroke-width="22" fill="none" stroke-linecap="round" class="band b2"/>
+    </g>
+    <g>${stars.join('')}</g>
+    <circle cx="520" cy="90" r="44" fill="url(#${u}moon)"/><circle cx="520" cy="90" r="22" fill="#fff6d8"/>
+    <path d="M0 400 Q160 370 320 395 T640 390 L640 700 L0 700 Z" fill="url(#${u}snow)"/>
+    ${tree(40, 400, 1.1)}${tree(110, 395, 0.8)}${tree(230, 390, 1.0)}${tree(590, 396, 0.9)}${tree(640, 400, 0.7)}
+    <g class="moose" transform="translate(-100,0)" style="opacity:0"><g transform="scale(.9)" fill="#0b1a2e">
+      <ellipse cx="0" cy="0" rx="26" ry="13"/><rect x="-22" y="6" width="5" height="20"/><rect x="-10" y="6" width="5" height="22"/><rect x="6" y="6" width="5" height="22"/><rect x="18" y="6" width="5" height="20"/>
+      <path d="M20 -6 L34 -18 L44 -14 L40 -2 Z"/><path d="M30 -16 L26 -30 M34 -18 L38 -32 M30 -16 L22 -26 M34 -18 L44 -26" stroke="#0b1a2e" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M-26 -4 q-6 2 -4 8" stroke="#0b1a2e" stroke-width="3" fill="none"/></g></g>
+    <!-- frozen lake with the avanto -->
+    <ellipse cx="330" cy="600" rx="240" ry="70" fill="url(#${u}ice)" stroke="#f4f8fd" stroke-width="4"/>
+    <path d="M150 585 Q330 560 510 590" stroke="#fff" stroke-opacity=".35" stroke-width="2" fill="none"/>
+    <ellipse cx="330" cy="605" rx="46" ry="16" fill="#1b4a7a" stroke="#dbeafc" stroke-width="3"/>
+    <ellipse cx="330" cy="604" rx="34" ry="9" fill="#2d6aa3"/>
+    <path d="M372 590 L372 622 M384 586 L384 620 M372 598 L384 596 M372 610 L384 608" stroke="#c9a06a" stroke-width="3" stroke-linecap="round"/>
+    <text x="330" y="650" text-anchor="middle" font-size="12" fill="#1b4a7a" font-family="Inter,sans-serif">avanto</text>
+    <!-- bonfire -->
+    <ellipse cx="140" cy="572" rx="70" ry="30" fill="url(#${u}fireglow)"/>
+    <rect x="112" y="556" width="56" height="9" rx="3" fill="#5b3a1f" transform="rotate(-14 140 560)"/><rect x="112" y="556" width="56" height="9" rx="3" fill="#4a2c16" transform="rotate(14 140 560)"/>
+    <g class="flames"><path d="M124 560 q-6 -18 8 -30 q0 14 10 18 q3 -16 14 -22 q-3 18 10 26 q6 -10 3 -22 q14 14 4 30 Z" fill="#ffd166" fill-opacity=".95" class="flame"/><path d="M134 560 q-3 -12 7 -20 q1 10 8 13 q4 -10 8 -14 q0 14 5 21 Z" fill="#fff3b0" class="flame f2"/></g>
+    <rect x="40" y="578" width="90" height="12" rx="4" fill="#8a5a2b" stroke="#4a2c16"/><rect x="48" y="590" width="8" height="14" fill="#4a2c16"/><rect x="114" y="590" width="8" height="14" fill="#4a2c16"/>
+    <!-- snowman with a bucket hat -->
+    <g transform="translate(540,520)">
+      <circle cx="0" cy="0" r="26" fill="#fff"/><circle cx="0" cy="-36" r="19" fill="#fff"/><circle cx="0" cy="-64" r="14" fill="#fff"/>
+      <circle cx="-5" cy="-67" r="1.8" fill="#222"/><circle cx="5" cy="-67" r="1.8" fill="#222"/><path d="M0 -63 L14 -60 L0 -58 Z" fill="#f08a24"/>
+      <path d="M-3 -56 q3 3 6 0" stroke="#222" stroke-width="1.2" fill="none"/>
+      <circle cx="0" cy="-40" r="2" fill="#222"/><circle cx="0" cy="-30" r="2" fill="#222"/>
+      <path d="M-19 -40 L-40 -52 M19 -40 L40 -52" stroke="#5b3a1f" stroke-width="3" stroke-linecap="round"/>
+      <path d="M-14 -48 Q0 -40 14 -48 L12 -42 Q0 -34 -12 -42 Z" fill="#b23a3a"/>
+      <path d="M-12 -72 L-14 -92 L14 -92 L12 -72 Z" fill="#6fa8c9" stroke="#2b5d7a"/><rect x="-16" y="-95" width="32" height="5" rx="2" fill="#2b5d7a"/>
+    </g>
+    <!-- the sauna's outer wall, lamp and a sign -->
+    <rect x="606" y="150" width="40" height="550" fill="#2b170a"/>
+    <g transform="translate(612,300)"><path d="M0 -20 L0 -34 L-30 -34" stroke="#1d110a" stroke-width="4" fill="none"/><rect x="-9" y="-20" width="18" height="26" rx="3" fill="#ffd98a" stroke="#3b2a1c" stroke-width="2"/><rect x="-5" y="-16" width="10" height="18" rx="2" fill="#fff3c4" class="flicker"/></g>
+    <ellipse cx="560" cy="330" rx="120" ry="90" fill="url(#${u}lamp)"/>
+    <g transform="translate(470,430)"><rect x="-3" y="-60" width="6" height="60" fill="#5b3a1f"/><rect x="-36" y="-66" width="72" height="20" rx="3" fill="#b57c4a" stroke="#4a2c16"/><text x="0" y="-52" text-anchor="middle" font-size="12" font-weight="700" fill="#2b170a" font-family="Inter,sans-serif">SAUNA →</text></g>
+    <g class="snowfall slow">${flakes(0, 640, 0, 700, 40)}</g><g class="snowfall" transform="translate(0,-160)">${flakes(0, 640, 0, 700, 40)}</g>
+  </g>
+
+  <!-- ===== SAUNA (640..1440) ===== -->
+  <rect x="640" y="0" width="800" height="700" fill="url(#${u}wall)"/>
   <g stroke="#2a170c" stroke-opacity=".5">${planks.join('')}</g>
   <g stroke="#ffd9a8" stroke-opacity=".07" transform="translate(0,1)">${planks.join('')}</g>
   <g stroke="#2a170c" stroke-opacity=".18">${grain.join('')}</g>
-  <rect width="800" height="60" fill="#2b170a"/>
-  <rect y="58" width="800" height="4" fill="#1d0f06"/>
-  <!-- floor -->
-  <rect y="460" width="800" height="140" fill="url(#${u}floor)"/>
+  <rect x="640" width="800" height="60" fill="#2b170a"/>
+  <rect x="640" y="58" width="800" height="4" fill="#1d0f06"/>
+  <rect x="640" y="460" width="800" height="240" fill="url(#${u}floor)"/>
   <g stroke="#1d0f06" stroke-opacity=".6">${boards.join('')}</g>
   <g stroke="#ffd9a8" stroke-opacity=".05" transform="translate(0,1)">${boards.join('')}</g>
-  <rect y="458" width="800" height="5" fill="#241308"/>
-  <circle cx="430" cy="585" r="9" fill="#1a0e06" stroke="#4a2c16" stroke-width="2"/><path d="M424 585 L436 585 M430 579 L430 591" stroke="#4a2c16" stroke-width="1.5"/>
-  <!-- beer table -->
-  <g class="hot" data-act="beertable" style="cursor:pointer" transform="translate(600,540)">
-    <rect x="-34" y="-6" width="68" height="8" rx="3" fill="#b57c4a" stroke="#5b3a1f" stroke-width="2"/>
-    <rect x="-26" y="2" width="6" height="36" fill="#8a5a2b"/><rect x="20" y="2" width="6" height="36" fill="#8a5a2b"/>
-    <rect x="-30" y="-24" width="60" height="18" rx="3" fill="#f6ecd8" stroke="#8c5a35" stroke-width="2"/>
-    <rect x="-22" y="-34" width="9" height="22" rx="2" fill="#f2b632" stroke="#8a5a1a"/><rect x="-22" y="-37" width="9" height="5" rx="2" fill="#fff8e1"/>
-    <rect x="-5" y="-34" width="9" height="22" rx="2" fill="#f2b632" stroke="#8a5a1a"/><rect x="-5" y="-37" width="9" height="5" rx="2" fill="#fff8e1"/>
-    <rect x="12" y="-34" width="9" height="22" rx="2" fill="#f2b632" stroke="#8a5a1a"/><rect x="12" y="-37" width="9" height="5" rx="2" fill="#fff8e1"/>
-    ${mini ? '' : '<text x="0" y="56" text-anchor="middle" font-size="11" fill="#ffd166" font-family="Inter,sans-serif" class="kiuasHint">🍺</text>'}
-  </g>
-  <rect class="floorHit" x="${FLOOR.x0}" y="${FLOOR.y0 - 30}" width="${FLOOR.x1 - FLOOR.x0}" height="${FLOOR.y1 - FLOOR.y0 + 38}" fill="#fff" fill-opacity="0" style="cursor:pointer"/>
-  <!-- kiuas light on the wall and the lantern -->
-  <ellipse cx="215" cy="330" rx="260" ry="200" fill="url(#${u}kiuaslight)"/>
-  <ellipse cx="500" cy="150" rx="230" ry="150" fill="url(#${u}lamp)"/>
-  <g transform="translate(500,110)">
+  <rect x="640" y="458" width="800" height="5" fill="#241308"/>
+  <circle cx="1070" cy="650" r="9" fill="#1a0e06" stroke="#4a2c16" stroke-width="2"/><path d="M1064 650 L1076 650 M1070 644 L1070 656" stroke="#4a2c16" stroke-width="1.5"/>
+  <ellipse cx="855" cy="330" rx="260" ry="200" fill="url(#${u}kiuaslight)"/>
+  <ellipse cx="1140" cy="150" rx="230" ry="150" fill="url(#${u}lamp)"/>
+  <g transform="translate(1140,110)">
     <path d="M-14 -30 L14 -30 L10 -6 L-10 -6 Z" fill="#3b2a1c" stroke="#1d110a"/>
     <rect x="-9" y="-6" width="18" height="26" rx="3" fill="#ffd98a" stroke="#3b2a1c" stroke-width="2"/>
     <rect x="-5" y="-2" width="10" height="18" rx="2" fill="#fff3c4" class="flicker"/>
     <rect x="-11" y="20" width="22" height="5" rx="2" fill="#3b2a1c"/>
     <path d="M0 -30 L0 -40 L-40 -40" stroke="#1d110a" stroke-width="4" fill="none"/>
   </g>
-  <!-- window -->
-  <rect x="585" y="88" width="160" height="110" rx="6" fill="url(#${u}night)" stroke="#2b170a" stroke-width="10"/>
+  <rect x="1225" y="88" width="160" height="110" rx="6" fill="url(#${u}night)" stroke="#2b170a" stroke-width="10"/>
   <g clip-path="url(#${u}winclip)">
-    <g class="aurora" style="opacity:.22">
-      <path d="M580 120 Q620 95 660 118 T740 110" stroke="url(#${u}aurora)" stroke-width="16" fill="none" stroke-linecap="round" class="band b1"/>
-      <path d="M585 135 Q630 112 670 132 T750 122" stroke="url(#${u}aurora)" stroke-width="12" fill="none" stroke-linecap="round" class="band b2"/>
-    </g>
-    <g>${stars.join('')}</g>
-    <circle cx="700" cy="118" r="24" fill="url(#${u}moon)"/><circle cx="700" cy="118" r="12" fill="#fff6d8"/>
-    <g class="snowfall">${[...Array(10)].map((_, i) => `<circle cx="${595 + (i * 41) % 145}" cy="${90 + (i * 37) % 100}" r="${1 + (i % 2)}" fill="#fff" opacity=".8"/>`).join('')}</g>
-    <path d="M595 168 Q620 160 645 168 T695 168 T740 168 L740 192 L595 192 Z" fill="#dfe9f4"/>
-    <path d="M595 168 Q620 162 645 168 T695 168 T740 168 L740 176 L595 176 Z" fill="#fff" fill-opacity=".5"/>
-    <path d="M598 158 L622 126 L646 158 Z M650 160 L672 134 L694 160 Z M698 160 L716 140 L734 160 Z" fill="#102640"/>
-    <path d="M598 158 L622 126 L646 158 Z M650 160 L672 134 L694 160 Z M698 160 L716 140 L734 160 Z" fill="#fff" fill-opacity=".12"/>
-    <g class="moose" transform="translate(-100,0)" style="opacity:0">
-      <g transform="scale(.55)" fill="#0b1a2e">
-        <ellipse cx="0" cy="0" rx="26" ry="13"/><rect x="-22" y="6" width="5" height="20"/><rect x="-10" y="6" width="5" height="22"/><rect x="6" y="6" width="5" height="22"/><rect x="18" y="6" width="5" height="20"/>
-        <path d="M20 -6 L34 -18 L44 -14 L40 -2 Z"/><path d="M30 -16 L26 -30 M34 -18 L38 -32 M30 -16 L22 -26 M34 -18 L44 -26" stroke="#0b1a2e" stroke-width="3" fill="none" stroke-linecap="round"/>
-        <path d="M-26 -4 q-6 2 -4 8" stroke="#0b1a2e" stroke-width="3" fill="none"/>
-      </g>
-    </g>
+    <g>${wstars.join('')}</g>
+    <circle cx="1340" cy="118" r="24" fill="url(#${u}moon)"/><circle cx="1340" cy="118" r="12" fill="#fff6d8"/>
+    <g class="snowfall">${flakes(1235, 145, 90, 100, 10)}</g>
+    <path d="M1235 168 Q1260 160 1285 168 T1335 168 T1380 168 L1380 192 L1235 192 Z" fill="#dfe9f4"/>
+    <path d="M1238 158 L1262 126 L1286 158 Z M1290 160 L1312 134 L1334 160 Z M1338 160 L1356 140 L1374 160 Z" fill="#102640"/>
   </g>
-  <line x1="665" y1="88" x2="665" y2="198" stroke="#2b170a" stroke-width="6"/>
-  <rect x="585" y="88" width="160" height="110" rx="6" fill="none" stroke="#3b2a1c" stroke-width="3"/>
-  <!-- the door to the cold -->
+  <line x1="1305" y1="88" x2="1305" y2="198" stroke="#2b170a" stroke-width="6"/>
+  <rect x="1225" y="88" width="160" height="110" rx="6" fill="none" stroke="#3b2a1c" stroke-width="3"/>
+  <!-- doorway to the terrace -->
   <g class="hot" data-act="cool" style="cursor:pointer">
-    <rect x="22" y="120" width="96" height="440" rx="4" fill="url(#${u}cold)" stroke="#1d110a" stroke-width="8"/>
-    <rect x="26" y="124" width="88" height="432" fill="#9fd0ff" fill-opacity=".08"/>
-    <path d="M26 556 L114 556 L114 520 Q70 505 26 520 Z" fill="#e6eef7"/>
-    <ellipse cx="70" cy="552" rx="30" ry="7" fill="#1b4a7a" stroke="#cfe6ff" stroke-width="2"/>
-    <ellipse cx="70" cy="552" rx="22" ry="4" fill="#2d6aa3"/>
-    <g clip-path="url(#${u}doorclip)"><g class="snowfall slow">${flakes.join('')}</g><g class="snowfall" transform="translate(0,-160)">${flakes.join('')}</g><g class="snowfall" transform="translate(0,-320)">${flakes.join('')}</g></g>
-    <text x="70" y="140" text-anchor="middle" font-size="11" fill="#bfe0ff" font-family="Inter,sans-serif" class="coolLabel">Vilvoittelu</text>
+    <rect x="662" y="120" width="96" height="440" rx="4" fill="url(#${u}cold)" stroke="#1d110a" stroke-width="8"/>
+    <rect x="666" y="124" width="88" height="432" fill="#9fd0ff" fill-opacity=".08"/>
+    <path d="M666 556 L754 556 L754 520 Q710 505 666 520 Z" fill="#e6eef7"/>
+    <g clip-path="url(#${u}doorclip)"><g class="snowfall slow">${flakes(670, 80, 130, 400, 16)}</g><g class="snowfall" transform="translate(0,-160)">${flakes(670, 80, 130, 400, 16)}</g></g>
+    <text x="710" y="140" text-anchor="middle" font-size="11" fill="#bfe0ff" font-family="Inter,sans-serif" class="coolLabel">Terassi</text>
   </g>
-  <!-- vihta -->
-  <g transform="translate(300,120)" class="hot" data-act="vihta" style="cursor:pointer">
+  <!-- doorway to the lounge -->
+  <g class="hot" data-act="lounge" style="cursor:pointer">
+    <rect x="1382" y="120" width="56" height="440" rx="4" fill="url(#${u}lwall)" stroke="#1d110a" stroke-width="8"/>
+    <rect x="1386" y="460" width="48" height="96" fill="url(#${u}lfloor)"/>
+    <text x="1410" y="140" text-anchor="middle" font-size="10" fill="#5b3a1f" font-family="Inter,sans-serif" class="loungeLabel">Pukuhuone</text>
+  </g>
+  <g transform="translate(940,120)" class="hot" data-act="vihta" style="cursor:pointer">
     <circle cx="0" cy="-4" r="3" fill="#222"/>
     <path d="M0 0 L0 40" stroke="#6b4a2b" stroke-width="4"/>
     <ellipse cx="-12" cy="52" rx="14" ry="24" fill="#4e8a3d" transform="rotate(-15 -12 52)"/>
@@ -191,13 +229,12 @@ window.SK_ROOM = (function () {
     <ellipse cx="0" cy="58" rx="13" ry="26" fill="#74b35a"/>
     <ellipse cx="-3" cy="52" rx="6" ry="14" fill="#a3d68a" fill-opacity=".5"/>
   </g>
-  <!-- thermometer -->
-  <g transform="translate(400,100)">
+  <g transform="translate(1040,100)">
     <rect x="-26" y="-18" width="52" height="54" rx="8" fill="#f6ecd8" stroke="#8c5a35" stroke-width="3"/>
     <text x="0" y="10" text-anchor="middle" font-size="18" font-weight="700" fill="#8c5a35" font-family="Outfit,Inter,sans-serif" class="tempText">80°</text>
     <text x="0" y="28" text-anchor="middle" font-size="9" fill="#8c5a35" font-family="Inter,sans-serif">löyly</text>
   </g>
-  <g transform="translate(135,470)"><g class="tonttu" style="opacity:0;transition:opacity .6s">
+  <g transform="translate(775,470)"><g class="tonttu" style="opacity:0;transition:opacity .6s">
     <ellipse cx="0" cy="40" rx="16" ry="20" fill="#9b2d2d"/>
     <ellipse cx="-8" cy="58" rx="6" ry="3" fill="#2b1d12"/><ellipse cx="8" cy="58" rx="6" ry="3" fill="#2b1d12"/>
     <circle cx="0" cy="12" r="12" fill="#f1c9a5"/>
@@ -206,37 +243,80 @@ window.SK_ROOM = (function () {
     <circle cx="-4" cy="10" r="1.6" fill="#2b1d12"/><circle cx="4" cy="10" r="1.6" fill="#2b1d12"/>
     <path d="M14 30 q8 -10 6 -22" stroke="#f1c9a5" stroke-width="4" fill="none" stroke-linecap="round" class="tonttuArm"/>
   </g></g>
-  <!-- kiuas -->
   <g class="hot" data-act="loyly" style="cursor:pointer">
-    <rect x="200" y="110" width="18" height="190" fill="url(#${u}steel)"/>
-    <rect x="150" y="290" width="118" height="170" rx="8" fill="url(#${u}steel)" stroke="#1a1a1a" stroke-width="3"/>
-    <rect x="156" y="296" width="106" height="158" rx="6" fill="none" stroke="#777" stroke-opacity=".35"/>
-    <rect x="150" y="285" width="118" height="12" rx="4" fill="#232323"/>
-    <ellipse cx="209" cy="300" rx="90" ry="40" fill="url(#${u}glow)" class="kiuasGlow"/>
+    <rect x="840" y="110" width="18" height="190" fill="url(#${u}steel)"/>
+    <rect x="790" y="290" width="118" height="170" rx="8" fill="url(#${u}steel)" stroke="#1a1a1a" stroke-width="3"/>
+    <rect x="796" y="296" width="106" height="158" rx="6" fill="none" stroke="#777" stroke-opacity=".35"/>
+    <rect x="790" y="285" width="118" height="12" rx="4" fill="#232323"/>
+    <ellipse cx="849" cy="300" rx="90" ry="40" fill="url(#${u}glow)" class="kiuasGlow"/>
     ${stones.join('')}
-    <ellipse cx="196" cy="320" rx="9" ry="6" fill="#ff8a3c" fill-opacity=".55"/><ellipse cx="226" cy="318" rx="7" ry="5" fill="#ff6a1a" fill-opacity=".45"/>
-    <rect x="172" y="410" width="74" height="26" rx="4" fill="url(#${u}fire)"/>
-    <g class="flames"><path d="M186 436 q-4 -10 4 -16 q0 8 6 10 q2 -8 8 -12 q-2 10 6 14 q4 -6 2 -12 q8 8 2 16 Z" fill="#ffd166" fill-opacity=".9" class="flame"/><path d="M196 436 q-2 -8 4 -12 q1 6 5 8 q3 -6 5 -9 q0 9 3 13 Z" fill="#fff3b0" class="flame f2"/></g>
-    <rect x="172" y="410" width="74" height="26" rx="4" fill="none" stroke="#1a1a1a" stroke-width="3"/>
-    <path d="M100 430 L108 470 L144 470 L152 430 Z" fill="#b57c4a" stroke="#5b3a1f" stroke-width="2"/>
-    <path d="M104 440 L148 440" stroke="#7a4e28" stroke-width="2"/>
-    <ellipse cx="126" cy="430" rx="26" ry="7" fill="#7cc0e8" stroke="#5b3a1f" stroke-width="2"/>
-    <g class="ladle"><path d="M140 428 L178 392" stroke="#d9b07a" stroke-width="5" stroke-linecap="round"/><ellipse cx="180" cy="390" rx="8" ry="5" fill="#d9b07a" stroke="#5b3a1f"/></g>
-    ${mini ? '' : '<text x="209" y="476" text-anchor="middle" font-size="11" fill="#ffd166" font-family="Inter,sans-serif" class="kiuasHint">💧</text>'}
+    <ellipse cx="836" cy="320" rx="9" ry="6" fill="#ff8a3c" fill-opacity=".55"/><ellipse cx="866" cy="318" rx="7" ry="5" fill="#ff6a1a" fill-opacity=".45"/>
+    <rect x="812" y="410" width="74" height="26" rx="4" fill="url(#${u}fire)"/>
+    <g class="flames"><path d="M826 436 q-4 -10 4 -16 q0 8 6 10 q2 -8 8 -12 q-2 10 6 14 q4 -6 2 -12 q8 8 2 16 Z" fill="#ffd166" fill-opacity=".9" class="flame"/><path d="M836 436 q-2 -8 4 -12 q1 6 5 8 q3 -6 5 -9 q0 9 3 13 Z" fill="#fff3b0" class="flame f2"/></g>
+    <rect x="812" y="410" width="74" height="26" rx="4" fill="none" stroke="#1a1a1a" stroke-width="3"/>
+    <path d="M740 430 L748 470 L784 470 L792 430 Z" fill="#b57c4a" stroke="#5b3a1f" stroke-width="2"/>
+    <path d="M744 440 L788 440" stroke="#7a4e28" stroke-width="2"/>
+    <ellipse cx="766" cy="430" rx="26" ry="7" fill="#7cc0e8" stroke="#5b3a1f" stroke-width="2"/>
+    <g class="ladle"><path d="M780 428 L818 392" stroke="#d9b07a" stroke-width="5" stroke-linecap="round"/><ellipse cx="820" cy="390" rx="8" ry="5" fill="#d9b07a" stroke="#5b3a1f"/></g>
+    ${mini ? '' : '<text x="849" y="476" text-anchor="middle" font-size="11" fill="#ffd166" font-family="Inter,sans-serif" class="kiuasHint">💧</text>'}
   </g>
-  <!-- lauteet: pale aspen tops, warm fronts -->
-  <rect x="330" y="300" width="470" height="60" fill="url(#${u}face)"/><rect x="330" y="300" width="470" height="6" fill="#000" fill-opacity=".2"/>${slats(330, 292, 470, 14)}
-  <rect x="315" y="360" width="485" height="60" fill="url(#${u}face)"/><rect x="315" y="360" width="485" height="6" fill="#000" fill-opacity=".2"/>${slats(315, 352, 485, 14)}
-  <rect x="300" y="420" width="500" height="40" fill="url(#${u}face)"/><rect x="300" y="420" width="500" height="6" fill="#000" fill-opacity=".2"/>${slats(300, 412, 500, 14)}
-  <rect width="800" height="600" fill="url(#${u}vignette)" pointer-events="none"/>
-  <rect width="800" height="600" fill="#ff6a00" class="heatTint" style="opacity:0" pointer-events="none"/>
+  <rect x="970" y="300" width="470" height="60" fill="url(#${u}face)"/><rect x="970" y="300" width="470" height="6" fill="#000" fill-opacity=".2"/>${slats(970, 292, 470, 14)}
+  <rect x="955" y="360" width="485" height="60" fill="url(#${u}face)"/><rect x="955" y="360" width="485" height="6" fill="#000" fill-opacity=".2"/>${slats(955, 352, 485, 14)}
+  <rect x="940" y="420" width="500" height="40" fill="url(#${u}face)"/><rect x="940" y="420" width="500" height="6" fill="#000" fill-opacity=".2"/>${slats(940, 412, 500, 14)}
+  <rect x="640" width="800" height="700" fill="url(#${u}vignette)" pointer-events="none"/>
+  <rect x="640" width="800" height="700" fill="#ff6a00" class="heatTint" style="opacity:0" pointer-events="none"/>
+
+  <!-- ===== PUKUHUONE (lounge, 1440..2000) ===== -->
+  <rect x="1440" y="0" width="560" height="460" fill="url(#${u}lwall)"/>
+  <g stroke="#8a5a2b" stroke-opacity=".25">${panels.join('')}</g>
+  <rect x="1440" width="560" height="60" fill="#3b2a1c"/>
+  <rect x="1440" y="460" width="560" height="240" fill="url(#${u}lfloor)"/>
+  <rect x="1440" y="458" width="560" height="5" fill="#2b170a"/>
+  <rect x="1560" y="590" width="340" height="70" rx="6" fill="#b23a3a"/><rect x="1560" y="604" width="340" height="10" fill="#f6ecd8" fill-opacity=".6"/><rect x="1560" y="636" width="340" height="10" fill="#f6ecd8" fill-opacity=".6"/>
+  <!-- window -->
+  <rect x="1800" y="90" width="160" height="110" rx="6" fill="url(#${u}night)" stroke="#5b3a1f" stroke-width="10"/>
+  <g>${flakes(1810, 140, 100, 90, 8)}</g><circle cx="1920" cy="120" r="10" fill="#fff6d8"/>
+  <line x1="1880" y1="90" x2="1880" y2="200" stroke="#5b3a1f" stroke-width="6"/>
+  <!-- coat rack with towels -->
+  <rect x="1460" y="132" width="110" height="12" rx="3" fill="#8a5a2b"/>
+  <circle cx="1480" cy="146" r="3" fill="#222"/><circle cx="1515" cy="146" r="3" fill="#222"/><circle cx="1550" cy="146" r="3" fill="#222"/>
+  ${towel(1470, '#e9b8a6')}${towel(1505, '#b8d8e9')}${towel(1540, '#cfe3b8')}
+  <!-- sofa -->
+  <g transform="translate(1650,560)">
+    <rect x="-90" y="-50" width="180" height="40" rx="10" fill="#4e6b4a"/>
+    <rect x="-100" y="-16" width="200" height="40" rx="10" fill="#5c7d57"/>
+    <rect x="-96" y="-30" width="20" height="56" rx="8" fill="#4e6b4a"/><rect x="76" y="-30" width="20" height="56" rx="8" fill="#4e6b4a"/>
+    <rect x="-70" y="-44" width="60" height="30" rx="8" fill="#f3d9a4"/><rect x="10" y="-44" width="60" height="30" rx="8" fill="#e9b8a6"/>
+  </g>
+  <!-- beer table and fridge -->
+  <g class="hot" data-act="beertable" style="cursor:pointer" transform="translate(1800,600)">
+    <rect x="-34" y="-6" width="68" height="8" rx="3" fill="#b57c4a" stroke="#5b3a1f" stroke-width="2"/>
+    <rect x="-26" y="2" width="6" height="36" fill="#8a5a2b"/><rect x="20" y="2" width="6" height="36" fill="#8a5a2b"/>
+    <rect x="-30" y="-24" width="60" height="18" rx="3" fill="#f6ecd8" stroke="#8c5a35" stroke-width="2"/>
+    <rect x="-22" y="-34" width="9" height="22" rx="2" fill="#f2b632" stroke="#8a5a1a"/><rect x="-22" y="-37" width="9" height="5" rx="2" fill="#fff8e1"/>
+    <rect x="-5" y="-34" width="9" height="22" rx="2" fill="#f2b632" stroke="#8a5a1a"/><rect x="-5" y="-37" width="9" height="5" rx="2" fill="#fff8e1"/>
+    <rect x="12" y="-34" width="9" height="22" rx="2" fill="#f2b632" stroke="#8a5a1a"/><rect x="12" y="-37" width="9" height="5" rx="2" fill="#fff8e1"/>
+    ${mini ? '' : '<text x="0" y="56" text-anchor="middle" font-size="11" fill="#ffd166" font-family="Inter,sans-serif" class="kiuasHint">🍺</text>'}
+  </g>
+  <g class="hot" data-act="beertable" style="cursor:pointer" transform="translate(1930,470)">
+    <rect x="-30" y="0" width="60" height="136" rx="6" fill="#f4f1ea" stroke="#9a9a9a" stroke-width="2"/>
+    <rect x="-30" y="46" width="60" height="3" fill="#9a9a9a"/><rect x="18" y="14" width="5" height="24" rx="2" fill="#777"/><rect x="18" y="58" width="5" height="40" rx="2" fill="#777"/>
+    <text x="0" y="90" text-anchor="middle" font-size="10" font-weight="700" fill="#2b5d7a" font-family="Inter,sans-serif">KYLMÄ</text>
+  </g>
+  <!-- floor lamp and board games -->
+  <g transform="translate(1490,470)"><rect x="-2" y="0" width="4" height="130" fill="#333"/><path d="M-22 0 L22 0 L14 -34 L-14 -34 Z" fill="#f3d9a4" stroke="#8a5a2b"/><ellipse cx="0" cy="130" rx="14" ry="4" fill="#333"/></g>
+  <ellipse cx="1490" cy="520" rx="90" ry="70" fill="url(#${u}lamp)"/>
+  <g transform="translate(1890,400)"><rect x="-40" y="20" width="110" height="6" fill="#8a5a2b"/><rect x="-36" y="0" width="30" height="20" fill="#b23a3a"/><rect x="-4" y="4" width="36" height="16" fill="#2b6a8f"/><rect x="34" y="-2" width="32" height="22" fill="#3e8a44"/></g>
+
+  <!-- walkable areas and the live layers -->
+  <rect class="floorHit" x="0" y="420" width="640" height="280" fill="#fff" fill-opacity="0" style="cursor:pointer"/>
+  <rect class="floorHit" x="640" y="470" width="1360" height="230" fill="#fff" fill-opacity="0" style="cursor:pointer"/>
   <g class="seatHits"></g>
   <g class="people"></g>
   <g class="steam" ${mini ? '' : `filter="url(#${u}blur)"`}></g>
   <g class="bubbles"></g>
 </svg>`;
   }
-
   const HATS = {
     none: '',
     felt: `<path d="M-16 -74 Q0 -96 16 -74 Z" fill="#d9d2c5" stroke="#8a8071"/><rect x="-19" y="-76" width="38" height="6" rx="3" fill="#d9d2c5" stroke="#8a8071"/>`,
@@ -268,7 +348,7 @@ window.SK_ROOM = (function () {
     const hat = crowned ? HATS.crown : (HATS[p.hat] || (p.hat === true ? HATS.felt : ''));
     const ring = isMe ? `<ellipse cx="0" cy="10" rx="30" ry="8" fill="none" stroke="#ffd166" stroke-width="2.5" stroke-dasharray="4 3"/>` : '';
     const label = `<rect x="-30" y="12" width="60" height="15" rx="7" fill="#1f1b17" fill-opacity=".72"/><text x="0" y="23" text-anchor="middle" font-size="10.5" fill="#fff" font-family="Inter,sans-serif">${esc(p.name.slice(0, 10))}</text>`;
-    const cold = p.zone === 'cool', hot = temp > 95 && !cold;
+    const cold = p.zone === 'cool' || (p.zone === 'floor' && isOutside(pos[p.id] ? pos[p.id].x : (p.x || 0))), hot = temp > 95 && !cold;
     const blush = cold ? .15 : hot ? .6 : .32;
     const mouth = cold ? `<path d="M-4 -60 q4 -3 8 0" stroke="#5a2d1a" stroke-width="1.4" fill="none"/>` : hot ? `<ellipse cx="0" cy="-59" rx="3" ry="2.4" fill="#5a2d1a"/>` : `<path d="M-5 -61 q5 5 10 0" stroke="#5a2d1a" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
     const standing = p.zone === 'floor' || cold;
@@ -338,27 +418,27 @@ window.SK_ROOM = (function () {
     const taken = {}, seated = [], cooling = [], floor = [];
     const sorted = list.slice().sort((a, b) => (a.since || 0) - (b.since || 0));
     for (const p of sorted) {
-      if (p.zone === 'cool') { cooling.push(p); continue; }
+      if (p.zone === 'cool') { floor.push(Object.assign({}, p, { zone: 'floor', x: 330, y: 600 })); continue; }
       if (p.zone === 'floor') { floor.push(p); continue; }
       let seat = SEATS.find(s => s.id === p.seat && !taken[s.id]) || SEATS.find(s => !taken[s.id]);
-      if (!seat) { floor.push(Object.assign({}, p, { zone: 'floor', x: 300 + floor.length * 60, y: 540 })); continue; }
+      if (!seat) { floor.push(Object.assign({}, p, { zone: 'floor', x: 1000 + floor.length * 60, y: 560 })); continue; }
       taken[seat.id] = p; seated.push({ p, seat });
     }
     seated.sort((a, b) => b.seat.tier - a.seat.tier);
     return { taken, seated, cooling, floor };
   }
-  function coolPos(i) { return { x: 45 + (i % 2) * 36, y: 548 - Math.floor(i / 2) * 60 }; }
+  function coolPos(i) { return { x: 300 + (i % 3) * 40, y: 600 }; }
   function floorPos(p) {
-    const cur = pos[p.id] || { x: p.x || 400, y: p.y || 540 };
-    return { x: Math.max(FLOOR.x0, Math.min(FLOOR.x1, cur.x)), y: Math.max(FLOOR.y0, Math.min(FLOOR.y1, cur.y)) };
+    const cur = pos[p.id] || { x: p.x || 1000, y: p.y || 560 };
+    return clampFloor(cur.x, cur.y);
   }
 
   function placePeople() {
     const { taken, seated, cooling, floor } = layout(people);
     let html = seated.map(({ p, seat }) => avatar(p, seat.x, seat.y, seat.scale, p.id === pid)).join('');
-    cooling.forEach((p, i) => { const c = coolPos(i); html += avatar(p, c.x, c.y, 0.85, p.id === pid) + `<text x="${c.x + 12}" y="${c.y - 70}" font-size="12">❄️</text>`; });
     floor.slice().sort((a, b) => floorPos(a).y - floorPos(b).y).forEach(p => { const c = floorPos(p); const moving = !!dest[p.id]; html += avatar(p, c.x, c.y, floorScale(c.y), p.id === pid, moving, moving && dest[p.id].x < c.x); });
     el.querySelector('.people').innerHTML = html;
+    renderMinimap();
     el.querySelector('.seatHits').innerHTML = SEATS.filter(s => !taken[s.id]).map(s => `<ellipse cx="${s.x}" cy="${s.y - 20 * s.scale}" rx="${24 * s.scale}" ry="${30 * s.scale}" fill="#fff" fill-opacity=".02" stroke="#ffd166" stroke-opacity=".12" stroke-dasharray="3 3" data-seat="${s.id}" style="cursor:pointer"/>`).join('');
     el.querySelector('#presentCount').textContent = people.length;
     renderMasters(); renderStrip();
@@ -375,10 +455,11 @@ window.SK_ROOM = (function () {
 
   /* ---------- steam, temperature, bubbles, timers ---------- */
   function spawnSteam(n, big) {
-    for (let i = 0; i < n; i++) steam.push({ x: 209 + (Math.random() - .5) * 90, y: 292, r: big ? 14 + Math.random() * 22 : 6 + Math.random() * 8, vy: big ? 0.9 + Math.random() * 1.1 : 0.35 + Math.random() * 0.4, vx: (Math.random() - .5) * 0.6, life: 1, decay: big ? 0.006 : 0.009 });
+    for (let i = 0; i < n; i++) steam.push({ x: 849 + (Math.random() - .5) * 90, y: 292, r: big ? 14 + Math.random() * 22 : 6 + Math.random() * 8, vy: big ? 0.9 + Math.random() * 1.1 : 0.35 + Math.random() * 0.4, vx: (Math.random() - .5) * 0.6, life: 1, decay: big ? 0.006 : 0.009 });
   }
   function tick(ts) {
-    const dt = Math.min(50, ts - (lastTick || ts)); lastTick = ts;
+    const rawDt = ts - (lastTick || ts), dt = Math.min(50, rawDt); lastTick = ts;
+    moveTick(Math.min(1200, rawDt));
     if (ts - lastAmbient > 420) { spawnSteam(1, false); lastAmbient = ts; windowTick(); }
     if (ts - lastTemp > 1000) {
       temp = Math.max(70, temp - (temp > 95 ? 0.12 : 0.05)); lastTemp = ts; el.querySelector('.tempText').textContent = Math.round(temp) + '°';
@@ -389,7 +470,6 @@ window.SK_ROOM = (function () {
       if (me.crown && me.crown < Date.now()) { me.crown = 0; track(); }
       const expired = Object.keys(faces).filter(k => faces[k].until <= Date.now()); if (expired.length) { expired.forEach(k => delete faces[k]); placePeople(); }
     }
-    moveTick(dt);
     for (const s of steam) { s.y -= s.vy * dt / 16; s.x += s.vx * dt / 16; s.r += 0.06 * dt / 16; s.life -= s.decay * dt / 16; }
     steam = steam.filter(s => s.life > 0 && s.y > -40);
     el.querySelector('.steam').innerHTML = steam.map(s => `<circle cx="${s.x.toFixed(1)}" cy="${s.y.toFixed(1)}" r="${s.r.toFixed(1)}" fill="#fff" fill-opacity="${(s.life * 0.28).toFixed(3)}"/>`).join('');
@@ -418,14 +498,37 @@ window.SK_ROOM = (function () {
     const glow = el.querySelector('.kiuasGlow'); if (glow) glow.setAttribute('ry', (30 + (temp - 70) * 0.6).toFixed(1));
     const tint = el.querySelector('.heatTint'); if (tint) tint.style.opacity = Math.max(0, (temp - 92) / 160).toFixed(3);
     const tonttu = el.querySelector('.tonttu'); if (tonttu) { const show = now < tonttuUntil; tonttu.style.opacity = show ? 1 : 0; tonttu.classList.toggle('walk', show); }
+    cameraTick(dt);
     raf = requestAnimationFrame(tick);
+  }
+  /* The camera follows your own figure unless the picture was dragged or the map tapped recently. */
+  function cameraTick(dt) {
+    const svg = el.querySelector('#roomSvg'); if (!svg) return;
+    if (Date.now() > camHold) {
+      const mp = findPos(pid); const target = Math.max(0, Math.min(WORLD_W - VIEW_W, (mp ? mp.x : 1040) - VIEW_W / 2));
+      cam += (target - cam) * Math.min(1, dt / 180);
+    }
+    const vb = `${cam.toFixed(1)} 0 ${VIEW_W} 700`;
+    if (svg.getAttribute('viewBox') !== vb) svg.setAttribute('viewBox', vb);
+    const v = el.querySelector('#mmView'); if (v) { v.style.left = (cam / WORLD_W * 100) + '%'; v.style.width = (VIEW_W / WORLD_W * 100) + '%'; }
+  }
+  function renderMinimap() {
+    const box = el.querySelector('#mmDots'); if (!box) return;
+    box.innerHTML = people.map(p => { const c = findPos(p.id); if (!c) return ''; return `<i style="left:${(c.x / WORLD_W * 100).toFixed(1)}%;background:${TOWELS[(p.towel >= 0 ? p.towel : hash(p.name) % TOWELS.length)]}" class="${p.id === pid ? 'me' : ''}" title="${esc(p.name)}"></i>`; }).join('');
+  }
+  function walkTo(x, y, quiet) {
+    const c = clampFloor(x, y);
+    if (me.zone !== 'floor') { const from = findPos(pid); if (from) pos[pid] = clampFloor(from.x, from.y); }
+    me.zone = 'floor'; me.x = c.x; me.y = c.y;
+    send({ type: 'move', x: c.x, y: c.y }); track();
+    const btn = el.querySelector('#coolBtn'); if (btn) btn.innerHTML = isOutside(c.x) ? `🔥 ${esc(ctx.t('backIn'))}` : `❄️ ${esc(ctx.t('coolOff'))}`;
   }
   /* Things seen through the window, on a shared clock so every phone sees them together. */
   function windowTick() {
     const now = Date.now();
     const mc = Math.floor(now / 420000), mp = now % 420000, mooseOn = mp < 14000;
     const moose = el.querySelector('.moose');
-    if (moose) { moose.style.opacity = mooseOn ? 1 : 0; if (mooseOn) moose.setAttribute('transform', `translate(${(760 - (mp / 14000) * 220).toFixed(0)},150)`); }
+    if (moose) { moose.style.opacity = mooseOn ? 1 : 0; if (mooseOn) moose.setAttribute('transform', `translate(${(700 - (mp / 14000) * 800).toFixed(0)},392)`); }
     if (mooseOn && lastMoose !== mc) { lastMoose = mc; addChat({ sys: true, text: `🫎 ${ctx.t('moose')}` }); addLog(`🫎 ${ctx.t('moose')}`); }
     const ac = Math.floor((now + 150000) / 300000), ap = (now + 150000) % 300000, auroraOn = ap < 40000;
     const aurora = el.querySelector('.aurora');
@@ -579,7 +682,7 @@ window.SK_ROOM = (function () {
     }
     else if (ev.type === 'say') { const text = String(ev.text || '').slice(0, 80); bubbles = bubbles.filter(b => !(b.id === ev.id && b.text)); bubbles.push({ id: ev.id, text, at: now, until: now + 7000 }); addLog(`💬 ${by}: ${text}`); addChat({ id: ev.id, by, text, mid: ev.mid }); if (ev.id !== pid) ding(); }
     else if (ev.type === 'mood') { const face = String(ev.face || ''); setFace(ev.id, face, ev.ms || 9000); bubbles = bubbles.filter(b => !(b.id === ev.id && b.emoji)); bubbles.push({ id: ev.id, emoji: ev.emoji, at: now, until: now + 3500 }); if (ev.note) { addLog(`${ev.emoji} ${by} ${t(ev.note)}`); addChat({ sys: true, text: `${ev.emoji} ${by} ${t(ev.note)}` }); } else addChat({ id: ev.id, by, text: ev.emoji, big: true, mid: ev.mid }); if (ev.id !== pid) ding(); }
-    else if (ev.type === 'move') { const p = people.find(x => x.id === ev.id); if (p) { if (p.zone !== 'floor') { const from = findPos(ev.id); if (from) pos[ev.id] = { x: from.x, y: Math.max(FLOOR.y0, from.y) }; } p.zone = 'floor'; p.x = ev.x; p.y = ev.y; } dest[ev.id] = { x: ev.x, y: ev.y }; if (!pos[ev.id]) pos[ev.id] = { x: ev.x, y: ev.y }; placePeople(); }
+    else if (ev.type === 'move') { const p = people.find(x => x.id === ev.id); if (p) { if (p.zone !== 'floor') { const from = findPos(ev.id); if (from) pos[ev.id] = clampFloor(from.x, from.y); } p.zone = 'floor'; p.x = ev.x; p.y = ev.y; } dest[ev.id] = { x: ev.x, y: ev.y }; if (!pos[ev.id]) pos[ev.id] = { x: ev.x, y: ev.y }; placePeople(); }
     else if (ev.type === 'mreact') { const m = chat.find(x => x.mid === ev.mid); if (!m) return; const key = ev.id + ':' + ev.emoji; if (m.who[key]) return; m.who[key] = true; m.reacts[ev.emoji] = (m.reacts[ev.emoji] || 0) + 1; renderChat(); if (m.id === pid && ev.id !== pid) { ctx.toast(`${ev.emoji} ${by}`); } }
     else if (ev.type === 'quiz') { if (quiz && !quiz.done) return; quiz = { q: ev.q % D.QUIZ.length, at: ev.at || now, by, answers: [], mine: null, done: false, winner: null }; addLog(`🧠 ${by} ${t('quizStarted')}`); addChat({ sys: true, text: `🧠 ${by} ${t('quizStarted')}` }); ding(); renderGame(); }
     else if (ev.type === 'answer') { if (!quiz || ev.q !== quiz.q) return; if (ev.id === pid) quiz.mine = ev.choice; if (!quiz.answers.some(a => a.id === ev.id)) quiz.answers.push({ id: ev.id, by, ok: !!ev.ok }); if (ev.ok && !quiz.winner) { quiz.winner = by; quiz.done = true; quiz.doneAt = now; addLog(`🏆 ${by} ${t('answered')}`); addChat({ sys: true, text: `🏆 ${by} ${t('answered')} · ${t('quiz')}` }); } renderGame(); }
@@ -627,6 +730,7 @@ window.SK_ROOM = (function () {
         <div class="row"><button class="chipbtn ghost" data-act="sound" id="soundBtn" title="${esc(t('sound'))}">${soundOn ? '🔊' : '🔇'}</button><div class="live"><span class="dot"></span> LIVE · <b id="presentCount">1</b> ${esc(t('present'))}</div></div>
       </div>
       <div class="roomWrap">${scene(false)}</div>
+      <div class="minimap" id="minimap" title="${esc(t('mapHint'))}"><span class="mmArea" style="left:0;width:32%">❄️ ${esc(t('terraceLbl'))}</span><span class="mmArea" style="left:32%;width:40%">🔥 ${esc(t('saunaLbl'))}</span><span class="mmArea" style="left:72%;width:28%">🛋 ${esc(t('loungeLbl'))}</span><div class="mmView" id="mmView"></div><div class="mmDots" id="mmDots"></div></div>
       <div class="meter"><span>🔥 ${esc(t('yhteisloyly'))}</span><div class="bar"><div id="meterFill"></div></div><b id="meterText">0/8</b></div>
       <div class="roomMeta" id="roomMeta"><span>⏱ 0 ${esc(t('min'))} ${esc(t('inRoomFor'))}</span><span>🔁 1. ${esc(t('rounds'))}</span><span>🌡 80°C</span></div>
       <div class="pstrip" id="peopleStrip"></div>
@@ -644,11 +748,12 @@ window.SK_ROOM = (function () {
       </div>
       <div class="card personBar" id="personBar" style="display:none"></div>
       <div class="card gameBox" id="gameBox" style="display:none"></div>
-      <p class="small muted" style="margin:4px 0 8px">${esc(t('floorHint'))}<br>${esc(t('tapHint'))}</p>
+      <p class="small muted" style="margin:4px 0 8px">${esc(t('floorHint'))}<br>${esc(t('tapHint'))}<br>${esc(t('mapHint'))}</p>
       <div class="pill-row" style="margin:8px 0">
         <button class="btn small" data-act="loyly">💧 ${esc(t('throwLoyly'))}</button>
         <button class="btn small secondary" data-act="vihta">🌿 ${esc(t('vihta'))}</button>
         <button class="btn small secondary" data-act="cool" id="coolBtn">❄️ ${esc(t('coolOff'))}</button>
+        <button class="btn small secondary" data-act="lounge">🛋 ${esc(t('goLounge'))}</button>
         <button class="btn small secondary" data-act="greet">🙏 ${esc(t('greet'))}</button>
         <button class="btn small secondary" data-act="figure">🎭 ${esc(t('myFigure'))}</button>
         <button class="btn small lake" data-act="quiz">🧠 ${esc(t('quiz'))}</button>
@@ -662,9 +767,18 @@ window.SK_ROOM = (function () {
       </div>
       <p class="small muted">${esc(t('roomRules'))}</p></div>`;
     const root = el.querySelector('.roomRoot');
-    el.querySelector('.coolLabel').textContent = t('coolZone');
+    el.querySelector('.coolLabel').textContent = t('terraceLbl'); el.querySelector('.loungeLabel').textContent = t('loungeLbl');
+    cam = 550; camHold = 0;
     renderChat();
-    function updateCoolBtn(){ el.querySelector('#coolBtn').innerHTML = me.zone === 'cool' ? `🔥 ${esc(t('backIn'))}` : `❄️ ${esc(t('coolOff'))}`; }
+    function updateCoolBtn(){ el.querySelector('#coolBtn').innerHTML = (me.zone === 'floor' && isOutside(me.x)) ? `🔥 ${esc(t('backIn'))}` : `❄️ ${esc(t('coolOff'))}`; }
+    // drag the picture to look around
+    (function () {
+      const svg = el.querySelector('#roomSvg'); let down = false, sx = 0, startCam = 0, moved = false;
+      svg.addEventListener('pointerdown', e => { down = true; sx = e.clientX; startCam = cam; moved = false; });
+      svg.addEventListener('pointermove', e => { if (!down) return; const dx = (e.clientX - sx) * (VIEW_W / svg.clientWidth); if (Math.abs(e.clientX - sx) > 6) { moved = true; camHold = Date.now() + 4000; cam = Math.max(0, Math.min(WORLD_W - VIEW_W, startCam - dx)); } });
+      const up = () => { if (!down) return; down = false; if (moved) { suppressClick = true; setTimeout(() => suppressClick = false, 150); } };
+      svg.addEventListener('pointerup', up); svg.addEventListener('pointercancel', up); svg.addEventListener('pointerleave', up);
+    })();
     function showPerson(id, name) {
       person = { id, name };
       const bar = el.querySelector('#personBar'); bar.style.display = '';
@@ -694,7 +808,11 @@ window.SK_ROOM = (function () {
       if (act === 'quiz') { if (quiz && !quiz.done) return; send({ type: 'quiz', q: Math.floor(Math.random() * D.QUIZ.length), at: Date.now() }); }
       if (act === 'duel') { if (duel && !duel.done) return; send({ type: 'duel', at: Date.now() }); }
       if (act === 'sound') { soundOn = !soundOn; try { localStorage.setItem('saunakaverit.sound', soundOn ? 'on' : 'off'); } catch (e) {} el.querySelector('#soundBtn').textContent = soundOn ? '🔊' : '🔇'; if (soundOn) hiss(false); }
-      if (act === 'cool') { me.zone = me.zone === 'cool' ? 'in' : 'cool'; if (me.zone === 'in') { rounds++; inSince = Date.now(); nudged = false; } delete me.x; delete me.y; delete dest[pid]; delete pos[pid]; updateCoolBtn(); addLog(me.zone === 'cool' ? `❄️ ${me.name} ${t('wentOut')}` : `🔥 ${me.name} ${t('cameIn')}`); track(); }
+      if (act === 'cool') {
+        if (me.zone === 'floor' && isOutside(me.x)) { me.zone = 'in'; delete me.x; delete me.y; delete dest[pid]; delete pos[pid]; rounds++; inSince = Date.now(); nudged = false; updateCoolBtn(); addLog(`🔥 ${me.name} ${t('cameIn')}`); track(); }
+        else { walkTo(300 + Math.random() * 80, 590 + Math.random() * 40); addLog(`❄️ ${me.name} ${t('wentOut')}`); }
+      }
+      if (act === 'lounge') walkTo(1600 + Math.random() * 120, 620 + Math.random() * 30);
     }
     root.addEventListener('click', e => {
       const seat = e.target.closest('[data-seat]');
@@ -709,16 +827,18 @@ window.SK_ROOM = (function () {
         send({ type: 'react', emoji: map[k][0], verb: map[k][1], target: person.id, targetName: person.name, line: Math.floor(Math.random() * D.TEASES.length), mid: pid + '-' + Date.now() });
         return;
       }
+      if (suppressClick) return;
       const fh = e.target.closest('.floorHit');
       if (fh) {
         const svg = el.querySelector('#roomSvg'); const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
         const m = svg.getScreenCTM(); if (!m) return; const q = pt.matrixTransform(m.inverse());
-        const x = Math.max(FLOOR.x0, Math.min(FLOOR.x1, q.x)), y = Math.max(FLOOR.y0, Math.min(FLOOR.y1, q.y));
-        if (me.zone !== 'floor') { const from = findPos(pid); if (from) pos[pid] = { x: from.x, y: Math.max(FLOOR.y0, from.y) }; }
-        if (me.zone === 'cool') { rounds++; inSince = Date.now(); nudged = false; updateCoolBtn(); }
-        me.zone = 'floor'; me.x = x; me.y = y;
-        send({ type: 'move', x, y }); track(); return;
+        const wasOut = me.zone === 'floor' && isOutside(me.x);
+        walkTo(q.x, q.y);
+        if (wasOut && !isOutside(me.x)) { rounds++; inSince = Date.now(); nudged = false; addLog(`🔥 ${me.name} ${t('cameIn')}`); }
+        return;
       }
+      const mm = e.target.closest('#minimap');
+      if (mm) { const r = mm.getBoundingClientRect(); camHold = Date.now() + 5000; cam = Math.max(0, Math.min(WORLD_W - VIEW_W, (e.clientX - r.left) / r.width * WORLD_W - VIEW_W / 2)); return; }
       if (e.target.closest('[data-act=beertable]')) { send({ type: 'mood', face: 'beer', emoji: '🍺', note: 'tookBeer', ms: 15000, mid: pid + '-' + Date.now() }); return; }
       const hat = e.target.closest('[data-hat]'); if (hat) { me.hat = hat.dataset.hat; figure.hat = me.hat; saveFigure(); track(); showFigure(); showFigure(); return; }
       const tw = e.target.closest('[data-towel]'); if (tw) { me.towel = +tw.dataset.towel; figure.towel = me.towel; saveFigure(); track(); showFigure(); showFigure(); return; }
@@ -759,7 +879,7 @@ window.SK_ROOM = (function () {
     const { seated, cooling, floor } = layout(metas || []);
     let html = seated.map(({ p, seat }) => avatar(p, seat.x, seat.y, seat.scale, p.id === pid)).join('');
     cooling.forEach((p, i) => { const c = coolPos(i); html += avatar(p, c.x, c.y, 0.85, false); });
-    floor.forEach(p => { const c = { x: Math.max(FLOOR.x0, Math.min(FLOOR.x1, p.x || 400)), y: Math.max(FLOOR.y0, Math.min(FLOOR.y1, p.y || 540)) }; html += avatar(p, c.x, c.y, floorScale(c.y), false); });
+    floor.forEach(p => { const c = clampFloor(p.x || 1000, p.y || 560); html += avatar(p, c.x, c.y, floorScale(c.y), false); });
     container.querySelector('.people').innerHTML = html;
   }
 
