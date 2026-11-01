@@ -261,7 +261,7 @@
           </div>
           <div class="row wrap" style="margin-top:8px">
             <a class="btn small secondary" href="${mapsUrl(sa)}" target="_blank" rel="noopener">📍 ${esc(t('directions'))}</a>
-            <a class="btn small secondary" href="${esc(sa.url)}" target="_blank" rel="noopener">🔗 ${esc(t('website'))}</a>
+            ${sa.url ? `<a class="btn small secondary" href="${esc(sa.url)}" target="_blank" rel="noopener">🔗 ${esc(t('website'))}</a>` : ''}
           </div>
         </div>
         <div class="stamp ${stamped?'done':''}" data-stamp="${sa.id}" title="${esc(stamped?t('stamped'):t('stamp'))}">${stamped?'🔥':'＋'}</div>
@@ -312,6 +312,7 @@
         <button class="btn full" type="submit" style="margin-top:12px">${esc(t('save'))}</button>
       </form>
       <div class="card moss row between" data-go="etiquette" style="cursor:pointer"><span>🌿 ${esc(t('etiquetteTitle'))}</span><span style="font-size:1.4rem">›</span></div>
+      <div class="card"><h3>🔒 ${esc(t('aboutTitle'))}</h3><p class="small">${esc(t('aboutText'))}</p><p class="small muted">${esc(t('aboutContact'))}</p></div>
       <p class="small muted" style="text-align:center">${esc(online ? t('versionOnline') : t('version'))}</p>
       <div style="text-align:center"><button class="btn small danger" id="resetBtn">${esc(t('resetData'))}</button></div>
     `;

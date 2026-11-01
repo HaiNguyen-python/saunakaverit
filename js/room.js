@@ -222,8 +222,9 @@ window.SK_ROOM = (function () {
     } catch (e) {}
   }
   const sledPos = (k) => ({ x: 90 + 330 * k, y: 430 + 190 * k * k });
+  let speechOn = false; try { speechOn = localStorage.getItem('saunakaverit.speech') === 'on'; } catch (e) {}
   function speak(text) {
-    if (!soundOn || !window.speechSynthesis) return;
+    if (!soundOn || !speechOn || !window.speechSynthesis) return;
     try {
       const want = ctx.lang() === 'en' ? 'en' : 'fi';
       const v = speechSynthesis.getVoices().find(v => v.lang && v.lang.toLowerCase().startsWith(want));
@@ -728,6 +729,8 @@ window.SK_ROOM = (function () {
 
   /* ---------- steam, temperature, bubbles, timers ---------- */
   function spawnSteam(n, big) {
+    if (people.length > 8) n = Math.ceil(n / 2);           // crowded rooms: half the particles keeps phones smooth
+    if (steam.length > 140) return;
     for (let i = 0; i < n; i++) steam.push({ x: 849 + (Math.random() - .5) * 90, y: 292, r: big ? 14 + Math.random() * 22 : 6 + Math.random() * 8, vy: big ? 0.9 + Math.random() * 1.1 : 0.35 + Math.random() * 0.4, vx: (Math.random() - .5) * 0.6, life: 1, decay: big ? 0.006 : 0.009 });
   }
   function tick(ts) {
@@ -1195,8 +1198,9 @@ window.SK_ROOM = (function () {
     el.innerHTML = `<div class="roomRoot">
       <div class="row between" style="margin:4px 0 6px">
         <div><div class="small muted">${esc(t('roomTitle'))}</div><h2 style="margin:0">🧖 ${esc(options.label || t('roomCommon'))}</h2></div>
-        <div class="row"><button class="chipbtn ghost" data-act="sound" id="soundBtn" title="${esc(t('sound'))}">${soundOn ? '🔊' : '🔇'}</button><div class="live"><span class="dot"></span> LIVE · <b id="presentCount">1</b> ${esc(t('present'))}</div></div>
+        <div class="row"><button class="chipbtn ghost" data-act="sound" id="soundBtn" title="${esc(t('sound'))}">${soundOn ? '🔊' : '🔇'}</button><button class="chipbtn ghost ${speechOn ? 'active' : ''}" data-act="speech" id="speechBtn" title="${esc(t('speech'))}">🗣</button><div class="live"><span class="dot"></span> LIVE · <b id="presentCount">1</b> ${esc(t('present'))}</div></div>
       </div>
+      ${(() => { let seen = false; try { seen = localStorage.getItem('saunakaverit.tour') === 'done'; } catch (e) {} return seen ? '' : `<div class="card tourCard" id="tourCard"><b>🧖 ${esc(t('tourTitle'))}</b><ol class="small" style="margin:6px 0 8px;padding-left:18px">${t('tourSteps').map(s => `<li>${esc(s)}</li>`).join('')}</ol><button class="btn small" data-act="tourdone">${esc(t('tourOk'))}</button></div>`; })()}
       <div class="pill-row" style="margin:0 0 8px"><button class="chipbtn" data-act="prog" id="progChip">⭐ 0 ${esc(t('points'))}</button><button class="chipbtn ${practice ? 'active' : ''}" data-act="practice" id="practiceBtn">🇫🇮 ${esc(t('practice'))}</button><button class="chipbtn" data-act="classroom">🏫 ${esc(t('classroom'))}</button></div>
       <div id="practicePanel" style="display:none"></div>
       <div class="roomWrap">${scene(false)}</div>
@@ -1301,6 +1305,8 @@ window.SK_ROOM = (function () {
       if (act === 'figure') showFigure();
       if (act === 'quiz') { if (quiz && !quiz.done) return; send({ type: 'quiz', q: Math.floor(Math.random() * D.QUIZ.length), at: Date.now() }); }
       if (act === 'duel') { if (duel && !duel.done) return; send({ type: 'duel', at: Date.now() }); }
+      if (act === 'speech') { speechOn = !speechOn; try { localStorage.setItem('saunakaverit.speech', speechOn ? 'on' : 'off'); } catch (e) {} el.querySelector('#speechBtn').classList.toggle('active', speechOn); ctx.toast(`🗣 ${t('speech')}: ${speechOn ? 'on' : 'off'}`); if (speechOn) speak(t('roomCommon')); }
+      if (act === 'tourdone') { try { localStorage.setItem('saunakaverit.tour', 'done'); } catch (e) {} const c = el.querySelector('#tourCard'); if (c) c.remove(); }
       if (act === 'sound') { soundOn = !soundOn; try { localStorage.setItem('saunakaverit.sound', soundOn ? 'on' : 'off'); } catch (e) {} el.querySelector('#soundBtn').textContent = soundOn ? '🔊' : '🔇'; if (soundOn) hiss(false); }
       if (act === 'cool') {
         if (me.zone === 'floor' && isOutside(me.x)) { me.zone = 'in'; delete me.x; delete me.y; delete dest[pid]; delete pos[pid]; me.outSince = null; me.inSince = Date.now(); lastStage = 0; hotWarned = false; rounds++; inSince = Date.now(); nudged = false; updateCoolBtn(); addLog(`🔥 ${me.name} ${t('cameIn')}`); bump('rounds'); score('round'); track(); }

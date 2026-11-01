@@ -2,6 +2,13 @@
 
 A social sauna app for Finland: fixed Sunday saunas, themed sessions (language sauna, newcomers, silent, avanto, after-the-run), a sauna passport with stamps and badges, and a twelve-point sauna etiquette for first-timers. Finnish first, English toggle.
 
+## Version 1.0 (official launch, 2026-11-01)
+
+- Launch check: every screen walked in Finnish and English, light and dark, desktop and phone width; backend security and performance advisors clean apart from the intentional token-checked functions; 24 hours of API logs show no errors beyond two from testing; all sauna links probed.
+- Fixes: Sompasauna link, Sauna Arla without a website, dark-mode readability of the light cards in the room, leaderboard view now runs as the caller with a `hidden` flag instead of reading the token column, `sk_point_value` has a fixed search path.
+- Launch essentials: an About and privacy card on Minä, a four-step first-visit guide in the room, spoken character lines off by default (🗣 toggle), steam thinned in crowded rooms, version 1.0 labels.
+- Demo people and their sessions removed from the database; the weekly Sunday sauna and real people's sessions remain.
+
 ## Version 0.18 (live voice, 2026-11-01)
 
 - **Puhu ääneen**: push-to-talk voice between the people in the room. Tap 🎙 Puhu ääneen in the chat card, allow the microphone, then hold the big button to talk. You are muted whenever you are not holding it.

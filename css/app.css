@@ -301,6 +301,10 @@ nav.tabs button.fab.active{background:none}
 .challenge{background:linear-gradient(90deg,#fff3c4,#ffe29a);border-color:transparent;font-size:.9rem;margin:8px 0}
 .roomScene .pet{pointer-events:none}
 .phraseCard{background:linear-gradient(135deg,#e8f1ff,#dbe9f1);border-color:transparent;margin:6px 0}
+/* these cards keep light backgrounds in dark mode, so pin their text colour */
+.phraseCard,.ainoCard,.progCard,.eveningCard,.challenge,.ladleGame,.tourCard{color:#1f1b17}
+.phraseCard .muted,.ainoCard .muted,.progCard .muted,.eveningCard .muted,.challenge .muted,.ladleGame .muted,.tourCard .muted{color:#5d5249}
+.phraseCard .btn.secondary,.ladleGame .btn.secondary{background:#fff}
 .actions{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:8px 0}
 .actions .btn.big{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px;font-size:.78rem;border-radius:14px}
 .actions .btn.big .ic{font-size:1.5rem;line-height:1}
@@ -312,6 +316,7 @@ nav.tabs button.fab.active{background:none}
 .btn.talk{flex:1;padding:14px;font-size:1rem;border-radius:16px;touch-action:none;user-select:none;-webkit-user-select:none}
 .btn.talk.on{background:#e0392f;border-color:#e0392f;animation:pulse 1s infinite}
 #micBtn.active{background:#e0392f;color:#fff;border-color:#e0392f;animation:pulse 1.2s infinite}
+.tourCard{background:linear-gradient(135deg,#fff3c4,#ffe29a);border-color:transparent;margin:6px 0}
 .eveningCard{background:linear-gradient(135deg,#f3e2ff,#e6d2f7);border-color:transparent;margin:8px 0;font-size:.92rem}
 .lvbar{height:8px;border-radius:4px;background:rgba(0,0,0,.08);overflow:hidden;margin-top:6px}
 .lvbar div{height:100%;background:linear-gradient(90deg,var(--wood),#e0a040);transition:width .4s}
