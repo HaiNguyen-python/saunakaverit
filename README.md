@@ -2,6 +2,16 @@
 
 A social sauna app for Finland: fixed Sunday saunas, themed sessions (language sauna, newcomers, silent, avanto, after-the-run), a sauna passport with stamps and badges, and a twelve-point sauna etiquette for first-timers. Finnish first, English toggle.
 
+## Version 0.13 (pranks, a talking kiuas, surprises, 2026-11-01)
+
+- **Pranks** on a person: 🤭 Kutita (they giggle), 🎩 Vaihda hatut (hats swap on both phones), 🪣 Piilota pyyhe (they hide behind a bucket for 8 seconds).
+- **The kiuas talks**: scolds after three throws in ten seconds, sulks when nobody throws for three minutes, praises a perfect löyly, and at 110 °C the gauge bursts with a 💥 and resets to 100.
+- **Kauhakisa**: a timing game; tap when the marker is in the green for a perfect löyly (+8 °C, big steam), in the yellow for a normal one, or splash the floor.
+- **Laula**: sing-along with notes above your head and a synthesised six-note tune on every phone; three singers at once make a choir.
+- **Shared surprises on a common clock**: a 12-second power cut every 11 minutes (only the embers glow), Naapurin Pentti walking in every 9 minutes to complain and throw a löyly, and an avalanche off the roof every 6 minutes onto anyone standing under the eaves.
+- **Illan tilastot**: a running line of tonight's löyly, dips, snowballs, cheers, songs and teases.
+- Spoken lines: when sound is on and the phone has a Finnish (or English) voice, the tonttu, the kiuas and Pentti speak their lines.
+
 ## Version 0.12 (warm up, cool down, play, 2026-11-01)
 
 - **Cold outside.** The terrace has a real outdoor temperature that follows the hour (about −4 °C in the afternoon, −20 °C at night) and the colder it is, the faster this happens: after 90 s outside a warning asks you in; after 3 min the saunatonttu appears and calls you by name in the chat; after 5 min you freeze into an ice block and cannot walk. A friend can tap you and choose 🔥 Sulata to thaw you, or after 7 min you thaw and stumble back in on your own.

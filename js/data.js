@@ -336,6 +336,19 @@ window.SK_DATA = (function () {
     { fi:'Tee lumienkeli', en:'Make a snow angel', key:'angel', goal:1 },
     { fi:'Kiusaa kolmea kaveria', en:'Tease three friends', key:'tease', goal:3 },
   ];
+  /* The kiuas has opinions. */
+  const KIUAS = {
+    scold: [['Ohhoh, rauhassa! Kivet eivät ole ikuisia.', 'Easy there! The stones are not eternal.'], ['Kolme kauhallista putkeen? Olette hulluja.', 'Three ladles in a row? You are all mad.'], ['Sihisen jo. Antakaa minun hengittää.', 'I am hissing already. Let me breathe.']],
+    lonely: [['Kukaan ei heitä löylyä. Alan viilentyä.', 'Nobody throws löyly. I am cooling down.'], ['Onko siellä ketään? Kivet kaipaavat vettä.', 'Anyone there? The stones miss the water.']],
+    burst: [['Mittari hajosi! Nyt riitti.', 'The gauge burst! That is enough.']],
+    perfect: [['Täydellinen! Juuri niin kiviä kohdellaan.', 'Perfect! That is how you treat the stones.']],
+  };
+  const PENTTI = [
+    ['Naapurin Pentti: Onko täällä tilaa?', 'Neighbour Pentti: Any room in here?'],
+    ['Naapurin Pentti: Minun aikanani löylyt olivat kuumempia.', 'Neighbour Pentti: In my day the löyly was hotter.'],
+    ['Naapurin Pentti: Heitänpä kunnon löylyn.', 'Neighbour Pentti: Let me throw a proper one.'],
+    ['Naapurin Pentti: No niin, mökille. Hyvät löylyt!', 'Neighbour Pentti: Right, back to the cottage. Hyvät löylyt!'],
+  ];
   const HATS = { none:{fi:'Ei hattua', en:'No hat'}, felt:{fi:'Huopahattu', en:'Felt hat'}, tonttu:{fi:'Tonttulakki', en:'Elf hat'}, viking:{fi:'Viikinkikypärä', en:'Viking helmet'}, bucket:{fi:'Ämpäri', en:'Bucket'}, crown:{fi:'Kruunu', en:'Crown'} };
 
   Object.assign(UI.fi, {
@@ -355,6 +368,10 @@ window.SK_DATA = (function () {
     outTemp:'Ulkona', avantoBtn:'Avantoon', dipped:'kävi avannossa', angelBtn:'Lumienkeli', madeAngel:'teki lumienkelin', snowfight:'Lumisota 30 s', snowfightStarted:'aloitti lumisodan',
     snowfightLive:'Lumisota käynnissä! Napauta kaveria ja heitä lumipallo.', snowfightOver:'Lumisota ohi', snowKing:'Lumikuningas', hits:'Osumat', catPurr:'Kissa kehrää sohvalla. Älä herätä.',
     challenge:'Päivän haaste', challengeDone:'Päivän sankari! Tähti nimesi viereen.', hero:'Päivän sankari', frozenCantMove:'Olet jäässä. Joku sulattakoon sinut!',
+    tickle:'Kutita', tickled:'kutitti', hatswap:'Vaihda hatut', hatsSwapped:'vaihtoi hatut', hidetowel:'Piilota pyyhe', towelHid:'piilotti pyyhkeen', towelGone:'Pyyhkeesi katosi! Piiloudu kiulun taakse.',
+    sing:'Laula', sang:'lauloi', chorus:'Kuoro! {n} laulaa yhdessä.', ladleGame:'Kauhakisa', ladleHint:'Napauta, kun merkki on keskellä vihreää.', ladleThrow:'Heitä!', perfectLoyly:'heitti täydellisen löylyn!', goodLoyly:'heitti hyvän löylyn', splashLoyly:'roiskaisi lattialle',
+    powerCut:'Sähkökatko! Kuka vei lyhdyn?', powerBack:'Sähköt palasivat.', avalanche:'Lumivyöry katolta!', buried:'sai lumet niskaansa', pentti:'Naapurin Pentti', penttiCame:'Naapurin Pentti kävelee sisään.',
+    stats:'Illan tilastot', sLoyly:'löylyä', sDips:'avantoa', sSnow:'lumipalloa', sCheers:'kippistä', sSongs:'laulua', sTeases:'kiusoittelua', kiuasSays:'Kiuas',
   });
   Object.assign(UI.en, {
     chat:'Bench talk', phrases:'Quick phrases', starterBy:'Saunakaverit asks', games:'Games', quiz:'Sauna quiz', duel:'Löyly contest 30 s',
@@ -373,7 +390,11 @@ window.SK_DATA = (function () {
     outTemp:'Outside', avantoBtn:'Avanto dip', dipped:'took an avanto dip', angelBtn:'Snow angel', madeAngel:'made a snow angel', snowfight:'Snowball fight 30 s', snowfightStarted:'started a snowball fight',
     snowfightLive:'Snowball fight on! Tap a friend and throw a snowball.', snowfightOver:'Snowball fight over', snowKing:'Snow king', hits:'Hits', catPurr:'The cat purrs on the sofa. Do not wake it.',
     challenge:'Daily challenge', challengeDone:'Hero of the day! A star by your name.', hero:'Hero of the day', frozenCantMove:'You are frozen. Someone needs to thaw you!',
+    tickle:'Tickle', tickled:'tickled', hatswap:'Swap hats', hatsSwapped:'swapped hats with', hidetowel:'Hide towel', towelHid:'hid the towel of', towelGone:'Your towel is gone! Hide behind the bucket.',
+    sing:'Sing', sang:'sang', chorus:'A choir! {n} singing together.', ladleGame:'Ladle game', ladleHint:'Tap when the marker is in the middle of the green.', ladleThrow:'Throw!', perfectLoyly:'threw a perfect löyly!', goodLoyly:'threw a good löyly', splashLoyly:'splashed the floor',
+    powerCut:'Power cut! Who took the lantern?', powerBack:'The power is back.', avalanche:'Avalanche off the roof!', buried:'got snow down the neck', pentti:'Neighbour Pentti', penttiCame:'Neighbour Pentti walks in.',
+    stats:'Tonight so far', sLoyly:'löyly', sDips:'dips', sSnow:'snowballs', sCheers:'cheers', sSongs:'songs', sTeases:'teases', kiuasSays:'Kiuas',
   });
 
-  return { SAUNAS, CITIES, THEMES, KINDS, HEATING, LANGS, ETIQUETTE, SEASONS, BADGES, UI, seedSessions, PHRASES, STARTERS, QUIZ, HATS, TEASES, CHALLENGES };
+  return { SAUNAS, CITIES, THEMES, KINDS, HEATING, LANGS, ETIQUETTE, SEASONS, BADGES, UI, seedSessions, PHRASES, STARTERS, QUIZ, HATS, TEASES, CHALLENGES, KIUAS, PENTTI };
 })();

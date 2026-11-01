@@ -299,6 +299,12 @@ nav.tabs button.fab.active{background:none}
 .roomScene .dizzy{animation:dizzy 2.4s linear infinite;transform-box:view-box}
 @keyframes dizzy{from{transform:rotate(0)}to{transform:rotate(360deg)}}
 .challenge{background:linear-gradient(90deg,#fff3c4,#ffe29a);border-color:transparent;font-size:.9rem;margin:8px 0}
+.roomScene .fall{animation:fall 1.1s ease-in infinite}
+@keyframes fall{from{transform:translateY(0);opacity:1}to{transform:translateY(420px);opacity:.2}}
+.ladleGame{margin:8px 0;background:var(--lake2);border-color:transparent}
+.ladleBar{position:relative;height:22px;border-radius:11px;background:linear-gradient(90deg,#f3dada 0 30%,#ffe29a 30% 42%,#bfe6c9 42% 58%,#ffe29a 58% 70%,#f3dada 70%);margin-top:8px;overflow:hidden}
+.ladleBar .marker{position:absolute;top:2px;width:10px;height:18px;border-radius:5px;background:var(--wood);animation:slide 1.2s linear infinite alternate}
+@keyframes slide{from{left:0}to{left:calc(100% - 10px)}}
 .roomScene .walk{animation:walk .35s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:50% 100%}
 @keyframes walk{from{transform:translateY(0) rotate(-2deg)}to{transform:translateY(-4px) rotate(2deg)}}
 .roomScene .clink{animation:clink .5s ease-in-out 3;transform-box:fill-box;transform-origin:50% 100%}
