@@ -2,6 +2,14 @@
 
 A social sauna app for Finland: fixed Sunday saunas, themed sessions (language sauna, newcomers, silent, avanto, after-the-run), a sauna passport with stamps and badges, and a twelve-point sauna etiquette for first-timers. Finnish first, English toggle.
 
+## Version 0.5 (the common place first, 2026-11-01)
+
+- The app now opens straight into the Löylyhuone. Tabs: Löyly, Saunat, ＋, Passi, Minä. The Saunat screen shows a live mini picture of the room with the people actually sitting in it.
+- The scene is tappable: kiuas = löyly (the ladle pours), door = cool off (your figure shivers in the snow), vihta = whisk, another person = wave to them (they get a toast), benches = move seat.
+- Figures breathe gently; above 95 °C they sweat. Six quick emoji reactions. Synthesised löyly hiss with a mute toggle.
+- Group löyly meter: eight throws within a minute by anyone make the saunatonttu peek out from behind the kiuas, with a big steam burst.
+- "Lauteilla nyt" strip shows everyone present with minutes on the benches. A "Seuraava oikea sauna" card inside the room links to the next real-world session.
+
 ## Version 0.4 (UX pass, 2026-11-01)
 
 - Five tabs instead of seven, with a raised ＋ Isännöi button in the middle. Saunas and stamps live under Passi; the etiquette is a card on Home and in Minä.

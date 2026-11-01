@@ -145,6 +145,7 @@
   /* ---------- onboarding: name without leaving the flow ---------- */
   function ensureName(){ return S.profile.name ? Promise.resolve(true) : new Promise(res => openOnboarding(res)); }
   function openOnboarding(done){
+    onboardShown = true;
     const p = S.profile;
     openSheet(`
       <div class="onb">
@@ -206,13 +207,15 @@
 
     $('#view-home').innerHTML = `
       ${offline ? `<div class="card moss small">📴 ${esc(t('offlineNote'))}</div>` : ''}
-      <div class="card roomCard" data-room="yhteinen" style="cursor:pointer">
+      <div class="card roomCard preview" data-room="yhteinen" style="cursor:pointer">
         <div>
           <div class="small muted">🔴 LIVE · <b id="roomCount">${roomCount}</b> ${esc(t('nowPresent'))}</div>
-          <h3 style="margin:2px 0">🧖 ${esc(t('roomCommon'))}</h3>
-          <div class="faces" id="roomFaces">${roomNames.length ? faces(roomNames, 5) : `<span>${esc(t('nobodyYet'))}</span>`}</div>
+          <h3 style="margin:2px 0">🧖 ${esc(t('previewTitle'))}</h3>
+          <div class="small muted">${esc(t('previewLead'))}</div>
+          <div class="previewWrap" id="roomPreview"></div>
+          <div class="faces" id="roomFaces">${roomNames.length ? faces(roomNames, 6) : `<span>${esc(t('nobodyYet'))}</span>`}</div>
         </div>
-        <button class="btn" data-room="yhteinen">${esc(t('enterRoom'))}</button>
+        <button class="btn full" data-room="yhteinen">${esc(t('enterRoom'))} →</button>
       </div>
       ${connecting ? '<div class="skel" style="height:150px"></div>' : sunday ? `<div class="card hero" data-open="${sunday.id}" style="cursor:pointer"><div class="steam"></div>
         <div class="small muted">${esc(t('nextSunday'))} · ${esc(fmtDate(sunday.start))}</div>
@@ -231,6 +234,11 @@
       ${next ? `<div class="card ${season?'':'season'}"><div class="small muted">${esc(t('seasonNext'))}</div><h3>${next.ic} ${esc(L(next)[0])}</h3><p class="small muted">${esc(L(next)[1])}</p></div>` : ''}
       <div class="card moss row between" data-go="etiquette" style="cursor:pointer"><span>🌿 <b>${esc(t('etiquetteCard'))}</b><br><span class="small muted">${esc(t('etiquetteCta'))}</span></span><span style="font-size:1.4rem">›</span></div>
     `;
+    ROOM.preview($('#roomPreview'), ROOM.metas('yhteinen'));
+  }
+  function nextInfo(){
+    const s = allSessions()[0]; if (!s) return null;
+    return { id: s.id, text: `${fmtDate(s.start)} · ${s.sauna.name} · ${s.attendees.length}/${s.cap}`, cta: t('joinCta') };
   }
 
   function saunasHtml(){
@@ -486,7 +494,7 @@
     if (name === 'room') {
       ROOM.enter($('#view-room'), currentRoom.id, {
         client: API.enabled ? API.client : null, deviceSuffix: API.deviceSuffix || '', t, label: currentRoom.label,
-        profile: () => S.profile, toast,
+        profile: () => S.profile, toast, next: currentRoom.id === 'yhteinen' ? nextInfo() : null,
       });
     } else if (ROOM.isOpen()) { ROOM.leave(); $('#view-room').innerHTML = ''; }
   }
@@ -511,10 +519,12 @@
   if (API.enabled) {
     refresh();
     API.subscribe(refreshSoon);
-    const onCount = (n, names) => { roomCount = n; roomNames = names || []; const el = $('#roomCount'); if (el) el.textContent = n; const f = $('#roomFaces'); if (f) f.innerHTML = roomNames.length ? faces(roomNames, 5) : `<span>${esc(t('nobodyYet'))}</span>`; };
+    const onCount = (n, names, metas) => { roomCount = n; roomNames = names || []; const el = $('#roomCount'); if (el) el.textContent = n; const f = $('#roomFaces'); if (f) f.innerHTML = roomNames.length ? faces(roomNames, 6) : `<span>${esc(t('nobodyYet'))}</span>`; ROOM.preview($('#roomPreview'), metas || []); };
     onCount.deviceSuffix = API.deviceSuffix || '';
     ROOM.watch(API.client, 'yhteinen', onCount);
     setInterval(refresh, 60000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
-  } else if (!S.profile.name) { onboardShown = true; openOnboarding(); }
+  }
+  // The common place is the front door: open straight onto the benches.
+  showView('room');
 })();

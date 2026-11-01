@@ -152,7 +152,7 @@ window.SK_DATA = (function () {
 
   const UI = {
     fi: {
-      tagline:'Yhdessä saunaan', 'tab.home':'Koti', 'tab.saunas':'Saunat', 'tab.host':'Isännöi', 'tab.passport':'Passi', 'tab.etiquette':'Etiketti', 'tab.profile':'Minä',
+      tagline:'Yhdessä saunaan', 'tab.home':'Saunat', 'tab.saunas':'Saunat', 'tab.host':'Isännöi', 'tab.passport':'Passi', 'tab.etiquette':'Etiketti', 'tab.profile':'Minä',
       nextSunday:'Seuraava sunnuntaisauna', sundayLead:'Joka sunnuntai klo 15. Sama aika, sama paikka, uudet ihmiset. Tule yksin tai kaverin kanssa.',
       join:'Tulen mukaan', leave:'Peru osallistuminen', joined:'Olet mukana', full:'Täynnä', waitlist:'Jonoon', onWaitlist:'Olet jonossa',
       thisWeek:'Tällä viikolla', later:'Myöhemmin', all:'Kaikki', noSessions:'Ei saunoja tällä suodatuksella. Isännöi itse!',
@@ -191,9 +191,12 @@ window.SK_DATA = (function () {
       nowOn:'Nyt käynnissä', startsIn:'Alkaa {n} päästä', min:'min', h:'h', etiquetteCard:'Ensimmäistä kertaa suomalaisessa saunassa?', etiquetteCta:'Lue saunaetiketti',
       back:'Takaisin', saunasSection:'Saunat ja leimat', inRoomFor:'lauteilla', rounds:'kierros', nudge:'Olet ollut lauteilla 15 minuuttia. Vilvoittelu tekee hyvää.',
       empty:'Ei saunoja tällä viikolla. Ole ensimmäinen.', seatHint:'Vaihda paikkaa napauttamalla lauteita', nobodyYet:'Lauteet ovat tyhjät. Istu ensimmäisenä.',
+      tapHint:'Napauta kiuasta = löyly · ovea = vilvoittelu · vihtaa = vihta · kaveria = tervehdys · lauteita = paikka',
+      yhteisloyly:'Yhteislöyly', tonttu:'Saunatonttu kurkistaa kiukaan takaa. Kiitos löylyistä!', sound:'Ääni', nextSauna:'Seuraava oikea sauna', joinCta:'Katso',
+      previewTitle:'Yhteinen löylyhuone · aina auki', previewLead:'Tässä istutaan juuri nyt. Astu sisään, niin olet lauteilla muiden kanssa.',
     },
     en: {
-      tagline:'Together to the sauna', 'tab.home':'Home', 'tab.saunas':'Saunas', 'tab.host':'Host', 'tab.passport':'Passport', 'tab.etiquette':'Etiquette', 'tab.profile':'Me',
+      tagline:'Together to the sauna', 'tab.home':'Saunas', 'tab.saunas':'Saunas', 'tab.host':'Host', 'tab.passport':'Passport', 'tab.etiquette':'Etiquette', 'tab.profile':'Me',
       nextSunday:'Next Sunday sauna', sundayLead:'Every Sunday at 15:00. Same time, same place, new people. Come alone or with a friend.',
       join:'Count me in', leave:'Cancel my spot', joined:'You are in', full:'Full', waitlist:'Join waitlist', onWaitlist:'You are on the waitlist',
       thisWeek:'This week', later:'Later', all:'All', noSessions:'No saunas with this filter. Host one yourself!',
@@ -232,6 +235,9 @@ window.SK_DATA = (function () {
       nowOn:'On now', startsIn:'Starts in {n}', min:'min', h:'h', etiquetteCard:'First time in a Finnish sauna?', etiquetteCta:'Read the sauna etiquette',
       back:'Back', saunasSection:'Saunas and stamps', inRoomFor:'on the benches', rounds:'round', nudge:'You have been on the benches for 15 minutes. Cooling off does you good.',
       empty:'No saunas this week. Be the first.', seatHint:'Tap the benches to change seats', nobodyYet:'The benches are empty. Be the first to sit.',
+      tapHint:'Tap the stove = löyly · the door = cool off · the vihta = whisk · a person = wave · the benches = move',
+      yhteisloyly:'Group löyly', tonttu:'The saunatonttu peeks out from behind the stove. Thanks for the löyly!', sound:'Sound', nextSauna:'Next real sauna', joinCta:'See',
+      previewTitle:'The common löyly room · always open', previewLead:'This is who is sitting right now. Step in and you are on the benches with them.',
     }
   };
 
