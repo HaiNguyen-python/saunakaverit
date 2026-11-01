@@ -229,4 +229,22 @@ nav.tabs button.fab.active{background:none}
 .previewWrap{border-radius:12px;overflow:hidden;line-height:0;margin-top:8px;box-shadow:0 4px 14px rgba(0,0,0,.3)}
 .previewWrap svg{width:100%;height:auto;display:block}
 .roomCard.preview{grid-template-columns:1fr}
+
+/* Chat, people actions, games */
+.chat{margin:10px 0}
+.chatList{max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding:4px 0 8px}
+.msg{font-size:.9rem;background:var(--steam);border-radius:12px;padding:6px 10px;align-self:flex-start;max-width:92%}
+.msg.mine{background:var(--moss2);align-self:flex-end}
+.msg.sys{background:var(--lake2);color:var(--lake);font-size:.85rem}
+.msg small{color:var(--ink2);margin-left:6px;font-size:.7rem}
+.phrases{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0}
+.phrases::-webkit-scrollbar{display:none}
+.phrases .chipbtn small{color:var(--ink2)}
+.personBar,.gameBox,.figureBar{margin:8px 0;background:var(--lake2);border-color:transparent}
+.gameBox{background:var(--moss2)}
+.figureBar{background:var(--steam)}
+.qopts{display:flex;flex-direction:column;gap:6px;margin:6px 0}
+.qopts .btn{text-align:left}
+.swatch{width:28px;height:28px;border-radius:50%;border:2px solid transparent;cursor:pointer}
+.swatch.on{border-color:var(--ink);transform:scale(1.15)}
 .roomCard .btn.full{width:100%;margin-top:10px}

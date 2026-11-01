@@ -279,5 +279,58 @@ window.SK_DATA = (function () {
     ];
   }
 
-  return { SAUNAS, CITIES, THEMES, KINDS, HEATING, LANGS, ETIQUETTE, SEASONS, BADGES, UI, seedSessions };
+  /* Quick phrases for the room: Finnish is sent, English shown as a hint for learners. */
+  const PHRASES = [
+    ['Heitänkö?', 'Shall I throw?'], ['Hyvät löylyt!', 'Good löyly!'], ['Lisää löylyä!', 'More löyly!'], ['Nyt on kuuma!', 'It is hot now!'],
+    ['Kiitos seurasta!', 'Thanks for the company!'], ['Menen vilvoittelemaan', 'Going to cool off'], ['Mistä olet kotoisin?', 'Where are you from?'],
+    ['Moi! Ensimmäistä kertaa täällä', 'Hi! First time here'], ['Tuletko sunnuntaina?', 'Coming on Sunday?'], ['Olut jälkeen?', 'Beer afterwards?'],
+  ];
+  /* Conversation starters the room drops in every few minutes. */
+  const STARTERS = [
+    ['Mikä on paras sauna, jossa olet käynyt?', 'What is the best sauna you have been to?'],
+    ['Löyly vai avanto, kumpi on parempi?', 'Löyly or the ice hole, which is better?'],
+    ['Mitä syöt saunan jälkeen?', 'What do you eat after the sauna?'],
+    ['Kuka opetti sinut saunomaan?', 'Who taught you to sauna?'],
+    ['Puukiuas vai sähkökiuas?', 'Wood stove or electric?'],
+    ['Mikä on suosikkisaunasanasi?', 'What is your favourite sauna word?'],
+    ['Olet uudessa saunassa. Mitä teet ensin?', 'You are in a new sauna. What do you do first?'],
+    ['Kerro yksi asia kotimaastasi', 'Tell one thing about your home country'],
+    ['Hiljainen vai puhelias sauna?', 'A silent or a talkative sauna?'],
+    ['Mikä on hauskin saunamuistosi?', 'What is your funniest sauna memory?'],
+  ];
+  /* Saunavisa: Finnish sauna trivia. Answer index is the correct option. */
+  const QUIZ = [
+    { fi:['Montako saunaa Suomessa arviolta on?', ['Noin 300 000', 'Noin 3 miljoonaa', 'Noin 30 miljoonaa']], en:['How many saunas are there in Finland, roughly?', ['About 300,000', 'About 3 million', 'About 30 million']], a:1 },
+    { fi:['Mitä sana "löyly" tarkoitti alun perin?', ['Henkeä tai sielua', 'Kuumaa kiveä', 'Koivunoksaa']], en:['What did the word "löyly" originally mean?', ['Spirit or soul', 'A hot stone', 'A birch branch']], a:0 },
+    { fi:['Suomen vanhin yhä toimiva yleinen sauna on…', ['Kotiharjun sauna', 'Rajaportin sauna', 'Löyly']], en:['The oldest public sauna still working in Finland is…', ['Kotiharjun sauna', 'Rajaportin sauna', 'Löyly']], a:1 },
+    { fi:['Mistä puusta vihta yleensä sidotaan?', ['Kuusesta', 'Koivusta', 'Männystä']], en:['Which tree is the vihta usually made of?', ['Spruce', 'Birch', 'Pine']], a:1 },
+    { fi:['Mitä sanotaan, kun joku lähtee saunasta?', ['Hyvät löylyt', 'Kippis', 'Hyvää ruokahalua']], en:['What do you say when someone leaves the sauna?', ['Hyvät löylyt', 'Kippis', 'Hyvää ruokahalua']], a:0 },
+    { fi:['Miten savusauna lämmitetään?', ['Sähköllä', 'Puulla ilman savupiippua', 'Kaasulla']], en:['How is a smoke sauna heated?', ['Electricity', 'Wood, with no chimney', 'Gas']], a:1 },
+    { fi:['Minä vuonna suomalainen saunakulttuuri pääsi Unescon luetteloon?', ['2010', '2020', '1995']], en:['When was Finnish sauna culture added to the UNESCO list?', ['2010', '2020', '1995']], a:1 },
+    { fi:['Mikä on pefletti?', ['Saunajuoma', 'Kertakäyttöinen laudeliina', 'Kiukaan kivi']], en:['What is a pefletti?', ['A sauna drink', 'A disposable seat cover', 'A stove stone']], a:1 },
+    { fi:['Itä-Suomessa vihtaa kutsutaan nimellä…', ['Vasta', 'Vihko', 'Varpu']], en:['In eastern Finland the vihta is called…', ['Vasta', 'Vihko', 'Varpu']], a:0 },
+    { fi:['Mikä on avanto?', ['Saunan ovi', 'Jäähän tehty uintiaukko', 'Löylykauha']], en:['What is an avanto?', ['The sauna door', 'A swimming hole cut in the ice', 'A löyly ladle']], a:1 },
+    { fi:['Kuka asuu kansanperinteen mukaan saunassa?', ['Saunatonttu', 'Joulupukki', 'Näkki']], en:['Who lives in the sauna according to folklore?', ['The saunatonttu', 'Santa Claus', 'The näkki']], a:0 },
+    { fi:['Mitä tehdään ennen lauteille nousua?', ['Käydään suihkussa', 'Heitetään löylyä', 'Juodaan olut']], en:['What do you do before going up to the benches?', ['Take a shower', 'Throw löyly', 'Drink a beer']], a:0 },
+  ];
+  const HATS = { none:{fi:'Ei hattua', en:'No hat'}, felt:{fi:'Huopahattu', en:'Felt hat'}, tonttu:{fi:'Tonttulakki', en:'Elf hat'}, viking:{fi:'Viikinkikypärä', en:'Viking helmet'}, bucket:{fi:'Ämpäri', en:'Bucket'}, crown:{fi:'Kruunu', en:'Crown'} };
+
+  Object.assign(UI.fi, {
+    chat:'Lauteiden keskustelu', phrases:'Pikalauseet', starterBy:'Saunakaverit kysyy', games:'Pelit', quiz:'Saunavisa', duel:'Löylykisa 30 s',
+    quizStarted:'aloitti Saunavisan', duelStarted:'aloitti löylykisan', answered:'vastasi oikein', wrong:'vastasi väärin', correctIs:'Oikea vastaus', winner:'voitti', nobody:'Kukaan ei tiennyt',
+    duelLive:'Löylykisa käynnissä! Napauta kiuasta.', duelOver:'Löylykisa ohi', crownNote:'Kruunu päässä 10 minuuttia', tally:'Heitot',
+    personActions:'Mitä teet?', wave:'Vilkuta', whisk:'Vihdo', beer:'Tarjoa olut', snow:'Lumipallo', close:'Sulje',
+    myFigure:'Oma hahmo', hatLabel:'Hattu', towelLabel:'Pyyhe', secondsLeft:'s jäljellä', youWon:'Sinä voitit! Kruunu on sinun.',
+    waved:'vilkutti', whisked2:'vihtoi', offered:'tarjosi oluen', snowed:'heitti lumipallon', chatEmpty:'Ei vielä puhetta. Hiljaisuus on ok, mutta kysyäkin saa.',
+  });
+  Object.assign(UI.en, {
+    chat:'Bench talk', phrases:'Quick phrases', starterBy:'Saunakaverit asks', games:'Games', quiz:'Sauna quiz', duel:'Löyly contest 30 s',
+    quizStarted:'started a Sauna quiz', duelStarted:'started a löyly contest', answered:'answered correctly', wrong:'answered wrong', correctIs:'Correct answer', winner:'won', nobody:'Nobody knew',
+    duelLive:'Löyly contest on! Tap the stove.', duelOver:'Contest over', crownNote:'Crown for 10 minutes', tally:'Throws',
+    personActions:'What do you do?', wave:'Wave', whisk:'Whisk', beer:'Offer a beer', snow:'Snowball', close:'Close',
+    myFigure:'My figure', hatLabel:'Hat', towelLabel:'Towel', secondsLeft:'s left', youWon:'You won! The crown is yours.',
+    waved:'waved at', whisked2:'whisked', offered:'offered a beer to', snowed:'threw a snowball at', chatEmpty:'No talk yet. Silence is fine, but asking is allowed.',
+  });
+
+  return { SAUNAS, CITIES, THEMES, KINDS, HEATING, LANGS, ETIQUETTE, SEASONS, BADGES, UI, seedSessions, PHRASES, STARTERS, QUIZ, HATS };
 })();

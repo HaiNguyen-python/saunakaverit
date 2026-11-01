@@ -2,6 +2,16 @@
 
 A social sauna app for Finland: fixed Sunday saunas, themed sessions (language sauna, newcomers, silent, avanto, after-the-run), a sauna passport with stamps and badges, and a twelve-point sauna etiquette for first-timers. Finnish first, English toggle.
 
+## Version 0.6 (talk and play, 2026-11-01)
+
+- **Lauteiden keskustelu**: a real chat panel in the room (last 40 messages while you are present, speech bubbles too). Quick Finnish phrases with English hints for learners: "Heitänkö?", "Hyvät löylyt!", "Mistä olet kotoisin?"…
+- **Conversation starters**: every four minutes the room asks a question ("Löyly vai avanto?"), the same one on every phone.
+- **Tap a person**: wave, whisk them with the vihta, offer a beer, throw a snowball. They get a toast and a ding.
+- **Oma hahmo**: choose a hat (felt, tonttu, viking, bucket) and a towel colour; everyone sees it.
+- **Saunavisa**: 12 Finnish sauna trivia questions, 20 seconds, first correct answer wins.
+- **Löylykisa**: a 30-second löyly contest; the winner wears a crown for 10 minutes.
+- Short ding sounds for messages, waves and wins, with the same mute toggle.
+
 ## Version 0.5 (the common place first, 2026-11-01)
 
 - The app now opens straight into the Löylyhuone. Tabs: Löyly, Saunat, ＋, Passi, Minä. The Saunat screen shows a live mini picture of the room with the people actually sitting in it.

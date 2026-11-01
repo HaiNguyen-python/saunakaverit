@@ -494,7 +494,7 @@
     if (name === 'room') {
       ROOM.enter($('#view-room'), currentRoom.id, {
         client: API.enabled ? API.client : null, deviceSuffix: API.deviceSuffix || '', t, label: currentRoom.label,
-        profile: () => S.profile, toast, next: currentRoom.id === 'yhteinen' ? nextInfo() : null,
+        profile: () => S.profile, toast, lang: () => S.lang, next: currentRoom.id === 'yhteinen' ? nextInfo() : null,
       });
     } else if (ROOM.isOpen()) { ROOM.leave(); $('#view-room').innerHTML = ''; }
   }
