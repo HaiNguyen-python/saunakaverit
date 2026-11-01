@@ -349,6 +349,11 @@ window.SK_DATA = (function () {
     ['Naapurin Pentti: Heitänpä kunnon löylyn.', 'Neighbour Pentti: Let me throw a proper one.'],
     ['Naapurin Pentti: No niin, mökille. Hyvät löylyt!', 'Neighbour Pentti: Right, back to the cottage. Hyvät löylyt!'],
   ];
+  const PETS = { none:{fi:'Ei lemmikkiä', en:'No pet', e:''}, dog:{fi:'Koira', en:'Dog', e:'🐕'}, cat:{fi:'Kissa', en:'Cat', e:'🐈'}, reindeer:{fi:'Poronvasa', en:'Reindeer calf', e:'🦌'}, hedgehog:{fi:'Siili', en:'Hedgehog', e:'🦔'}, duck:{fi:'Sorsa', en:'Duck', e:'🦆'} };
+  const CATCHES = [
+    ['ahven', 'a perch', '🐟'], ['hauki', 'a pike', '🐟'], ['kuha', 'a zander', '🐟'], ['vanhan saappaan', 'an old boot', '👢'], ['jääpalan', 'a lump of ice', '🧊'],
+    ['pikkuruisen kalan', 'a tiny fish', '🐠'], ['lohen! Kukaan ei usko', 'a salmon! Nobody will believe it', '🐟'], ['saunakauhan', 'a sauna ladle', '🥄'], ['ei mitään. Kalat nauravat', 'nothing. The fish are laughing', '💤'],
+  ];
   const HATS = { none:{fi:'Ei hattua', en:'No hat'}, felt:{fi:'Huopahattu', en:'Felt hat'}, tonttu:{fi:'Tonttulakki', en:'Elf hat'}, viking:{fi:'Viikinkikypärä', en:'Viking helmet'}, bucket:{fi:'Ämpäri', en:'Bucket'}, crown:{fi:'Kruunu', en:'Crown'} };
 
   Object.assign(UI.fi, {
@@ -372,6 +377,7 @@ window.SK_DATA = (function () {
     sing:'Laula', sang:'lauloi', chorus:'Kuoro! {n} laulaa yhdessä.', ladleGame:'Kauhakisa', ladleHint:'Napauta, kun merkki on keskellä vihreää.', ladleThrow:'Heitä!', perfectLoyly:'heitti täydellisen löylyn!', goodLoyly:'heitti hyvän löylyn', splashLoyly:'roiskaisi lattialle',
     powerCut:'Sähkökatko! Kuka vei lyhdyn?', powerBack:'Sähköt palasivat.', avalanche:'Lumivyöry katolta!', buried:'sai lumet niskaansa', pentti:'Naapurin Pentti', penttiCame:'Naapurin Pentti kävelee sisään.',
     stats:'Illan tilastot', sLoyly:'löylyä', sDips:'avantoa', sSnow:'lumipalloa', sCheers:'kippistä', sSongs:'laulua', sTeases:'kiusoittelua', kiuasSays:'Kiuas',
+    petLabel:'Lemmikki', rocket:'Raketti', fired:'ampui raketin', sled:'Pulkkamäki', sledded:'laski pulkkamäen', fish:'Pilkki', fishing:'istuu pilkillä', caught:'sai', postcard:'Postikortti', postcardText:'Terveisiä Saunakavereilta', postcardDone:'Postikortti valmis', postcardFail:'Kuvaa ei saatu tehtyä tällä selaimella.',
   });
   Object.assign(UI.en, {
     chat:'Bench talk', phrases:'Quick phrases', starterBy:'Saunakaverit asks', games:'Games', quiz:'Sauna quiz', duel:'Löyly contest 30 s',
@@ -394,7 +400,8 @@ window.SK_DATA = (function () {
     sing:'Sing', sang:'sang', chorus:'A choir! {n} singing together.', ladleGame:'Ladle game', ladleHint:'Tap when the marker is in the middle of the green.', ladleThrow:'Throw!', perfectLoyly:'threw a perfect löyly!', goodLoyly:'threw a good löyly', splashLoyly:'splashed the floor',
     powerCut:'Power cut! Who took the lantern?', powerBack:'The power is back.', avalanche:'Avalanche off the roof!', buried:'got snow down the neck', pentti:'Neighbour Pentti', penttiCame:'Neighbour Pentti walks in.',
     stats:'Tonight so far', sLoyly:'löyly', sDips:'dips', sSnow:'snowballs', sCheers:'cheers', sSongs:'songs', sTeases:'teases', kiuasSays:'Kiuas',
+    petLabel:'Pet', rocket:'Rocket', fired:'fired a rocket', sled:'Sledding', sledded:'sledded down the hill', fish:'Ice fishing', fishing:'is ice fishing', caught:'caught', postcard:'Postcard', postcardText:'Greetings from Saunakaverit', postcardDone:'Postcard ready', postcardFail:'Could not make the picture in this browser.',
   });
 
-  return { SAUNAS, CITIES, THEMES, KINDS, HEATING, LANGS, ETIQUETTE, SEASONS, BADGES, UI, seedSessions, PHRASES, STARTERS, QUIZ, HATS, TEASES, CHALLENGES, KIUAS, PENTTI };
+  return { SAUNAS, CITIES, THEMES, KINDS, HEATING, LANGS, ETIQUETTE, SEASONS, BADGES, UI, seedSessions, PHRASES, STARTERS, QUIZ, HATS, TEASES, CHALLENGES, KIUAS, PENTTI, PETS, CATCHES };
 })();

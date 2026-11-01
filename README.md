@@ -2,6 +2,14 @@
 
 A social sauna app for Finland: fixed Sunday saunas, themed sessions (language sauna, newcomers, silent, avanto, after-the-run), a sauna passport with stamps and badges, and a twelve-point sauna etiquette for first-timers. Finnish first, English toggle.
 
+## Version 0.14 (pets, rockets, sledding, fishing, postcards, 2026-11-01)
+
+- **Lemmikki**: pick a dog, cat, reindeer calf, hedgehog or duck in Oma hahmo. It follows your figure everywhere with a little lag and everyone sees it.
+- **Raketti**: launch fireworks over the lake; a rising spark, a coloured burst and a low boom on every phone.
+- **Pulkkamäki**: sled down the terrace slope from the trees to the lake on a red sled, landing laughing.
+- **Pilkki**: walk to the lake and sit ice fishing with a rod; after 8 to 15 seconds you catch something: a perch, a pike, an old boot, a lump of ice, a sauna ladle, or nothing while the fish laugh.
+- **Postikortti**: turns the current view into a picture with "Terveisiä Saunakavereilta", the date and the names present, then opens the phone's share sheet (or downloads the PNG on desktop).
+
 ## Version 0.13 (pranks, a talking kiuas, surprises, 2026-11-01)
 
 - **Pranks** on a person: 🤭 Kutita (they giggle), 🎩 Vaihda hatut (hats swap on both phones), 🪣 Piilota pyyhe (they hide behind a bucket for 8 seconds).

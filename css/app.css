@@ -299,6 +299,7 @@ nav.tabs button.fab.active{background:none}
 .roomScene .dizzy{animation:dizzy 2.4s linear infinite;transform-box:view-box}
 @keyframes dizzy{from{transform:rotate(0)}to{transform:rotate(360deg)}}
 .challenge{background:linear-gradient(90deg,#fff3c4,#ffe29a);border-color:transparent;font-size:.9rem;margin:8px 0}
+.roomScene .pet{pointer-events:none}
 .roomScene .fall{animation:fall 1.1s ease-in infinite}
 @keyframes fall{from{transform:translateY(0);opacity:1}to{transform:translateY(420px);opacity:.2}}
 .ladleGame{margin:8px 0;background:var(--lake2);border-color:transparent}

@@ -32,6 +32,19 @@ window.SK_ROOM = (function () {
   let pos = {}, dest = {}, lastMove = 0;   // floor positions and walk targets by person id
   let counters = {}, hero = false, imprints = [], warned = {}, snowfight = null, dipAt = 0, angelAt = 0, lastStage = 0, hotWarned = false, tonttuCallAt = 0;
   let singers = {}, npc = null, npcStage = -1, stats = {}, ladle = null, throwTimes = [], lastKiuasScold = 0, lastKiuasLonely = 0, lastLoylyAt = 0, pcut = false, lastPcut = -1, lastAval = -1, lastPentti = -1, lastChorus = 0;
+  let petPos = {}, fireworks = [], sledding = {}, fishing = {}, fishAt = 0, catchAt = 0;
+  const FX_COLORS = ['#ffd166', '#ff7a7a', '#7ad3ff', '#3dff9a', '#c67bff', '#fff'];
+  function boom() {
+    if (!soundOn) return;
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      const sr = audio.sampleRate, buf = audio.createBuffer(1, sr * 0.6, sr), d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2);
+      const src = audio.createBufferSource(); src.buffer = buf; const f = audio.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 220;
+      const g = audio.createGain(); g.gain.value = 0.6; src.connect(f); f.connect(g); g.connect(audio.destination); src.start();
+    } catch (e) {}
+  }
+  const sledPos = (k) => ({ x: 90 + 330 * k, y: 430 + 190 * k * k });
   function speak(text) {
     if (!soundOn || !window.speechSynthesis) return;
     try {
@@ -391,7 +404,7 @@ window.SK_ROOM = (function () {
       default: return `<ellipse cx="-5" cy="-78" rx="5" ry="3" fill="#fff" fill-opacity=".25"/>`;                                                               // bald shine
     }
   }
-  function avatar(p, x, y, s, isMe, moving, faceLeft) {
+  function avatar(p, x, y, s, isMe, moving, faceLeft, onSled) {
     const ti = (p.towel >= 0 && p.towel < TOWELS.length) ? p.towel : hash(p.name) % TOWELS.length;
     const tow = TOWELS[ti], towDark = shade(tow, -22);
     const si = hash(p.name + 'k') % SKINS.length, skin = SKINS[si], skinD = SKIN_SHADE[si];
@@ -410,6 +423,7 @@ window.SK_ROOM = (function () {
       : `<path d="M-17 -12 L-17 6 L-10 6 L-10 -8 Z M10 -8 L10 6 L17 6 L17 -12 Z" fill="${skin}"/><ellipse cx="-13.5" cy="7.5" rx="6" ry="3" fill="${skinD}"/><ellipse cx="13.5" cy="7.5" rx="6" ry="3" fill="${skinD}"/>`;
     return `<g class="av" data-person="${esc(p.id)}" data-pname="${esc(p.name)}" transform="translate(${x},${y}) scale(${s})" style="cursor:${isMe?'default':'pointer'}">
       ${ring}
+      ${onSled ? `<rect x="-36" y="6" width="72" height="9" rx="4" fill="#b23a3a" stroke="#7a1f1f"/><path d="M36 10 q12 0 10 -14" stroke="#b23a3a" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M-30 15 l-14 6 M-10 15 l-12 8" stroke="#fff" stroke-opacity=".7" stroke-width="2"/>` : ''}
       <g transform="scale(${faceLeft ? -1 : 1},1)">
       <g class="${cold ? 'shiver' : moving ? 'walk' : 'bob'}" style="animation-delay:-${(hash(p.id || p.name) % 30) / 10}s">
       ${legs}
@@ -438,6 +452,7 @@ window.SK_ROOM = (function () {
   function armSvg(pose, skin) {
     if (pose === 'wave') return `<g class="wavehand"><path d="M20 -42 Q34 -56 28 -78" stroke="${skin}" stroke-width="7.5" fill="none" stroke-linecap="round"/><circle cx="28" cy="-80" r="5" fill="${skin}"/></g>`;
     if (pose === 'vihta') return `<g class="swing"><path d="M20 -42 Q36 -50 34 -70" stroke="${skin}" stroke-width="7.5" fill="none" stroke-linecap="round"/><circle cx="34" cy="-72" r="4.5" fill="${skin}"/><path d="M34 -72 L40 -92" stroke="#6b4a2b" stroke-width="3"/><ellipse cx="36" cy="-100" rx="7" ry="11" fill="#5fa04a" transform="rotate(-20 36 -100)"/><ellipse cx="46" cy="-98" rx="7" ry="11" fill="#74b35a" transform="rotate(15 46 -98)"/></g>`;
+    if (pose === 'fish') return `<path d="M20 -42 Q30 -36 28 -20" stroke="${skin}" stroke-width="7.5" fill="none" stroke-linecap="round"/><circle cx="28" cy="-18" r="4.5" fill="${skin}"/><path d="M28 -18 L62 -70" stroke="#8a5a2b" stroke-width="3" stroke-linecap="round"/><path d="M62 -70 L64 10" stroke="#ddd" stroke-width="1"/><ellipse cx="64" cy="12" rx="10" ry="4" fill="#1b4a7a" stroke="#dbeafc"/>`;
     if (pose === 'ladle') return `<path d="M20 -42 Q34 -40 30 -22" stroke="${skin}" stroke-width="7.5" fill="none" stroke-linecap="round"/><circle cx="30" cy="-20" r="4.5" fill="${skin}"/><path d="M30 -20 L52 -46" stroke="#d9b07a" stroke-width="4" stroke-linecap="round"/><ellipse cx="54" cy="-48" rx="7" ry="4.5" fill="#d9b07a" stroke="#5b3a1f"/>`;
     if (pose === 'snowhit') return `<path d="M20 -42 Q30 -30 24 -12" stroke="${skin}" stroke-width="7.5" fill="none" stroke-linecap="round"/><circle cx="23" cy="-10" r="4.5" fill="${skin}"/><circle cx="4" cy="-84" r="7" fill="#fff" fill-opacity=".9"/><circle cx="-6" cy="-80" r="4" fill="#fff" fill-opacity=".8"/><circle cx="12" cy="-78" r="3" fill="#fff" fill-opacity=".8"/>`;
     return `<path d="M20 -42 Q30 -30 24 -12" stroke="${skin}" stroke-width="7.5" fill="none" stroke-linecap="round"/><circle cx="23" cy="-10" r="4.5" fill="${skin}"/>`;
@@ -447,6 +462,7 @@ window.SK_ROOM = (function () {
     if (face === 'snowhit') face = 'cold';
     if (face === 'hidden') face = 'wow';
     if (face === 'wave' || face === 'vihta' || face === 'ladle') face = 'laugh';
+    if (face === 'fish') face = 'think';
     if (face === 'sing') return `<path d="M-9 -69 q3 -4.5 6 0 M3 -69 q3 -4.5 6 0" stroke="#2b1d12" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M-9.5 -75 q3.5 -2.5 7 0 M2.5 -75 q3.5 -2.5 7 0" stroke="${o.hairC}" stroke-width="1.4" fill="none" stroke-linecap="round"/><ellipse cx="0" cy="-59" rx="3.5" ry="4.5" fill="#5a2d1a"/><text x="14" y="-88" font-size="12" fill="#fff">♪</text><text x="-26" y="-94" font-size="10" fill="#fff">♫</text>`;
     const brows = `<path d="M-9.5 -75 q3.5 -2.5 7 0 M2.5 -75 q3.5 -2.5 7 0" stroke="${o.hairC}" stroke-width="1.4" fill="none" stroke-linecap="round"/>`;
     if (face === 'tongue') return `<path d="M-9 -69 q3 -4.5 6 0" stroke="#2b1d12" stroke-width="1.8" fill="none" stroke-linecap="round"/><circle cx="6" cy="-69" r="3" fill="#2b1d12"/><circle cx="7" cy="-70.5" r="1" fill="#fff"/>${brows}<path d="M-5 -61 q5 4 10 0" stroke="#5a2d1a" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M1 -60 q4 0 4 5 q0 4 -4 4 q-3 0 -3 -4 Z" fill="#f06a7a"/>`;
@@ -487,14 +503,34 @@ window.SK_ROOM = (function () {
   }
   function coolPos(i) { return { x: 300 + (i % 3) * 40, y: 600 }; }
   function floorPos(p) {
+    const sl = sledding[p.id]; if (sl) { const k = Math.min(1, (Date.now() - sl.t0) / 2400); return sledPos(k); }
     const cur = pos[p.id] || { x: p.x || 1000, y: p.y || 560 };
     return clampFloor(cur.x, cur.y);
+  }
+  function petSvg(p, x, y, s, faceLeft) {
+    const pet = D.PETS[p.pet]; if (!pet || !pet.e) return '';
+    const tx = x + (faceLeft ? 46 : -46) * s, ty = y + 6;
+    const c = petPos[p.id] || (petPos[p.id] = { x: tx, y: ty });
+    return `<text class="pet bob" data-pet="${esc(p.id)}" x="${c.x.toFixed(1)}" y="${c.y.toFixed(1)}" font-size="${(26 * s).toFixed(0)}" text-anchor="middle" style="animation-delay:-${(hash(p.id) % 20) / 10}s">${pet.e}</text>`;
+  }
+  function petTick(dt) {
+    const all = npc ? people.concat([npc]) : people;
+    for (const p of all) {
+      if (!p.pet || !D.PETS[p.pet] || !D.PETS[p.pet].e) continue;
+      const c = findPos(p.id); if (!c) continue;
+      const left = dest[p.id] && dest[p.id].x < c.x;
+      const s = p.zone === 'floor' ? floorScale(c.y) : 1;
+      const tx = c.x + (left ? 46 : -46) * s, ty = c.y + 6;
+      const pp = petPos[p.id] || (petPos[p.id] = { x: tx, y: ty });
+      const k = Math.min(1, dt / 260); pp.x += (tx - pp.x) * k; pp.y += (ty - pp.y) * k;
+      const elp = el.querySelector(`[data-pet="${p.id}"]`); if (elp) { elp.setAttribute('x', pp.x.toFixed(1)); elp.setAttribute('y', pp.y.toFixed(1)); }
+    }
   }
 
   function placePeople() {
     const { taken, seated, cooling, floor } = layout(npc ? people.concat([npc]) : people);
-    let html = seated.map(({ p, seat }) => avatar(p, seat.x, seat.y, seat.scale, p.id === pid)).join('');
-    floor.slice().sort((a, b) => floorPos(a).y - floorPos(b).y).forEach(p => { const c = floorPos(p); const moving = !!dest[p.id]; html += avatar(p, c.x, c.y, floorScale(c.y), p.id === pid, moving, moving && dest[p.id].x < c.x); });
+    let html = seated.map(({ p, seat }) => petSvg(p, seat.x, seat.y, seat.scale, false) + avatar(p, seat.x, seat.y, seat.scale, p.id === pid)).join('');
+    floor.slice().sort((a, b) => floorPos(a).y - floorPos(b).y).forEach(p => { const c = floorPos(p); const moving = !!dest[p.id]; const left = moving && dest[p.id].x < c.x; html += petSvg(p, c.x, c.y, floorScale(c.y), left) + avatar(p, c.x, c.y, floorScale(c.y), p.id === pid, moving, left, !!sledding[p.id]); });
     el.querySelector('.people').innerHTML = html;
     renderMinimap();
     el.querySelector('.seatHits').innerHTML = SEATS.filter(s => !taken[s.id]).map(s => `<ellipse cx="${s.x}" cy="${s.y - 20 * s.scale}" rx="${24 * s.scale}" ry="${30 * s.scale}" fill="#fff" fill-opacity=".02" stroke="#ffd166" stroke-opacity=".12" stroke-dasharray="3 3" data-seat="${s.id}" style="cursor:pointer"/>`).join('');
@@ -542,6 +578,32 @@ window.SK_ROOM = (function () {
       const w = Math.min(260, 14 + b.text.length * 6.2);
       return `<g transform="translate(${Math.min(790 - w, Math.max(10, pos.x - w / 2))},${pos.y - 118})"><rect width="${w}" height="24" rx="12" fill="#fff" fill-opacity=".95"/><text x="${w / 2}" y="16" text-anchor="middle" font-size="11" fill="#1f1b17" font-family="Inter,sans-serif">${esc(b.text)}</text></g>`;
     }).join('');
+    petTick(dt);
+    // sledding: re-render while anyone is on the hill, then land them
+    if (Object.keys(sledding).length) {
+      for (const id of Object.keys(sledding)) {
+        if (now - sledding[id].t0 > 2400) { delete sledding[id]; pos[id] = sledPos(1); if (id === pid) { me.x = pos[id].x; me.y = pos[id].y; track(); } setFace(id, 'laugh', 3000); }
+      }
+      placePeople();
+    }
+    // fireworks over the lake
+    if (fireworks.length) {
+      let html = ''; const live = [];
+      for (const f of fireworks) {
+        const t = (now - f.t0) / 1000;
+        if (t < 1.1) { const y = 650 - (650 - f.top) * (t / 1.1); html += `<circle cx="${f.x}" cy="${y.toFixed(0)}" r="3" fill="#fff"/><path d="M${f.x} ${y.toFixed(0)} L${f.x} ${(y + 30).toFixed(0)}" stroke="#ffd166" stroke-width="2" stroke-opacity=".7"/>`; live.push(f); }
+        else if (t < 2.9) {
+          if (!f.boomed) { f.boomed = true; boom(); }
+          const k = (t - 1.1) / 1.8, r = 20 + 110 * Math.sqrt(k), op = Math.max(0, 1 - k);
+          for (let i = 0; i < 18; i++) { const a = f.seed + i * Math.PI * 2 / 18; html += `<circle cx="${(f.x + Math.cos(a) * r).toFixed(0)}" cy="${(f.top + Math.sin(a) * r + 40 * k * k).toFixed(0)}" r="${(4 - 2 * k).toFixed(1)}" fill="${f.color}" fill-opacity="${op.toFixed(2)}"/>`; }
+          html += `<circle cx="${f.x}" cy="${f.top}" r="${(r * 0.6).toFixed(0)}" fill="${f.color}" fill-opacity="${(0.12 * op).toFixed(2)}"/>`;
+          live.push(f);
+        }
+      }
+      fireworks = live; el.querySelector('.bubbles').insertAdjacentHTML('beforeend', html);
+    }
+    if (fishAt && now > fishAt) { fishAt = 0; const dur = 8000 + Math.floor(Math.random() * 7000); send({ type: 'fish', dur }); catchAt = now + dur; }
+    if (catchAt && now > catchAt) { catchAt = 0; send({ type: 'catch', item: Math.floor(Math.random() * D.CATCHES.length) }); }
     // flying snowballs, vihtas and beers
     if (projectiles.length) {
       const live = [];
@@ -867,6 +929,18 @@ window.SK_ROOM = (function () {
     }
     else if (ev.type === 'say') { const text = String(ev.text || '').slice(0, 80); bubbles = bubbles.filter(b => !(b.id === ev.id && b.text)); bubbles.push({ id: ev.id, text, at: now, until: now + 7000 }); addLog(`💬 ${by}: ${text}`); addChat({ id: ev.id, by, text, mid: ev.mid }); if (ev.id !== pid) ding(); }
     else if (ev.type === 'mood') { const face = String(ev.face || ''); setFace(ev.id, face, ev.ms || 9000); if (ev.note === 'dipped') { stats.dips = (stats.dips || 0) + 1; renderStats(); } bubbles = bubbles.filter(b => !(b.id === ev.id && b.emoji)); bubbles.push({ id: ev.id, emoji: ev.emoji, at: now, until: now + 3500 }); if (ev.note) { addLog(`${ev.emoji} ${by} ${t(ev.note)}`); addChat({ sys: true, text: `${ev.emoji} ${by} ${t(ev.note)}` }); } else addChat({ id: ev.id, by, text: ev.emoji, big: true, mid: ev.mid }); if (ev.id !== pid) ding(); }
+    else if (ev.type === 'rocket') { fireworks.push({ x: ev.x || 300, top: 150 + Math.floor(Math.random() * 120), t0: now, seed: (ev.seed || 0) % 7, color: FX_COLORS[(ev.seed || 0) % FX_COLORS.length] }); hiss(false); addLog(`🎆 ${by} ${t('fired')}`); addChat({ sys: true, text: `🎆 ${by} ${t('fired')}` }); }
+    else if (ev.type === 'sled') {
+      const p = people.find(x => x.id === ev.id); if (p) { p.zone = 'floor'; p.x = 90; p.y = 430; }
+      pos[ev.id] = { x: 90, y: 430 }; delete dest[ev.id]; sledding[ev.id] = { t0: now }; setFace(ev.id, 'wow', 2400);
+      addLog(`🛷 ${by} ${t('sledded')}`); addChat({ sys: true, text: `🛷 ${by} ${t('sledded')}` }); placePeople();
+    }
+    else if (ev.type === 'fish') { fishing[ev.id] = now + (ev.dur || 10000); setFace(ev.id, 'fish', ev.dur || 10000); addLog(`🎣 ${by} ${t('fishing')}`); addChat({ sys: true, text: `🎣 ${by} ${t('fishing')}` }); }
+    else if (ev.type === 'catch') {
+      delete fishing[ev.id]; const c = D.CATCHES[(ev.item || 0) % D.CATCHES.length]; const what = ctx.lang() === 'en' ? c[1] : c[0];
+      setFace(ev.id, c[2] === '👢' || c[2] === '💤' ? 'wow' : 'laugh', 4000); bubbles.push({ id: ev.id, emoji: c[2], at: now, until: now + 4000 });
+      addLog(`🎣 ${by} ${t('caught')} ${what} ${c[2]}`); addChat({ sys: true, text: `🎣 ${by} ${t('caught')} ${what} ${c[2]}` }); if (ev.id !== pid) ding();
+    }
     else if (ev.type === 'sing') {
       singers[ev.id] = now + 8000; setFace(ev.id, 'sing', 8000); melody(ev.at || now); stats.songs = (stats.songs || 0) + 1; renderStats();
       addLog(`🎵 ${by} ${t('sang')}`); addChat({ sys: true, text: `🎵 ${by} ${t('sang')}` });
@@ -915,7 +989,8 @@ window.SK_ROOM = (function () {
     const name = prof.name || ctx.t('guest');
     let heroDay = null; try { heroDay = localStorage.getItem('saunakaverit.hero'); } catch (e) {}
     hero = heroDay === dayKey();
-    me = { name, seat: SEATS[hash(pid) % SEATS.length].id, zone: 'in', hat: figure.hat, towel: figure.towel, crown: 0, icecrown: 0, first: !!prof.firstTimer, since: Date.now(), outSince: null, inSince: Date.now(), hero };
+    me = { name, seat: SEATS[hash(pid) % SEATS.length].id, zone: 'in', hat: figure.hat, towel: figure.towel, pet: figure.pet || 'none', crown: 0, icecrown: 0, first: !!prof.firstTimer, since: Date.now(), outSince: null, inSince: Date.now(), hero };
+    petPos = {}; fireworks = []; sledding = {}; fishing = {}; fishAt = 0; catchAt = 0;
     counters = {}; imprints = []; warned = {}; snowfight = null; dipAt = 0; angelAt = 0; lastStage = 0; hotWarned = false; tonttuCallAt = 0;
     singers = {}; npc = null; npcStage = -1; stats = {}; ladle = null; throwTimes = []; lastLoylyAt = Date.now(); pcut = false; lastChorus = 0;
     lastPcut = Math.floor((Date.now() + 240000) / 660000); lastPentti = Math.floor((Date.now() + 120000) / 540000); lastAval = Math.floor((Date.now() + 300000) / 360000);
@@ -960,6 +1035,10 @@ window.SK_ROOM = (function () {
         <button class="btn small secondary" data-act="angel">👼 ${esc(t('angelBtn'))}</button>
         <button class="btn small secondary" data-act="sing">🎵 ${esc(t('sing'))}</button>
         <button class="btn small secondary" data-act="ladlegame">🥄 ${esc(t('ladleGame'))}</button>
+        <button class="btn small secondary" data-act="rocket">🎆 ${esc(t('rocket'))}</button>
+        <button class="btn small secondary" data-act="sled">🛷 ${esc(t('sled'))}</button>
+        <button class="btn small secondary" data-act="fish">🎣 ${esc(t('fish'))}</button>
+        <button class="btn small secondary" data-act="postcard">📮 ${esc(t('postcard'))}</button>
         <button class="btn small secondary" data-act="greet">🙏 ${esc(t('greet'))}</button>
         <button class="btn small secondary" data-act="figure">🎭 ${esc(t('myFigure'))}</button>
         <button class="btn small lake" data-act="quiz">🧠 ${esc(t('quiz'))}</button>
@@ -1010,7 +1089,8 @@ window.SK_ROOM = (function () {
     function showFigure() {
       const bar = el.querySelector('#figureBar'); const open = bar.style.display === 'none'; bar.style.display = open ? '' : 'none'; if (!open) return;
       bar.innerHTML = `<div class="small muted">${esc(t('hatLabel'))}</div><div class="pill-row" style="margin:4px 0 8px">${Object.keys(D.HATS).filter(h => h !== 'crown').map(h => `<button class="chipbtn ${me.hat === h ? 'active' : ''}" data-hat="${h}">${esc(L(D.HATS[h]))}</button>`).join('')}</div>
-        <div class="small muted">${esc(t('towelLabel'))}</div><div class="pill-row" style="margin-top:4px">${TOWELS.map((c, i) => `<button class="swatch ${me.towel === i ? 'on' : ''}" data-towel="${i}" style="background:${c}"></button>`).join('')}</div>`;
+        <div class="small muted">${esc(t('towelLabel'))}</div><div class="pill-row" style="margin-top:4px">${TOWELS.map((c, i) => `<button class="swatch ${me.towel === i ? 'on' : ''}" data-towel="${i}" style="background:${c}"></button>`).join('')}</div>
+        <div class="small muted" style="margin-top:8px">${esc(t('petLabel'))}</div><div class="pill-row" style="margin-top:4px">${Object.keys(D.PETS).map(k => `<button class="chipbtn ${(me.pet || 'none') === k ? 'active' : ''}" data-pet="${k}">${D.PETS[k].e ? D.PETS[k].e + ' ' : ''}${esc(L(D.PETS[k]))}</button>`).join('')}</div>`;
     }
     function doAct(act, b) {
       if (act === 'loyly') { if (b) { b.disabled = true; b.classList.add('pulse'); setTimeout(() => { b.disabled = false; b.classList.remove('pulse'); }, 1500); } try { navigator.vibrate && navigator.vibrate(30); } catch (e) {} send({ type: 'loyly' }); bump('loyly'); }
@@ -1031,6 +1111,10 @@ window.SK_ROOM = (function () {
       if (act === 'snowfight') { if (snowfight && !snowfight.done) return; send({ type: 'snowfight', at: Date.now() }); }
       if (act === 'cat') send({ type: 'cat' });
       if (act === 'sing') send({ type: 'sing', at: Date.now() });
+      if (act === 'rocket') send({ type: 'rocket', x: 120 + Math.floor(Math.random() * 420), seed: Math.floor(Math.random() * 1000) });
+      if (act === 'sled') { if (coldStage(me) >= 3) { ctx.toast(t('frozenCantMove')); return; } me.zone = 'floor'; me.x = 90; me.y = 430; if (!me.outSince) me.outSince = Date.now(); send({ type: 'sled' }); track(); }
+      if (act === 'fish') { if (coldStage(me) >= 3) { ctx.toast(t('frozenCantMove')); return; } const d = findPos(pid); walkTo(486, 596); const dist = d ? Math.hypot(486 - d.x, 596 - Math.max(478, d.y)) : 500; fishAt = Date.now() + dist / 230 * 1000 + 300; }
+      if (act === 'postcard') makePostcard();
       if (act === 'ladlegame') {
         const box = el.querySelector('#ladleGame'); ladle = { start: Date.now() }; box.style.display = '';
         box.innerHTML = `<div class="small muted">🥄 ${esc(t('ladleGame'))} · ${esc(t('ladleHint'))}</div><div class="ladleBar"><div class="zone"></div><div class="marker"></div></div><div class="row" style="margin-top:8px"><button class="btn small" data-act="ladlethrow">💧 ${esc(t('ladleThrow'))}</button><button class="btn small secondary" data-act="ladleclose">✕</button></div>`;
@@ -1076,6 +1160,7 @@ window.SK_ROOM = (function () {
       if (e.target.closest('[data-act=beertable]')) { send({ type: 'mood', face: 'beer', emoji: '🍺', note: 'tookBeer', ms: 15000, mid: pid + '-' + Date.now() }); return; }
       const hat = e.target.closest('[data-hat]'); if (hat) { me.hat = hat.dataset.hat; figure.hat = me.hat; saveFigure(); track(); showFigure(); showFigure(); return; }
       const tw = e.target.closest('[data-towel]'); if (tw) { me.towel = +tw.dataset.towel; figure.towel = me.towel; saveFigure(); track(); showFigure(); showFigure(); return; }
+      const pt2 = e.target.closest('[data-pet]'); if (pt2 && !pt2.classList.contains('pet')) { me.pet = pt2.dataset.pet; figure.pet = me.pet; saveFigure(); delete petPos[pid]; track(); placePeople(); showFigure(); showFigure(); return; }
       const qa = e.target.closest('[data-qa]'); if (qa && quiz && !quiz.done && quiz.mine == null) { const c = +qa.dataset.qa; send({ type: 'answer', q: quiz.q, choice: c, ok: c === D.QUIZ[quiz.q].a }); return; }
       const ph = e.target.closest('[data-phrase]'); if (ph) { send({ type: 'say', text: ph.dataset.phrase, mid: pid + '-' + Date.now() }); return; }
       const md = e.target.closest('[data-mood]'); if (md) { send({ type: 'mood', face: md.dataset.mood, emoji: md.dataset.emo, mid: pid + '-' + Date.now() }); return; }
@@ -1101,6 +1186,35 @@ window.SK_ROOM = (function () {
   }
   function saveFigure(){ try { localStorage.setItem('saunakaverit.figure', JSON.stringify(figure)); } catch (e) {} }
 
+  /* A postcard: the scene as a picture with a greeting, shared or downloaded. */
+  function makePostcard() {
+    const t = ctx.t;
+    try {
+      const src = el.querySelector('#roomSvg'); const clone = src.cloneNode(true);
+      clone.setAttribute('width', '900'); clone.setAttribute('height', '700'); clone.querySelectorAll('.seatHits').forEach(g => g.remove());
+      const xml = new XMLSerializer().serializeToString(clone);
+      const img = new Image();
+      img.onload = () => {
+        const cv = document.createElement('canvas'); cv.width = 900; cv.height = 790; const g = cv.getContext('2d');
+        g.drawImage(img, 0, 0, 900, 700);
+        g.fillStyle = '#f6f1ea'; g.fillRect(0, 700, 900, 90);
+        g.fillStyle = '#8c5a35'; g.font = 'bold 30px Outfit, Inter, sans-serif'; g.fillText(`🔥 ${t('postcardText')}`, 24, 742);
+        const names = people.map(p => p.name).slice(0, 8).join(', ');
+        g.fillStyle = '#5d5249'; g.font = '18px Inter, sans-serif'; g.fillText(`${new Date().toLocaleDateString(ctx.lang() === 'en' ? 'en-GB' : 'fi-FI')} · ${names}`, 24, 772);
+        g.fillStyle = '#8c5a35'; g.font = '16px Inter, sans-serif'; g.textAlign = 'right'; g.fillText(location.host + location.pathname, 876, 772);
+        cv.toBlob(blob => {
+          if (!blob) { ctx.toast(t('postcardFail')); return; }
+          const file = new File([blob], 'saunakaverit.png', { type: 'image/png' });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) { navigator.share({ files: [file], title: 'Saunakaverit', text: t('postcardText') }).catch(() => {}); }
+          else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'saunakaverit.png'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); }
+          ctx.toast(t('postcardDone'));
+        }, 'image/png');
+      };
+      img.onerror = () => ctx.toast(t('postcardFail'));
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
+    } catch (e) { ctx.toast(t('postcardFail')); }
+  }
+
   function leave() {
     if (raf) cancelAnimationFrame(raf); raf = null;
     if (ch) { const c = ch; ch = null; c.untrack().catch(() => {}); }
@@ -1125,5 +1239,5 @@ window.SK_ROOM = (function () {
     if (counts[id] != null) cb(counts[id], (metasByRoom[id] || []).map(m => m.name), metasByRoom[id] || []);
   }
 
-  return { enter, leave, watch, preview, isOpen: () => !!raf, count: (id) => counts[id] || 0, metas: (id) => metasByRoom[id] || [], _state: () => ({ me, pos, dest, people }) };
+  return { enter, leave, watch, preview, isOpen: () => !!raf, count: (id) => counts[id] || 0, metas: (id) => metasByRoom[id] || [], _state: () => ({ me, pos, dest, people, ch }) };
 })();
