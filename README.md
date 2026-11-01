@@ -2,6 +2,13 @@
 
 A social sauna app for Finland: fixed Sunday saunas, themed sessions (language sauna, newcomers, silent, avanto, after-the-run), a sauna passport with stamps and badges, and a twelve-point sauna etiquette for first-timers. Finnish first, English toggle.
 
+## Version 1.1 (the whole lakeside, 2026-11-01)
+
+- The world is 4400 units wide, six areas: **Ranta** (lake shore with a pier, a rowing boat on the open-water lane, a savusauna hut and a sign), **Terassi**, **Sauna**, **Pukuhuone**, **Mökki** (cottage with a stone fireplace, a table with candles and sausages, a bunk bed, a shelf) and **Piha** (yard with a grill hut, string lights, a woodpile and birches). The shore and the yard are outdoors and cold.
+- New things to do, offered where they make sense: 🚣 Soutele (row the boat along the shore), 💨 Savulöyly (grey smoke from the hut), 🔥 Lämmittele takalla (cures the cold at once), 🌭 Paista makkaraa (sausage on a stick, at the cottage table or the grill hut), 💤 Nuku (a nap in the bunk bed). Rockets launch from whichever outdoor area you are in.
+- Liiku now lists all six places; the mini-map shows six segments; twelve new Finnish words on the new things.
+- Figures snap into place when a phone returns from the background instead of walking across the whole world.
+
 ## Version 1.0 (official launch, 2026-11-01)
 
 - Launch check: every screen walked in Finnish and English, light and dark, desktop and phone width; backend security and performance advisors clean apart from the intentional token-checked functions; 24 hours of API logs show no errors beyond two from testing; all sauna links probed.

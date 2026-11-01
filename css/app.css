@@ -291,7 +291,7 @@ nav.tabs button.fab.active{background:none}
 @keyframes swing{from{transform:rotate(-15deg)}to{transform:rotate(25deg)}}
 .roomScene .wavehand{transform-box:fill-box;transform-origin:0% 100%;animation:wavearm .4s ease-in-out infinite alternate}
 .roomScene{touch-action:pan-y;cursor:grab}
-.minimap{position:relative;height:30px;margin:6px 0 2px;border-radius:8px;background:linear-gradient(90deg,#1d3b5e 0 32%,#6b3f1f 32% 72%,#c49a66 72%);overflow:hidden;cursor:pointer;user-select:none}
+.minimap{position:relative;height:30px;margin:6px 0 2px;border-radius:8px;background:linear-gradient(90deg,#132a4a 0 27.3%,#1d3b5e 27.3% 41.8%,#6b3f1f 41.8% 60%,#c49a66 60% 72.7%,#5a3519 72.7% 88.6%,#1d3b5e 88.6%);overflow:hidden;cursor:pointer;user-select:none}
 .minimap .mmArea{position:absolute;top:0;height:100%;display:flex;align-items:center;justify-content:center;font-size:.68rem;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.6);pointer-events:none}
 .minimap .mmView{position:absolute;top:0;height:100%;border:2px solid #ffd166;border-radius:6px;box-sizing:border-box;pointer-events:none;transition:left .1s linear}
 .minimap .mmDots i{position:absolute;bottom:3px;width:9px;height:9px;border-radius:50%;border:1.5px solid #1f1b17;transform:translateX(-50%)}
